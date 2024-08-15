@@ -1,0 +1,3597 @@
+   1               		.file	"chfactory.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.chCoreAllocAlignedI,"ax",@progbits
+  12               	chCoreAllocAlignedI:
+  13               	.LFB32:
+  14               		.file 1 "../../../os/oslib/include/chmemcore.h"
+   1:../../../os/oslib/include/chmemcore.h **** /*
+   2:../../../os/oslib/include/chmemcore.h ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../../os/oslib/include/chmemcore.h ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../../os/oslib/include/chmemcore.h **** 
+   5:../../../os/oslib/include/chmemcore.h ****     This file is part of ChibiOS.
+   6:../../../os/oslib/include/chmemcore.h **** 
+   7:../../../os/oslib/include/chmemcore.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../../os/oslib/include/chmemcore.h ****     it under the terms of the GNU General Public License as published by
+   9:../../../os/oslib/include/chmemcore.h ****     the Free Software Foundation version 3 of the License.
+  10:../../../os/oslib/include/chmemcore.h **** 
+  11:../../../os/oslib/include/chmemcore.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../../os/oslib/include/chmemcore.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../../os/oslib/include/chmemcore.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../../os/oslib/include/chmemcore.h ****     GNU General Public License for more details.
+  15:../../../os/oslib/include/chmemcore.h **** 
+  16:../../../os/oslib/include/chmemcore.h ****     You should have received a copy of the GNU General Public License
+  17:../../../os/oslib/include/chmemcore.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../../os/oslib/include/chmemcore.h **** */
+  19:../../../os/oslib/include/chmemcore.h **** 
+  20:../../../os/oslib/include/chmemcore.h **** /**
+  21:../../../os/oslib/include/chmemcore.h ****  * @file    oslib/include/chmemcore.h
+  22:../../../os/oslib/include/chmemcore.h ****  * @brief   Core memory manager macros and structures.
+  23:../../../os/oslib/include/chmemcore.h ****  *
+  24:../../../os/oslib/include/chmemcore.h ****  * @addtogroup oslib_memcore
+  25:../../../os/oslib/include/chmemcore.h ****  * @{
+  26:../../../os/oslib/include/chmemcore.h ****  */
+  27:../../../os/oslib/include/chmemcore.h **** 
+  28:../../../os/oslib/include/chmemcore.h **** #ifndef CHMEMCORE_H
+  29:../../../os/oslib/include/chmemcore.h **** #define CHMEMCORE_H
+  30:../../../os/oslib/include/chmemcore.h **** 
+  31:../../../os/oslib/include/chmemcore.h **** #if (CH_CFG_USE_MEMCORE == TRUE) || defined(__DOXYGEN__)
+  32:../../../os/oslib/include/chmemcore.h **** 
+  33:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  34:../../../os/oslib/include/chmemcore.h **** /* Module constants.                                                         */
+  35:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  36:../../../os/oslib/include/chmemcore.h **** 
+  37:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  38:../../../os/oslib/include/chmemcore.h **** /* Module pre-compile time settings.                                         */
+  39:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  40:../../../os/oslib/include/chmemcore.h **** 
+  41:../../../os/oslib/include/chmemcore.h **** /**
+  42:../../../os/oslib/include/chmemcore.h ****  * @brief   Managed RAM size.
+  43:../../../os/oslib/include/chmemcore.h ****  * @details Size of the RAM area to be managed by the OS. If set to zero
+  44:../../../os/oslib/include/chmemcore.h ****  *          then the whole available RAM is used. The core memory is made
+  45:../../../os/oslib/include/chmemcore.h ****  *          available to the heap allocator and/or can be used directly through
+  46:../../../os/oslib/include/chmemcore.h ****  *          the simplified core memory allocator.
+  47:../../../os/oslib/include/chmemcore.h ****  *
+  48:../../../os/oslib/include/chmemcore.h ****  * @note    In order to let the OS manage the whole RAM the linker script must
+  49:../../../os/oslib/include/chmemcore.h ****  *          provide the @p __heap_base__ and @p __heap_end__ symbols.
+  50:../../../os/oslib/include/chmemcore.h ****  * @note    Requires @p CH_CFG_USE_MEMCORE.
+  51:../../../os/oslib/include/chmemcore.h ****  */
+  52:../../../os/oslib/include/chmemcore.h **** #if !defined(CH_CFG_MEMCORE_SIZE) || defined(__DOXYGEN__)
+  53:../../../os/oslib/include/chmemcore.h **** #define CH_CFG_MEMCORE_SIZE                 0
+  54:../../../os/oslib/include/chmemcore.h **** #endif
+  55:../../../os/oslib/include/chmemcore.h **** 
+  56:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  57:../../../os/oslib/include/chmemcore.h **** /* Derived constants and error checks.                                       */
+  58:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  59:../../../os/oslib/include/chmemcore.h **** 
+  60:../../../os/oslib/include/chmemcore.h **** #if CH_CFG_MEMCORE_SIZE < 0
+  61:../../../os/oslib/include/chmemcore.h **** #error "invalid CH_CFG_MEMCORE_SIZE value specified"
+  62:../../../os/oslib/include/chmemcore.h **** #endif
+  63:../../../os/oslib/include/chmemcore.h **** 
+  64:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  65:../../../os/oslib/include/chmemcore.h **** /* Module data structures and types.                                         */
+  66:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  67:../../../os/oslib/include/chmemcore.h **** 
+  68:../../../os/oslib/include/chmemcore.h **** /**
+  69:../../../os/oslib/include/chmemcore.h ****  * @brief   Memory get function.
+  70:../../../os/oslib/include/chmemcore.h ****  */
+  71:../../../os/oslib/include/chmemcore.h **** typedef void *(*memgetfunc_t)(size_t size, unsigned align);
+  72:../../../os/oslib/include/chmemcore.h **** 
+  73:../../../os/oslib/include/chmemcore.h **** /**
+  74:../../../os/oslib/include/chmemcore.h ****  * @brief   Enhanced memory get function.
+  75:../../../os/oslib/include/chmemcore.h ****  */
+  76:../../../os/oslib/include/chmemcore.h **** typedef void *(*memgetfunc2_t)(size_t size, unsigned align, size_t offset);
+  77:../../../os/oslib/include/chmemcore.h **** 
+  78:../../../os/oslib/include/chmemcore.h **** /**
+  79:../../../os/oslib/include/chmemcore.h ****  * @brief   Type of memory core object.
+  80:../../../os/oslib/include/chmemcore.h ****  */
+  81:../../../os/oslib/include/chmemcore.h **** typedef struct {
+  82:../../../os/oslib/include/chmemcore.h ****   /**
+  83:../../../os/oslib/include/chmemcore.h ****    * @brief   Next free address.
+  84:../../../os/oslib/include/chmemcore.h ****    */
+  85:../../../os/oslib/include/chmemcore.h ****   uint8_t *basemem;
+  86:../../../os/oslib/include/chmemcore.h ****   /**
+  87:../../../os/oslib/include/chmemcore.h ****    * @brief   Final address.
+  88:../../../os/oslib/include/chmemcore.h ****    */
+  89:../../../os/oslib/include/chmemcore.h ****   uint8_t *topmem;
+  90:../../../os/oslib/include/chmemcore.h **** } memcore_t;
+  91:../../../os/oslib/include/chmemcore.h **** 
+  92:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  93:../../../os/oslib/include/chmemcore.h **** /* Module macros.                                                            */
+  94:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+  95:../../../os/oslib/include/chmemcore.h **** 
+  96:../../../os/oslib/include/chmemcore.h **** /**
+  97:../../../os/oslib/include/chmemcore.h ****  * @brief   Allocates a memory block.
+  98:../../../os/oslib/include/chmemcore.h ****  * @note    This is a generic form with unspecified allocation position.
+  99:../../../os/oslib/include/chmemcore.h ****  *
+ 100:../../../os/oslib/include/chmemcore.h ****  * @iclass
+ 101:../../../os/oslib/include/chmemcore.h ****  */
+ 102:../../../os/oslib/include/chmemcore.h **** #define chCoreAllocAlignedWithOffsetI chCoreAllocFromTopI
+ 103:../../../os/oslib/include/chmemcore.h **** 
+ 104:../../../os/oslib/include/chmemcore.h **** /**
+ 105:../../../os/oslib/include/chmemcore.h ****  * @brief   Allocates a memory block.
+ 106:../../../os/oslib/include/chmemcore.h ****  * @note    This is a generic form with unspecified allocation position.
+ 107:../../../os/oslib/include/chmemcore.h ****  *
+ 108:../../../os/oslib/include/chmemcore.h ****  * @api
+ 109:../../../os/oslib/include/chmemcore.h ****  */
+ 110:../../../os/oslib/include/chmemcore.h **** #define chCoreAllocAlignedWithOffset chCoreAllocFromTop
+ 111:../../../os/oslib/include/chmemcore.h **** 
+ 112:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+ 113:../../../os/oslib/include/chmemcore.h **** /* External declarations.                                                    */
+ 114:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+ 115:../../../os/oslib/include/chmemcore.h **** 
+ 116:../../../os/oslib/include/chmemcore.h **** #if !defined(__DOXYGEN__)
+ 117:../../../os/oslib/include/chmemcore.h **** extern memcore_t ch_memcore;
+ 118:../../../os/oslib/include/chmemcore.h **** #endif
+ 119:../../../os/oslib/include/chmemcore.h **** 
+ 120:../../../os/oslib/include/chmemcore.h **** #ifdef __cplusplus
+ 121:../../../os/oslib/include/chmemcore.h **** extern "C" {
+ 122:../../../os/oslib/include/chmemcore.h **** #endif
+ 123:../../../os/oslib/include/chmemcore.h ****   void __core_init(void);
+ 124:../../../os/oslib/include/chmemcore.h ****   void *chCoreAllocFromBaseI(size_t size, unsigned align, size_t offset);
+ 125:../../../os/oslib/include/chmemcore.h ****   void *chCoreAllocFromTopI(size_t size, unsigned align, size_t offset);
+ 126:../../../os/oslib/include/chmemcore.h ****   void *chCoreAllocFromBase(size_t size, unsigned align, size_t offset);
+ 127:../../../os/oslib/include/chmemcore.h ****   void *chCoreAllocFromTop(size_t size, unsigned align, size_t offset);
+ 128:../../../os/oslib/include/chmemcore.h ****   size_t chCoreGetStatusX(void);
+ 129:../../../os/oslib/include/chmemcore.h **** #ifdef __cplusplus
+ 130:../../../os/oslib/include/chmemcore.h **** }
+ 131:../../../os/oslib/include/chmemcore.h **** #endif
+ 132:../../../os/oslib/include/chmemcore.h **** 
+ 133:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+ 134:../../../os/oslib/include/chmemcore.h **** /* Module inline functions.                                                  */
+ 135:../../../os/oslib/include/chmemcore.h **** /*===========================================================================*/
+ 136:../../../os/oslib/include/chmemcore.h **** 
+ 137:../../../os/oslib/include/chmemcore.h **** /**
+ 138:../../../os/oslib/include/chmemcore.h ****  * @brief   Allocates a memory block.
+ 139:../../../os/oslib/include/chmemcore.h ****  * @details The allocated block is guaranteed to be properly aligned to the
+ 140:../../../os/oslib/include/chmemcore.h ****  *          specified alignment.
+ 141:../../../os/oslib/include/chmemcore.h ****  * @note    This is a generic form with unspecified allocation position.
+ 142:../../../os/oslib/include/chmemcore.h ****  *
+ 143:../../../os/oslib/include/chmemcore.h ****  * @param[in] size      the size of the block to be allocated.
+ 144:../../../os/oslib/include/chmemcore.h ****  * @param[in] align     desired memory alignment
+ 145:../../../os/oslib/include/chmemcore.h ****  * @return              A pointer to the allocated memory block.
+ 146:../../../os/oslib/include/chmemcore.h ****  * @retval NULL         allocation failed, core memory exhausted.
+ 147:../../../os/oslib/include/chmemcore.h ****  *
+ 148:../../../os/oslib/include/chmemcore.h ****  * @iclass
+ 149:../../../os/oslib/include/chmemcore.h ****  */
+ 150:../../../os/oslib/include/chmemcore.h **** static inline void *chCoreAllocAlignedI(size_t size, unsigned align) {
+  15               		.loc 1 150 0
+  16               		.cfi_startproc
+  17               	.LVL0:
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+ 151:../../../os/oslib/include/chmemcore.h **** 
+ 152:../../../os/oslib/include/chmemcore.h ****   return chCoreAllocAlignedWithOffsetI(size, align, 0U);
+  22               		.loc 1 152 0
+  23 0000 40E0      		ldi r20,0
+  24 0002 50E0      		ldi r21,0
+  25 0004 0C94 0000 		jmp chCoreAllocFromTopI
+  26               	.LVL1:
+  27               		.cfi_endproc
+  28               	.LFE32:
+  30               		.section	.text.dyn_find_object,"ax",@progbits
+  32               	dyn_find_object:
+  33               	.LFB106:
+  34               		.file 2 "../../../os/oslib/src/chfactory.c"
+   1:../../../os/oslib/src/chfactory.c **** /*
+   2:../../../os/oslib/src/chfactory.c ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../../os/oslib/src/chfactory.c ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../../os/oslib/src/chfactory.c **** 
+   5:../../../os/oslib/src/chfactory.c ****     This file is part of ChibiOS.
+   6:../../../os/oslib/src/chfactory.c **** 
+   7:../../../os/oslib/src/chfactory.c ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../../os/oslib/src/chfactory.c ****     it under the terms of the GNU General Public License as published by
+   9:../../../os/oslib/src/chfactory.c ****     the Free Software Foundation version 3 of the License.
+  10:../../../os/oslib/src/chfactory.c **** 
+  11:../../../os/oslib/src/chfactory.c ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../../os/oslib/src/chfactory.c ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../../os/oslib/src/chfactory.c ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../../os/oslib/src/chfactory.c ****     GNU General Public License for more details.
+  15:../../../os/oslib/src/chfactory.c **** 
+  16:../../../os/oslib/src/chfactory.c ****     You should have received a copy of the GNU General Public License
+  17:../../../os/oslib/src/chfactory.c ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../../os/oslib/src/chfactory.c **** */
+  19:../../../os/oslib/src/chfactory.c **** 
+  20:../../../os/oslib/src/chfactory.c **** /**
+  21:../../../os/oslib/src/chfactory.c ****  * @file    oslib/src/chfactory.c
+  22:../../../os/oslib/src/chfactory.c ****  * @brief   ChibiOS objects factory and registry code.
+  23:../../../os/oslib/src/chfactory.c ****  *
+  24:../../../os/oslib/src/chfactory.c ****  * @addtogroup oslib_objects_factory
+  25:../../../os/oslib/src/chfactory.c ****  * @details The object factory is a subsystem that allows to:
+  26:../../../os/oslib/src/chfactory.c ****  *          - Register static objects by name.
+  27:../../../os/oslib/src/chfactory.c ****  *          - Dynamically create objects and assign them a name.
+  28:../../../os/oslib/src/chfactory.c ****  *          - Retrieve existing objects by name.
+  29:../../../os/oslib/src/chfactory.c ****  *          - Free objects by reference.
+  30:../../../os/oslib/src/chfactory.c ****  *          .
+  31:../../../os/oslib/src/chfactory.c ****  *          Allocated OS objects are handled using a reference counter, only
+  32:../../../os/oslib/src/chfactory.c ****  *          when all references have been released then the object memory is
+  33:../../../os/oslib/src/chfactory.c ****  *          freed in a pool.<br>
+  34:../../../os/oslib/src/chfactory.c ****  * @pre     This subsystem requires the @p CH_CFG_USE_MEMCORE and
+  35:../../../os/oslib/src/chfactory.c ****  *          @p CH_CFG_USE_MEMPOOLS options to be set to @p TRUE. The
+  36:../../../os/oslib/src/chfactory.c ****  *          option @p CH_CFG_USE_HEAP is also required if the support
+  37:../../../os/oslib/src/chfactory.c ****  *          for variable length objects is enabled.
+  38:../../../os/oslib/src/chfactory.c ****  * @note    Compatible with RT and NIL.
+  39:../../../os/oslib/src/chfactory.c ****  * @{
+  40:../../../os/oslib/src/chfactory.c ****  */
+  41:../../../os/oslib/src/chfactory.c **** 
+  42:../../../os/oslib/src/chfactory.c **** #include <string.h>
+  43:../../../os/oslib/src/chfactory.c **** 
+  44:../../../os/oslib/src/chfactory.c **** #include "ch.h"
+  45:../../../os/oslib/src/chfactory.c **** 
+  46:../../../os/oslib/src/chfactory.c **** #if (CH_CFG_USE_FACTORY == TRUE) || defined(__DOXYGEN__)
+  47:../../../os/oslib/src/chfactory.c **** 
+  48:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+  49:../../../os/oslib/src/chfactory.c **** /* Module local definitions.                                                 */
+  50:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+  51:../../../os/oslib/src/chfactory.c **** 
+  52:../../../os/oslib/src/chfactory.c **** /*
+  53:../../../os/oslib/src/chfactory.c ****  * Defaults on the best synchronization mechanism available.
+  54:../../../os/oslib/src/chfactory.c ****  */
+  55:../../../os/oslib/src/chfactory.c **** #if (CH_CFG_USE_MUTEXES == TRUE) || defined(__DOXYGEN__)
+  56:../../../os/oslib/src/chfactory.c **** #define F_LOCK()        chMtxLock(&ch_factory.mtx)
+  57:../../../os/oslib/src/chfactory.c **** #define F_UNLOCK()      chMtxUnlock(&ch_factory.mtx)
+  58:../../../os/oslib/src/chfactory.c **** #else
+  59:../../../os/oslib/src/chfactory.c **** #define F_LOCK()        (void) chSemWait(&ch_factory.sem)
+  60:../../../os/oslib/src/chfactory.c **** #define F_UNLOCK()      chSemSignal(&ch_factory.sem)
+  61:../../../os/oslib/src/chfactory.c **** #endif
+  62:../../../os/oslib/src/chfactory.c **** 
+  63:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+  64:../../../os/oslib/src/chfactory.c **** /* Module exported variables.                                                */
+  65:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+  66:../../../os/oslib/src/chfactory.c **** 
+  67:../../../os/oslib/src/chfactory.c **** /**
+  68:../../../os/oslib/src/chfactory.c ****  * @brief   Factory object static instance.
+  69:../../../os/oslib/src/chfactory.c ****  * @note    It is a global object because it could be accessed through
+  70:../../../os/oslib/src/chfactory.c ****  *          a specific debugger plugin.
+  71:../../../os/oslib/src/chfactory.c ****  */
+  72:../../../os/oslib/src/chfactory.c **** objects_factory_t ch_factory;
+  73:../../../os/oslib/src/chfactory.c **** 
+  74:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+  75:../../../os/oslib/src/chfactory.c **** /* Module local types.                                                       */
+  76:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+  77:../../../os/oslib/src/chfactory.c **** 
+  78:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+  79:../../../os/oslib/src/chfactory.c **** /* Module local variables.                                                   */
+  80:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+  81:../../../os/oslib/src/chfactory.c **** 
+  82:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+  83:../../../os/oslib/src/chfactory.c **** /* Module local functions.                                                   */
+  84:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+  85:../../../os/oslib/src/chfactory.c **** 
+  86:../../../os/oslib/src/chfactory.c **** static void copy_name(const char *sp, char *dp) {
+  87:../../../os/oslib/src/chfactory.c ****   unsigned i;
+  88:../../../os/oslib/src/chfactory.c ****   char c;
+  89:../../../os/oslib/src/chfactory.c **** 
+  90:../../../os/oslib/src/chfactory.c ****   i = CH_CFG_FACTORY_MAX_NAMES_LENGTH;
+  91:../../../os/oslib/src/chfactory.c ****   do {
+  92:../../../os/oslib/src/chfactory.c ****     c = *sp++;
+  93:../../../os/oslib/src/chfactory.c ****     *dp++ = c;
+  94:../../../os/oslib/src/chfactory.c ****     i--;
+  95:../../../os/oslib/src/chfactory.c ****   } while ((c != (char)0) && (i > 0U));
+  96:../../../os/oslib/src/chfactory.c **** }
+  97:../../../os/oslib/src/chfactory.c **** 
+  98:../../../os/oslib/src/chfactory.c **** static inline void dyn_list_init(dyn_list_t *dlp) {
+  99:../../../os/oslib/src/chfactory.c **** 
+ 100:../../../os/oslib/src/chfactory.c ****   dlp->next = (dyn_element_t *)dlp;
+ 101:../../../os/oslib/src/chfactory.c **** }
+ 102:../../../os/oslib/src/chfactory.c **** 
+ 103:../../../os/oslib/src/chfactory.c **** static dyn_element_t *dyn_list_find(const char *name, dyn_list_t *dlp) {
+ 104:../../../os/oslib/src/chfactory.c ****   dyn_element_t *p = dlp->next;
+ 105:../../../os/oslib/src/chfactory.c **** 
+ 106:../../../os/oslib/src/chfactory.c ****   while (p != (dyn_element_t *)dlp) {
+ 107:../../../os/oslib/src/chfactory.c ****     if (strncmp(p->name, name, CH_CFG_FACTORY_MAX_NAMES_LENGTH) == 0) {
+ 108:../../../os/oslib/src/chfactory.c ****       return p;
+ 109:../../../os/oslib/src/chfactory.c ****     }
+ 110:../../../os/oslib/src/chfactory.c ****     p = p->next;
+ 111:../../../os/oslib/src/chfactory.c ****   }
+ 112:../../../os/oslib/src/chfactory.c **** 
+ 113:../../../os/oslib/src/chfactory.c ****   return NULL;
+ 114:../../../os/oslib/src/chfactory.c **** }
+ 115:../../../os/oslib/src/chfactory.c **** 
+ 116:../../../os/oslib/src/chfactory.c **** static dyn_element_t *dyn_list_unlink(dyn_element_t *element,
+ 117:../../../os/oslib/src/chfactory.c ****                                       dyn_list_t *dlp) {
+ 118:../../../os/oslib/src/chfactory.c ****   dyn_element_t *prev = (dyn_element_t *)dlp;
+ 119:../../../os/oslib/src/chfactory.c **** 
+ 120:../../../os/oslib/src/chfactory.c ****   /* Scanning the list.*/
+ 121:../../../os/oslib/src/chfactory.c ****   while (prev->next != (dyn_element_t *)dlp) {
+ 122:../../../os/oslib/src/chfactory.c ****     if (prev->next == element) {
+ 123:../../../os/oslib/src/chfactory.c ****       /* Found.*/
+ 124:../../../os/oslib/src/chfactory.c ****       prev->next = element->next;
+ 125:../../../os/oslib/src/chfactory.c ****       return element;
+ 126:../../../os/oslib/src/chfactory.c ****     }
+ 127:../../../os/oslib/src/chfactory.c **** 
+ 128:../../../os/oslib/src/chfactory.c ****     /* Next element in the list.*/
+ 129:../../../os/oslib/src/chfactory.c ****     prev = prev->next;
+ 130:../../../os/oslib/src/chfactory.c ****   }
+ 131:../../../os/oslib/src/chfactory.c **** 
+ 132:../../../os/oslib/src/chfactory.c ****   return NULL;
+ 133:../../../os/oslib/src/chfactory.c **** }
+ 134:../../../os/oslib/src/chfactory.c **** 
+ 135:../../../os/oslib/src/chfactory.c **** #if CH_FACTORY_REQUIRES_HEAP || defined(__DOXYGEN__)
+ 136:../../../os/oslib/src/chfactory.c **** static dyn_element_t *dyn_create_object_heap(const char *name,
+ 137:../../../os/oslib/src/chfactory.c ****                                              dyn_list_t *dlp,
+ 138:../../../os/oslib/src/chfactory.c ****                                              size_t size,
+ 139:../../../os/oslib/src/chfactory.c ****                                              unsigned align) {
+ 140:../../../os/oslib/src/chfactory.c ****   dyn_element_t *dep;
+ 141:../../../os/oslib/src/chfactory.c **** 
+ 142:../../../os/oslib/src/chfactory.c ****   chDbgCheck(name != NULL);
+ 143:../../../os/oslib/src/chfactory.c **** 
+ 144:../../../os/oslib/src/chfactory.c ****   /* Checking if an object with this name has already been created.*/
+ 145:../../../os/oslib/src/chfactory.c ****   dep = dyn_list_find(name, dlp);
+ 146:../../../os/oslib/src/chfactory.c ****   if (dep != NULL) {
+ 147:../../../os/oslib/src/chfactory.c ****     return NULL;
+ 148:../../../os/oslib/src/chfactory.c ****   }
+ 149:../../../os/oslib/src/chfactory.c **** 
+ 150:../../../os/oslib/src/chfactory.c ****   /* Allocating space for the new buffer object.*/
+ 151:../../../os/oslib/src/chfactory.c ****   dep = (dyn_element_t *)chHeapAllocAligned(NULL, size, align);
+ 152:../../../os/oslib/src/chfactory.c ****   if (dep == NULL) {
+ 153:../../../os/oslib/src/chfactory.c ****     return NULL;
+ 154:../../../os/oslib/src/chfactory.c ****   }
+ 155:../../../os/oslib/src/chfactory.c **** 
+ 156:../../../os/oslib/src/chfactory.c ****   /* Initializing object list element.*/
+ 157:../../../os/oslib/src/chfactory.c ****   copy_name(name, dep->name);
+ 158:../../../os/oslib/src/chfactory.c ****   dep->refs = (ucnt_t)1;
+ 159:../../../os/oslib/src/chfactory.c ****   dep->next = dlp->next;
+ 160:../../../os/oslib/src/chfactory.c **** 
+ 161:../../../os/oslib/src/chfactory.c ****   /* Updating factory list.*/
+ 162:../../../os/oslib/src/chfactory.c ****   dlp->next = dep;
+ 163:../../../os/oslib/src/chfactory.c **** 
+ 164:../../../os/oslib/src/chfactory.c ****   return dep;
+ 165:../../../os/oslib/src/chfactory.c **** }
+ 166:../../../os/oslib/src/chfactory.c **** 
+ 167:../../../os/oslib/src/chfactory.c **** static void dyn_release_object_heap(dyn_element_t *dep,
+ 168:../../../os/oslib/src/chfactory.c ****                                     dyn_list_t *dlp) {
+ 169:../../../os/oslib/src/chfactory.c **** 
+ 170:../../../os/oslib/src/chfactory.c ****   chDbgCheck(dep != NULL);
+ 171:../../../os/oslib/src/chfactory.c ****   chDbgAssert(dep->refs > (ucnt_t)0, "invalid references number");
+ 172:../../../os/oslib/src/chfactory.c **** 
+ 173:../../../os/oslib/src/chfactory.c ****   dep->refs--;
+ 174:../../../os/oslib/src/chfactory.c ****   if (dep->refs == (ucnt_t)0) {
+ 175:../../../os/oslib/src/chfactory.c ****     dep = dyn_list_unlink(dep, dlp);
+ 176:../../../os/oslib/src/chfactory.c ****     chHeapFree((void *)dep);
+ 177:../../../os/oslib/src/chfactory.c ****   }
+ 178:../../../os/oslib/src/chfactory.c **** }
+ 179:../../../os/oslib/src/chfactory.c **** #endif /* CH_FACTORY_REQUIRES_HEAP */
+ 180:../../../os/oslib/src/chfactory.c **** 
+ 181:../../../os/oslib/src/chfactory.c **** #if CH_FACTORY_REQUIRES_POOLS || defined(__DOXYGEN__)
+ 182:../../../os/oslib/src/chfactory.c **** static dyn_element_t *dyn_create_object_pool(const char *name,
+ 183:../../../os/oslib/src/chfactory.c ****                                              dyn_list_t *dlp,
+ 184:../../../os/oslib/src/chfactory.c ****                                              memory_pool_t *mp) {
+ 185:../../../os/oslib/src/chfactory.c ****   dyn_element_t *dep;
+ 186:../../../os/oslib/src/chfactory.c **** 
+ 187:../../../os/oslib/src/chfactory.c ****   chDbgCheck(name != NULL);
+ 188:../../../os/oslib/src/chfactory.c **** 
+ 189:../../../os/oslib/src/chfactory.c ****   /* Checking if an object object with this name has already been created.*/
+ 190:../../../os/oslib/src/chfactory.c ****   dep = dyn_list_find(name, dlp);
+ 191:../../../os/oslib/src/chfactory.c ****   if (dep != NULL) {
+ 192:../../../os/oslib/src/chfactory.c ****     return NULL;
+ 193:../../../os/oslib/src/chfactory.c ****   }
+ 194:../../../os/oslib/src/chfactory.c **** 
+ 195:../../../os/oslib/src/chfactory.c ****   /* Allocating space for the new object.*/
+ 196:../../../os/oslib/src/chfactory.c ****   dep = (dyn_element_t *)chPoolAlloc(mp);
+ 197:../../../os/oslib/src/chfactory.c ****   if (dep == NULL) {
+ 198:../../../os/oslib/src/chfactory.c ****     return NULL;
+ 199:../../../os/oslib/src/chfactory.c ****   }
+ 200:../../../os/oslib/src/chfactory.c **** 
+ 201:../../../os/oslib/src/chfactory.c ****   /* Initializing object list element.*/
+ 202:../../../os/oslib/src/chfactory.c ****   copy_name(name, dep->name);
+ 203:../../../os/oslib/src/chfactory.c ****   dep->refs = (ucnt_t)1;
+ 204:../../../os/oslib/src/chfactory.c ****   dep->next = dlp->next;
+ 205:../../../os/oslib/src/chfactory.c **** 
+ 206:../../../os/oslib/src/chfactory.c ****   /* Updating factory list.*/
+ 207:../../../os/oslib/src/chfactory.c ****   dlp->next = (dyn_element_t *)dep;
+ 208:../../../os/oslib/src/chfactory.c **** 
+ 209:../../../os/oslib/src/chfactory.c ****   return dep;
+ 210:../../../os/oslib/src/chfactory.c **** }
+ 211:../../../os/oslib/src/chfactory.c **** 
+ 212:../../../os/oslib/src/chfactory.c **** static void dyn_release_object_pool(dyn_element_t *dep,
+ 213:../../../os/oslib/src/chfactory.c ****                                     dyn_list_t *dlp,
+ 214:../../../os/oslib/src/chfactory.c ****                                     memory_pool_t *mp) {
+ 215:../../../os/oslib/src/chfactory.c **** 
+ 216:../../../os/oslib/src/chfactory.c ****   chDbgCheck(dep != NULL);
+ 217:../../../os/oslib/src/chfactory.c ****   chDbgAssert(dep->refs > (ucnt_t)0, "invalid references number");
+ 218:../../../os/oslib/src/chfactory.c **** 
+ 219:../../../os/oslib/src/chfactory.c ****   dep->refs--;
+ 220:../../../os/oslib/src/chfactory.c ****   if (dep->refs == (ucnt_t)0) {
+ 221:../../../os/oslib/src/chfactory.c ****     dep = dyn_list_unlink(dep, dlp);
+ 222:../../../os/oslib/src/chfactory.c ****     chPoolFree(mp, (void *)dep);
+ 223:../../../os/oslib/src/chfactory.c ****   }
+ 224:../../../os/oslib/src/chfactory.c **** }
+ 225:../../../os/oslib/src/chfactory.c **** #endif /* CH_FACTORY_REQUIRES_POOLS */
+ 226:../../../os/oslib/src/chfactory.c **** 
+ 227:../../../os/oslib/src/chfactory.c **** static dyn_element_t *dyn_find_object(const char *name, dyn_list_t *dlp) {
+  35               		.loc 2 227 0
+  36               		.cfi_startproc
+  37               	.LVL2:
+  38 0000 EF92      		push r14
+  39               	.LCFI0:
+  40               		.cfi_def_cfa_offset 3
+  41               		.cfi_offset 14, -2
+  42 0002 FF92      		push r15
+  43               	.LCFI1:
+  44               		.cfi_def_cfa_offset 4
+  45               		.cfi_offset 15, -3
+  46 0004 0F93      		push r16
+  47               	.LCFI2:
+  48               		.cfi_def_cfa_offset 5
+  49               		.cfi_offset 16, -4
+  50 0006 1F93      		push r17
+  51               	.LCFI3:
+  52               		.cfi_def_cfa_offset 6
+  53               		.cfi_offset 17, -5
+  54 0008 CF93      		push r28
+  55               	.LCFI4:
+  56               		.cfi_def_cfa_offset 7
+  57               		.cfi_offset 28, -6
+  58 000a DF93      		push r29
+  59               	.LCFI5:
+  60               		.cfi_def_cfa_offset 8
+  61               		.cfi_offset 29, -7
+  62               	/* prologue: function */
+  63               	/* frame size = 0 */
+  64               	/* stack size = 6 */
+  65               	.L__stack_usage = 6
+  66 000c 7C01      		movw r14,r24
+  67 000e 8B01      		movw r16,r22
+  68               	.LVL3:
+  69               	.LBB68:
+  70               	.LBB69:
+ 104:../../../os/oslib/src/chfactory.c **** 
+  71               		.loc 2 104 0
+  72 0010 FB01      		movw r30,r22
+  73 0012 C081      		ld r28,Z
+  74 0014 D181      		ldd r29,Z+1
+  75               	.LVL4:
+ 106:../../../os/oslib/src/chfactory.c ****     if (strncmp(p->name, name, CH_CFG_FACTORY_MAX_NAMES_LENGTH) == 0) {
+  76               		.loc 2 106 0
+  77 0016 6C17      		cp r22,r28
+  78 0018 7D07      		cpc r23,r29
+  79 001a 01F4      		brne .L5
+  80 001c 00C0      		rjmp .L7
+  81               	.LVL5:
+  82               	.L10:
+ 110:../../../os/oslib/src/chfactory.c ****   }
+  83               		.loc 2 110 0
+  84 001e 0990      		ld __tmp_reg__,Y+
+  85 0020 D881      		ld r29,Y
+  86 0022 C02D      		mov r28,__tmp_reg__
+  87               	.LVL6:
+ 106:../../../os/oslib/src/chfactory.c ****     if (strncmp(p->name, name, CH_CFG_FACTORY_MAX_NAMES_LENGTH) == 0) {
+  88               		.loc 2 106 0
+  89 0024 0C17      		cp r16,r28
+  90 0026 1D07      		cpc r17,r29
+  91 0028 01F0      		breq .L7
+  92               	.L5:
+ 107:../../../os/oslib/src/chfactory.c ****       return p;
+  93               		.loc 2 107 0
+  94 002a 48E0      		ldi r20,lo8(8)
+  95 002c 50E0      		ldi r21,0
+  96 002e B701      		movw r22,r14
+  97 0030 CE01      		movw r24,r28
+  98 0032 0396      		adiw r24,3
+  99 0034 0E94 0000 		call strncmp
+ 100               	.LVL7:
+ 101 0038 892B      		or r24,r25
+ 102 003a 01F4      		brne .L10
+ 103               	.LVL8:
+ 104               	.LBE69:
+ 105               	.LBE68:
+ 228:../../../os/oslib/src/chfactory.c ****   dyn_element_t *dep;
+ 229:../../../os/oslib/src/chfactory.c **** 
+ 230:../../../os/oslib/src/chfactory.c ****   chDbgCheck(name != NULL);
+ 231:../../../os/oslib/src/chfactory.c **** 
+ 232:../../../os/oslib/src/chfactory.c ****   /* Checking if an object with this name has already been created.*/
+ 233:../../../os/oslib/src/chfactory.c ****   dep = dyn_list_find(name, dlp);
+ 234:../../../os/oslib/src/chfactory.c ****   if (dep != NULL) {
+ 106               		.loc 2 234 0
+ 107 003c 2097      		sbiw r28,0
+ 108 003e 01F0      		breq .L7
+ 235:../../../os/oslib/src/chfactory.c ****     /* Increasing references counter.*/
+ 236:../../../os/oslib/src/chfactory.c ****     dep->refs++;
+ 109               		.loc 2 236 0
+ 110 0040 8A81      		ldd r24,Y+2
+ 111 0042 8F5F      		subi r24,lo8(-(1))
+ 112 0044 8A83      		std Y+2,r24
+ 113 0046 CE01      		movw r24,r28
+ 114               	/* epilogue start */
+ 237:../../../os/oslib/src/chfactory.c ****   }
+ 238:../../../os/oslib/src/chfactory.c **** 
+ 239:../../../os/oslib/src/chfactory.c ****   return dep;
+ 240:../../../os/oslib/src/chfactory.c **** }
+ 115               		.loc 2 240 0
+ 116 0048 DF91      		pop r29
+ 117 004a CF91      		pop r28
+ 118 004c 1F91      		pop r17
+ 119 004e 0F91      		pop r16
+ 120               	.LVL9:
+ 121 0050 FF90      		pop r15
+ 122 0052 EF90      		pop r14
+ 123               	.LVL10:
+ 124 0054 0895      		ret
+ 125               	.LVL11:
+ 126               	.L7:
+ 127 0056 80E0      		ldi r24,0
+ 128 0058 90E0      		ldi r25,0
+ 129               	/* epilogue start */
+ 130 005a DF91      		pop r29
+ 131 005c CF91      		pop r28
+ 132 005e 1F91      		pop r17
+ 133 0060 0F91      		pop r16
+ 134               	.LVL12:
+ 135 0062 FF90      		pop r15
+ 136 0064 EF90      		pop r14
+ 137               	.LVL13:
+ 138 0066 0895      		ret
+ 139               		.cfi_endproc
+ 140               	.LFE106:
+ 142               		.section	.text.dyn_create_object_pool,"ax",@progbits
+ 144               	dyn_create_object_pool:
+ 145               	.LFB104:
+ 184:../../../os/oslib/src/chfactory.c ****   dyn_element_t *dep;
+ 146               		.loc 2 184 0
+ 147               		.cfi_startproc
+ 148               	.LVL14:
+ 149 0000 CF92      		push r12
+ 150               	.LCFI6:
+ 151               		.cfi_def_cfa_offset 3
+ 152               		.cfi_offset 12, -2
+ 153 0002 DF92      		push r13
+ 154               	.LCFI7:
+ 155               		.cfi_def_cfa_offset 4
+ 156               		.cfi_offset 13, -3
+ 157 0004 EF92      		push r14
+ 158               	.LCFI8:
+ 159               		.cfi_def_cfa_offset 5
+ 160               		.cfi_offset 14, -4
+ 161 0006 FF92      		push r15
+ 162               	.LCFI9:
+ 163               		.cfi_def_cfa_offset 6
+ 164               		.cfi_offset 15, -5
+ 165 0008 0F93      		push r16
+ 166               	.LCFI10:
+ 167               		.cfi_def_cfa_offset 7
+ 168               		.cfi_offset 16, -6
+ 169 000a 1F93      		push r17
+ 170               	.LCFI11:
+ 171               		.cfi_def_cfa_offset 8
+ 172               		.cfi_offset 17, -7
+ 173 000c CF93      		push r28
+ 174               	.LCFI12:
+ 175               		.cfi_def_cfa_offset 9
+ 176               		.cfi_offset 28, -8
+ 177 000e DF93      		push r29
+ 178               	.LCFI13:
+ 179               		.cfi_def_cfa_offset 10
+ 180               		.cfi_offset 29, -9
+ 181               	/* prologue: function */
+ 182               	/* frame size = 0 */
+ 183               	/* stack size = 8 */
+ 184               	.L__stack_usage = 8
+ 185 0010 7C01      		movw r14,r24
+ 186 0012 8B01      		movw r16,r22
+ 187 0014 6A01      		movw r12,r20
+ 188               	.LVL15:
+ 189               	.LBB78:
+ 190               	.LBB79:
+ 104:../../../os/oslib/src/chfactory.c **** 
+ 191               		.loc 2 104 0
+ 192 0016 FB01      		movw r30,r22
+ 193 0018 C081      		ld r28,Z
+ 194 001a D181      		ldd r29,Z+1
+ 195               	.LVL16:
+ 106:../../../os/oslib/src/chfactory.c ****     if (strncmp(p->name, name, CH_CFG_FACTORY_MAX_NAMES_LENGTH) == 0) {
+ 196               		.loc 2 106 0
+ 197 001c 6C17      		cp r22,r28
+ 198 001e 7D07      		cpc r23,r29
+ 199 0020 01F4      		brne .L14
+ 200 0022 00C0      		rjmp .L12
+ 201               	.LVL17:
+ 202               	.L30:
+ 110:../../../os/oslib/src/chfactory.c ****   }
+ 203               		.loc 2 110 0
+ 204 0024 0990      		ld __tmp_reg__,Y+
+ 205 0026 D881      		ld r29,Y
+ 206 0028 C02D      		mov r28,__tmp_reg__
+ 207               	.LVL18:
+ 106:../../../os/oslib/src/chfactory.c ****     if (strncmp(p->name, name, CH_CFG_FACTORY_MAX_NAMES_LENGTH) == 0) {
+ 208               		.loc 2 106 0
+ 209 002a 0C17      		cp r16,r28
+ 210 002c 1D07      		cpc r17,r29
+ 211 002e 01F0      		breq .L12
+ 212               	.L14:
+ 107:../../../os/oslib/src/chfactory.c ****       return p;
+ 213               		.loc 2 107 0
+ 214 0030 48E0      		ldi r20,lo8(8)
+ 215 0032 50E0      		ldi r21,0
+ 216 0034 B701      		movw r22,r14
+ 217 0036 CE01      		movw r24,r28
+ 218 0038 0396      		adiw r24,3
+ 219 003a 0E94 0000 		call strncmp
+ 220               	.LVL19:
+ 221 003e 892B      		or r24,r25
+ 222 0040 01F4      		brne .L30
+ 223               	.LVL20:
+ 224               	.LBE79:
+ 225               	.LBE78:
+ 191:../../../os/oslib/src/chfactory.c ****     return NULL;
+ 226               		.loc 2 191 0
+ 227 0042 CD2B      		or r28,r29
+ 228 0044 01F0      		breq .L12
+ 229               	.L16:
+ 192:../../../os/oslib/src/chfactory.c ****   }
+ 230               		.loc 2 192 0
+ 231 0046 80E0      		ldi r24,0
+ 232 0048 90E0      		ldi r25,0
+ 233               	.L15:
+ 234               	/* epilogue start */
+ 210:../../../os/oslib/src/chfactory.c **** 
+ 235               		.loc 2 210 0
+ 236 004a DF91      		pop r29
+ 237 004c CF91      		pop r28
+ 238 004e 1F91      		pop r17
+ 239 0050 0F91      		pop r16
+ 240               	.LVL21:
+ 241 0052 FF90      		pop r15
+ 242 0054 EF90      		pop r14
+ 243               	.LVL22:
+ 244 0056 DF90      		pop r13
+ 245 0058 CF90      		pop r12
+ 246               	.LVL23:
+ 247 005a 0895      		ret
+ 248               	.LVL24:
+ 249               	.L12:
+ 250               	.LBB80:
+ 251               	.LBB81:
+ 196:../../../os/oslib/src/chfactory.c ****   if (dep == NULL) {
+ 252               		.loc 2 196 0
+ 253 005c C601      		movw r24,r12
+ 254 005e 0E94 0000 		call chPoolAlloc
+ 255               	.LVL25:
+ 256 0062 EC01      		movw r28,r24
+ 257               	.LVL26:
+ 197:../../../os/oslib/src/chfactory.c ****     return NULL;
+ 258               		.loc 2 197 0
+ 259 0064 0097      		sbiw r24,0
+ 260 0066 01F0      		breq .L16
+ 261               	.LVL27:
+ 262 0068 F701      		movw r30,r14
+ 202:../../../os/oslib/src/chfactory.c ****   dep->refs = (ucnt_t)1;
+ 263               		.loc 2 202 0
+ 264 006a DC01      		movw r26,r24
+ 265 006c 1396      		adiw r26,3
+ 266               	.LVL28:
+ 267 006e 9701      		movw r18,r14
+ 268 0070 285F      		subi r18,-8
+ 269 0072 3F4F      		sbci r19,-1
+ 270               	.LVL29:
+ 271               	.L18:
+ 272               	.LBB82:
+ 273               	.LBB83:
+  92:../../../os/oslib/src/chfactory.c ****     *dp++ = c;
+ 274               		.loc 2 92 0
+ 275 0074 9191      		ld r25,Z+
+ 276               	.LVL30:
+  93:../../../os/oslib/src/chfactory.c ****     i--;
+ 277               		.loc 2 93 0
+ 278 0076 9D93      		st X+,r25
+ 279               	.LVL31:
+  95:../../../os/oslib/src/chfactory.c **** }
+ 280               		.loc 2 95 0
+ 281 0078 9923      		tst r25
+ 282 007a 01F0      		breq .L17
+ 283 007c E217      		cp r30,r18
+ 284 007e F307      		cpc r31,r19
+ 285 0080 01F4      		brne .L18
+ 286               	.L17:
+ 287               	.LVL32:
+ 288               	.LBE83:
+ 289               	.LBE82:
+ 203:../../../os/oslib/src/chfactory.c ****   dep->next = dlp->next;
+ 290               		.loc 2 203 0
+ 291 0082 81E0      		ldi r24,lo8(1)
+ 292               	.LVL33:
+ 293 0084 8A83      		std Y+2,r24
+ 204:../../../os/oslib/src/chfactory.c **** 
+ 294               		.loc 2 204 0
+ 295 0086 F801      		movw r30,r16
+ 296 0088 8081      		ld r24,Z
+ 297 008a 9181      		ldd r25,Z+1
+ 298 008c 9983      		std Y+1,r25
+ 299 008e 8883      		st Y,r24
+ 207:../../../os/oslib/src/chfactory.c **** 
+ 300               		.loc 2 207 0
+ 301 0090 D183      		std Z+1,r29
+ 302 0092 C083      		st Z,r28
+ 303 0094 CE01      		movw r24,r28
+ 304 0096 00C0      		rjmp .L15
+ 305               	.LBE81:
+ 306               	.LBE80:
+ 307               		.cfi_endproc
+ 308               	.LFE104:
+ 310               		.section	.text.dyn_create_object_heap,"ax",@progbits
+ 312               	dyn_create_object_heap:
+ 313               	.LFB102:
+ 139:../../../os/oslib/src/chfactory.c ****   dyn_element_t *dep;
+ 314               		.loc 2 139 0
+ 315               		.cfi_startproc
+ 316               	.LVL34:
+ 317 0000 AF92      		push r10
+ 318               	.LCFI14:
+ 319               		.cfi_def_cfa_offset 3
+ 320               		.cfi_offset 10, -2
+ 321 0002 BF92      		push r11
+ 322               	.LCFI15:
+ 323               		.cfi_def_cfa_offset 4
+ 324               		.cfi_offset 11, -3
+ 325 0004 CF92      		push r12
+ 326               	.LCFI16:
+ 327               		.cfi_def_cfa_offset 5
+ 328               		.cfi_offset 12, -4
+ 329 0006 DF92      		push r13
+ 330               	.LCFI17:
+ 331               		.cfi_def_cfa_offset 6
+ 332               		.cfi_offset 13, -5
+ 333 0008 EF92      		push r14
+ 334               	.LCFI18:
+ 335               		.cfi_def_cfa_offset 7
+ 336               		.cfi_offset 14, -6
+ 337 000a FF92      		push r15
+ 338               	.LCFI19:
+ 339               		.cfi_def_cfa_offset 8
+ 340               		.cfi_offset 15, -7
+ 341 000c 0F93      		push r16
+ 342               	.LCFI20:
+ 343               		.cfi_def_cfa_offset 9
+ 344               		.cfi_offset 16, -8
+ 345 000e 1F93      		push r17
+ 346               	.LCFI21:
+ 347               		.cfi_def_cfa_offset 10
+ 348               		.cfi_offset 17, -9
+ 349 0010 CF93      		push r28
+ 350               	.LCFI22:
+ 351               		.cfi_def_cfa_offset 11
+ 352               		.cfi_offset 28, -10
+ 353 0012 DF93      		push r29
+ 354               	.LCFI23:
+ 355               		.cfi_def_cfa_offset 12
+ 356               		.cfi_offset 29, -11
+ 357               	/* prologue: function */
+ 358               	/* frame size = 0 */
+ 359               	/* stack size = 10 */
+ 360               	.L__stack_usage = 10
+ 361 0014 7C01      		movw r14,r24
+ 362 0016 8B01      		movw r16,r22
+ 363 0018 6A01      		movw r12,r20
+ 364 001a 5901      		movw r10,r18
+ 365               	.LVL35:
+ 366               	.LBB92:
+ 367               	.LBB93:
+ 104:../../../os/oslib/src/chfactory.c **** 
+ 368               		.loc 2 104 0
+ 369 001c FB01      		movw r30,r22
+ 370 001e C081      		ld r28,Z
+ 371 0020 D181      		ldd r29,Z+1
+ 372               	.LVL36:
+ 106:../../../os/oslib/src/chfactory.c ****     if (strncmp(p->name, name, CH_CFG_FACTORY_MAX_NAMES_LENGTH) == 0) {
+ 373               		.loc 2 106 0
+ 374 0022 6C17      		cp r22,r28
+ 375 0024 7D07      		cpc r23,r29
+ 376 0026 01F4      		brne .L34
+ 377 0028 00C0      		rjmp .L32
+ 378               	.LVL37:
+ 379               	.L50:
+ 110:../../../os/oslib/src/chfactory.c ****   }
+ 380               		.loc 2 110 0
+ 381 002a 0990      		ld __tmp_reg__,Y+
+ 382 002c D881      		ld r29,Y
+ 383 002e C02D      		mov r28,__tmp_reg__
+ 384               	.LVL38:
+ 106:../../../os/oslib/src/chfactory.c ****     if (strncmp(p->name, name, CH_CFG_FACTORY_MAX_NAMES_LENGTH) == 0) {
+ 385               		.loc 2 106 0
+ 386 0030 0C17      		cp r16,r28
+ 387 0032 1D07      		cpc r17,r29
+ 388 0034 01F0      		breq .L32
+ 389               	.L34:
+ 107:../../../os/oslib/src/chfactory.c ****       return p;
+ 390               		.loc 2 107 0
+ 391 0036 48E0      		ldi r20,lo8(8)
+ 392 0038 50E0      		ldi r21,0
+ 393 003a B701      		movw r22,r14
+ 394 003c CE01      		movw r24,r28
+ 395 003e 0396      		adiw r24,3
+ 396 0040 0E94 0000 		call strncmp
+ 397               	.LVL39:
+ 398 0044 892B      		or r24,r25
+ 399 0046 01F4      		brne .L50
+ 400               	.LVL40:
+ 401               	.LBE93:
+ 402               	.LBE92:
+ 146:../../../os/oslib/src/chfactory.c ****     return NULL;
+ 403               		.loc 2 146 0
+ 404 0048 CD2B      		or r28,r29
+ 405 004a 01F0      		breq .L32
+ 406               	.L36:
+ 147:../../../os/oslib/src/chfactory.c ****   }
+ 407               		.loc 2 147 0
+ 408 004c 80E0      		ldi r24,0
+ 409 004e 90E0      		ldi r25,0
+ 410               	.L35:
+ 411               	/* epilogue start */
+ 165:../../../os/oslib/src/chfactory.c **** 
+ 412               		.loc 2 165 0
+ 413 0050 DF91      		pop r29
+ 414 0052 CF91      		pop r28
+ 415 0054 1F91      		pop r17
+ 416 0056 0F91      		pop r16
+ 417               	.LVL41:
+ 418 0058 FF90      		pop r15
+ 419 005a EF90      		pop r14
+ 420               	.LVL42:
+ 421 005c DF90      		pop r13
+ 422 005e CF90      		pop r12
+ 423               	.LVL43:
+ 424 0060 BF90      		pop r11
+ 425 0062 AF90      		pop r10
+ 426               	.LVL44:
+ 427 0064 0895      		ret
+ 428               	.LVL45:
+ 429               	.L32:
+ 430               	.LBB94:
+ 431               	.LBB95:
+ 151:../../../os/oslib/src/chfactory.c ****   if (dep == NULL) {
+ 432               		.loc 2 151 0
+ 433 0066 A501      		movw r20,r10
+ 434 0068 B601      		movw r22,r12
+ 435 006a 80E0      		ldi r24,0
+ 436 006c 90E0      		ldi r25,0
+ 437 006e 0E94 0000 		call chHeapAllocAligned
+ 438               	.LVL46:
+ 439 0072 EC01      		movw r28,r24
+ 440               	.LVL47:
+ 152:../../../os/oslib/src/chfactory.c ****     return NULL;
+ 441               		.loc 2 152 0
+ 442 0074 0097      		sbiw r24,0
+ 443 0076 01F0      		breq .L36
+ 444               	.LVL48:
+ 445 0078 F701      		movw r30,r14
+ 157:../../../os/oslib/src/chfactory.c ****   dep->refs = (ucnt_t)1;
+ 446               		.loc 2 157 0
+ 447 007a DC01      		movw r26,r24
+ 448 007c 1396      		adiw r26,3
+ 449               	.LVL49:
+ 450 007e 9701      		movw r18,r14
+ 451 0080 285F      		subi r18,-8
+ 452 0082 3F4F      		sbci r19,-1
+ 453               	.LVL50:
+ 454               	.L38:
+ 455               	.LBB96:
+ 456               	.LBB97:
+  92:../../../os/oslib/src/chfactory.c ****     *dp++ = c;
+ 457               		.loc 2 92 0
+ 458 0084 9191      		ld r25,Z+
+ 459               	.LVL51:
+  93:../../../os/oslib/src/chfactory.c ****     i--;
+ 460               		.loc 2 93 0
+ 461 0086 9D93      		st X+,r25
+ 462               	.LVL52:
+  95:../../../os/oslib/src/chfactory.c **** }
+ 463               		.loc 2 95 0
+ 464 0088 9923      		tst r25
+ 465 008a 01F0      		breq .L37
+ 466 008c E217      		cp r30,r18
+ 467 008e F307      		cpc r31,r19
+ 468 0090 01F4      		brne .L38
+ 469               	.L37:
+ 470               	.LVL53:
+ 471               	.LBE97:
+ 472               	.LBE96:
+ 158:../../../os/oslib/src/chfactory.c ****   dep->next = dlp->next;
+ 473               		.loc 2 158 0
+ 474 0092 81E0      		ldi r24,lo8(1)
+ 475               	.LVL54:
+ 476 0094 8A83      		std Y+2,r24
+ 159:../../../os/oslib/src/chfactory.c **** 
+ 477               		.loc 2 159 0
+ 478 0096 F801      		movw r30,r16
+ 479 0098 8081      		ld r24,Z
+ 480 009a 9181      		ldd r25,Z+1
+ 481 009c 9983      		std Y+1,r25
+ 482 009e 8883      		st Y,r24
+ 162:../../../os/oslib/src/chfactory.c **** 
+ 483               		.loc 2 162 0
+ 484 00a0 D183      		std Z+1,r29
+ 485 00a2 C083      		st Z,r28
+ 486 00a4 CE01      		movw r24,r28
+ 487 00a6 00C0      		rjmp .L35
+ 488               	.LBE95:
+ 489               	.LBE94:
+ 490               		.cfi_endproc
+ 491               	.LFE102:
+ 493               		.section	.text.dyn_release_object_heap.part.3,"ax",@progbits
+ 495               	dyn_release_object_heap.part.3:
+ 496               	.LFB130:
+ 167:../../../os/oslib/src/chfactory.c ****                                     dyn_list_t *dlp) {
+ 497               		.loc 2 167 0
+ 498               		.cfi_startproc
+ 499               	.LVL55:
+ 500               	/* prologue: function */
+ 501               	/* frame size = 0 */
+ 502               	/* stack size = 0 */
+ 503               	.L__stack_usage = 0
+ 504 0000 DC01      		movw r26,r24
+ 505               	.LBB98:
+ 506               	.LBB99:
+ 122:../../../os/oslib/src/chfactory.c ****       /* Found.*/
+ 507               		.loc 2 122 0
+ 508 0002 FB01      		movw r30,r22
+ 509 0004 00C0      		rjmp .L53
+ 510               	.LVL56:
+ 511               	.L55:
+ 512 0006 A217      		cp r26,r18
+ 513 0008 B307      		cpc r27,r19
+ 514 000a 01F0      		breq .L57
+ 515 000c F901      		movw r30,r18
+ 516               	.LVL57:
+ 517               	.L53:
+ 121:../../../os/oslib/src/chfactory.c ****     if (prev->next == element) {
+ 518               		.loc 2 121 0
+ 519 000e 2081      		ld r18,Z
+ 520 0010 3181      		ldd r19,Z+1
+ 521 0012 2617      		cp r18,r22
+ 522 0014 3707      		cpc r19,r23
+ 523 0016 01F4      		brne .L55
+ 132:../../../os/oslib/src/chfactory.c **** }
+ 524               		.loc 2 132 0
+ 525 0018 80E0      		ldi r24,0
+ 526               	.LVL58:
+ 527 001a 90E0      		ldi r25,0
+ 528               	.LVL59:
+ 529               	.LBE99:
+ 530               	.LBE98:
+ 176:../../../os/oslib/src/chfactory.c ****   }
+ 531               		.loc 2 176 0
+ 532 001c 0C94 0000 		jmp chHeapFree
+ 533               	.LVL60:
+ 534               	.L57:
+ 535               	.LBB101:
+ 536               	.LBB100:
+ 124:../../../os/oslib/src/chfactory.c ****       return element;
+ 537               		.loc 2 124 0
+ 538 0020 8D91      		ld r24,X+
+ 539 0022 9C91      		ld r25,X
+ 540 0024 1197      		sbiw r26,1
+ 541               	.LVL61:
+ 542 0026 9183      		std Z+1,r25
+ 543 0028 8083      		st Z,r24
+ 544 002a CD01      		movw r24,r26
+ 545               	.LVL62:
+ 546               	.LBE100:
+ 547               	.LBE101:
+ 176:../../../os/oslib/src/chfactory.c ****   }
+ 548               		.loc 2 176 0
+ 549 002c 0C94 0000 		jmp chHeapFree
+ 550               	.LVL63:
+ 551               		.cfi_endproc
+ 552               	.LFE130:
+ 554               		.section	.text.__factory_init,"ax",@progbits
+ 555               	.global	__factory_init
+ 557               	__factory_init:
+ 558               	.LFB107:
+ 241:../../../os/oslib/src/chfactory.c **** 
+ 242:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+ 243:../../../os/oslib/src/chfactory.c **** /* Module exported functions.                                                */
+ 244:../../../os/oslib/src/chfactory.c **** /*===========================================================================*/
+ 245:../../../os/oslib/src/chfactory.c **** 
+ 246:../../../os/oslib/src/chfactory.c **** /**
+ 247:../../../os/oslib/src/chfactory.c ****  * @brief   Initializes the objects factory.
+ 248:../../../os/oslib/src/chfactory.c ****  *
+ 249:../../../os/oslib/src/chfactory.c ****  * @init
+ 250:../../../os/oslib/src/chfactory.c ****  */
+ 251:../../../os/oslib/src/chfactory.c **** void __factory_init(void) {
+ 559               		.loc 2 251 0
+ 560               		.cfi_startproc
+ 561 0000 CF93      		push r28
+ 562               	.LCFI24:
+ 563               		.cfi_def_cfa_offset 3
+ 564               		.cfi_offset 28, -2
+ 565 0002 DF93      		push r29
+ 566               	.LCFI25:
+ 567               		.cfi_def_cfa_offset 4
+ 568               		.cfi_offset 29, -3
+ 569               	/* prologue: function */
+ 570               	/* frame size = 0 */
+ 571               	/* stack size = 2 */
+ 572               	.L__stack_usage = 2
+ 252:../../../os/oslib/src/chfactory.c **** 
+ 253:../../../os/oslib/src/chfactory.c **** #if (CH_CFG_USE_MUTEXES == TRUE) || defined(__DOXYGEN__)
+ 254:../../../os/oslib/src/chfactory.c ****   chMtxObjectInit(&ch_factory.mtx);
+ 255:../../../os/oslib/src/chfactory.c **** #else
+ 256:../../../os/oslib/src/chfactory.c ****   chSemObjectInit(&ch_factory.sem, (cnt_t)1);
+ 573               		.loc 2 256 0
+ 574 0004 C0E0      		ldi r28,lo8(ch_factory)
+ 575 0006 D0E0      		ldi r29,hi8(ch_factory)
+ 576 0008 81E0      		ldi r24,lo8(1)
+ 577 000a 8883      		st Y,r24
+ 578               	.LVL64:
+ 579               	.LBB102:
+ 580               	.LBB103:
+ 100:../../../os/oslib/src/chfactory.c **** }
+ 581               		.loc 2 100 0
+ 582 000c 80E0      		ldi r24,lo8(ch_factory+1)
+ 583 000e 90E0      		ldi r25,hi8(ch_factory+1)
+ 584               	.LVL65:
+ 585 0010 9A83      		std Y+2,r25
+ 586 0012 8983      		std Y+1,r24
+ 587               	.LVL66:
+ 588               	.LBE103:
+ 589               	.LBE102:
+ 590               	.LBB104:
+ 591               	.LBB105:
+ 592               		.file 3 "../../../os/oslib/include/chmempools.h"
+   1:../../../os/oslib/include/chmempools.h **** /*
+   2:../../../os/oslib/include/chmempools.h ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../../os/oslib/include/chmempools.h ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../../os/oslib/include/chmempools.h **** 
+   5:../../../os/oslib/include/chmempools.h ****     This file is part of ChibiOS.
+   6:../../../os/oslib/include/chmempools.h **** 
+   7:../../../os/oslib/include/chmempools.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../../os/oslib/include/chmempools.h ****     it under the terms of the GNU General Public License as published by
+   9:../../../os/oslib/include/chmempools.h ****     the Free Software Foundation version 3 of the License.
+  10:../../../os/oslib/include/chmempools.h **** 
+  11:../../../os/oslib/include/chmempools.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../../os/oslib/include/chmempools.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../../os/oslib/include/chmempools.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../../os/oslib/include/chmempools.h ****     GNU General Public License for more details.
+  15:../../../os/oslib/include/chmempools.h **** 
+  16:../../../os/oslib/include/chmempools.h ****     You should have received a copy of the GNU General Public License
+  17:../../../os/oslib/include/chmempools.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../../os/oslib/include/chmempools.h **** */
+  19:../../../os/oslib/include/chmempools.h **** 
+  20:../../../os/oslib/include/chmempools.h **** /**
+  21:../../../os/oslib/include/chmempools.h ****  * @file    oslib/include/chmempools.h
+  22:../../../os/oslib/include/chmempools.h ****  * @brief   Memory Pools macros and structures.
+  23:../../../os/oslib/include/chmempools.h ****  *
+  24:../../../os/oslib/include/chmempools.h ****  * @addtogroup oslib_mempools
+  25:../../../os/oslib/include/chmempools.h ****  * @{
+  26:../../../os/oslib/include/chmempools.h ****  */
+  27:../../../os/oslib/include/chmempools.h **** 
+  28:../../../os/oslib/include/chmempools.h **** #ifndef CHMEMPOOLS_H
+  29:../../../os/oslib/include/chmempools.h **** #define CHMEMPOOLS_H
+  30:../../../os/oslib/include/chmempools.h **** 
+  31:../../../os/oslib/include/chmempools.h **** #if (CH_CFG_USE_MEMPOOLS == TRUE) || defined(__DOXYGEN__)
+  32:../../../os/oslib/include/chmempools.h **** 
+  33:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+  34:../../../os/oslib/include/chmempools.h **** /* Module constants.                                                         */
+  35:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+  36:../../../os/oslib/include/chmempools.h **** 
+  37:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+  38:../../../os/oslib/include/chmempools.h **** /* Module pre-compile time settings.                                         */
+  39:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+  40:../../../os/oslib/include/chmempools.h **** 
+  41:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+  42:../../../os/oslib/include/chmempools.h **** /* Derived constants and error checks.                                       */
+  43:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+  44:../../../os/oslib/include/chmempools.h **** 
+  45:../../../os/oslib/include/chmempools.h **** #if CH_CFG_USE_MEMCORE == FALSE
+  46:../../../os/oslib/include/chmempools.h **** #error "CH_CFG_USE_MEMPOOLS requires CH_CFG_USE_MEMCORE"
+  47:../../../os/oslib/include/chmempools.h **** #endif
+  48:../../../os/oslib/include/chmempools.h **** 
+  49:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+  50:../../../os/oslib/include/chmempools.h **** /* Module data structures and types.                                         */
+  51:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+  52:../../../os/oslib/include/chmempools.h **** 
+  53:../../../os/oslib/include/chmempools.h **** /**
+  54:../../../os/oslib/include/chmempools.h ****  * @brief   Memory pool free object header.
+  55:../../../os/oslib/include/chmempools.h ****  */
+  56:../../../os/oslib/include/chmempools.h **** struct pool_header {
+  57:../../../os/oslib/include/chmempools.h ****   struct pool_header    *next;          /**< @brief Pointer to the next pool
+  58:../../../os/oslib/include/chmempools.h ****                                                     header in the list.     */
+  59:../../../os/oslib/include/chmempools.h **** };
+  60:../../../os/oslib/include/chmempools.h **** 
+  61:../../../os/oslib/include/chmempools.h **** /**
+  62:../../../os/oslib/include/chmempools.h ****  * @brief   Memory pool descriptor.
+  63:../../../os/oslib/include/chmempools.h ****  */
+  64:../../../os/oslib/include/chmempools.h **** typedef struct {
+  65:../../../os/oslib/include/chmempools.h ****   struct pool_header    *next;          /**< @brief Pointer to the header.  */
+  66:../../../os/oslib/include/chmempools.h ****   size_t                object_size;    /**< @brief Memory pool objects
+  67:../../../os/oslib/include/chmempools.h ****                                                     size.                   */
+  68:../../../os/oslib/include/chmempools.h ****   unsigned              align;          /**< @brief Required alignment.     */
+  69:../../../os/oslib/include/chmempools.h ****   memgetfunc_t          provider;       /**< @brief Memory blocks provider
+  70:../../../os/oslib/include/chmempools.h ****                                                     for this pool.          */
+  71:../../../os/oslib/include/chmempools.h **** } memory_pool_t;
+  72:../../../os/oslib/include/chmempools.h **** 
+  73:../../../os/oslib/include/chmempools.h **** #if (CH_CFG_USE_SEMAPHORES == TRUE) || defined(__DOXYGEN__)
+  74:../../../os/oslib/include/chmempools.h **** /**
+  75:../../../os/oslib/include/chmempools.h ****  * @brief   Guarded memory pool descriptor.
+  76:../../../os/oslib/include/chmempools.h ****  */
+  77:../../../os/oslib/include/chmempools.h **** typedef struct {
+  78:../../../os/oslib/include/chmempools.h ****   semaphore_t           sem;            /**< @brief Counter semaphore guarding
+  79:../../../os/oslib/include/chmempools.h ****                                                     the memory pool.        */
+  80:../../../os/oslib/include/chmempools.h ****   memory_pool_t         pool;           /**< @brief The memory pool itself. */
+  81:../../../os/oslib/include/chmempools.h **** } guarded_memory_pool_t;
+  82:../../../os/oslib/include/chmempools.h **** #endif /* CH_CFG_USE_SEMAPHORES == TRUE */
+  83:../../../os/oslib/include/chmempools.h **** 
+  84:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+  85:../../../os/oslib/include/chmempools.h **** /* Module macros.                                                            */
+  86:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+  87:../../../os/oslib/include/chmempools.h **** 
+  88:../../../os/oslib/include/chmempools.h **** /**
+  89:../../../os/oslib/include/chmempools.h ****  * @brief   Data part of a static memory pool initializer.
+  90:../../../os/oslib/include/chmempools.h ****  * @details This macro should be used when statically initializing a
+  91:../../../os/oslib/include/chmempools.h ****  *          memory pool that is part of a bigger structure.
+  92:../../../os/oslib/include/chmempools.h ****  *
+  93:../../../os/oslib/include/chmempools.h ****  * @param[in] name      the name of the memory pool variable
+  94:../../../os/oslib/include/chmempools.h ****  * @param[in] size      size of the memory pool contained objects
+  95:../../../os/oslib/include/chmempools.h ****  * @param[in] align     required memory alignment
+  96:../../../os/oslib/include/chmempools.h ****  * @param[in] provider  memory provider function for the memory pool
+  97:../../../os/oslib/include/chmempools.h ****  */
+  98:../../../os/oslib/include/chmempools.h **** #define __MEMORYPOOL_DATA(name, size, align, provider)                      \
+  99:../../../os/oslib/include/chmempools.h ****   {NULL, size, align, provider}
+ 100:../../../os/oslib/include/chmempools.h **** 
+ 101:../../../os/oslib/include/chmempools.h **** /**
+ 102:../../../os/oslib/include/chmempools.h ****  * @brief   Static memory pool initializer.
+ 103:../../../os/oslib/include/chmempools.h ****  * @details Statically initialized memory pools require no explicit
+ 104:../../../os/oslib/include/chmempools.h ****  *          initialization using @p chPoolInit().
+ 105:../../../os/oslib/include/chmempools.h ****  *
+ 106:../../../os/oslib/include/chmempools.h ****  * @param[in] name      the name of the memory pool variable
+ 107:../../../os/oslib/include/chmempools.h ****  * @param[in] size      size of the memory pool contained objects
+ 108:../../../os/oslib/include/chmempools.h ****  * @param[in] align     required memory alignment
+ 109:../../../os/oslib/include/chmempools.h ****  * @param[in] provider  memory provider function for the memory pool or @p NULL
+ 110:../../../os/oslib/include/chmempools.h ****  *                      if the pool is not allowed to grow automatically
+ 111:../../../os/oslib/include/chmempools.h ****  */
+ 112:../../../os/oslib/include/chmempools.h **** #define MEMORYPOOL_DECL(name, size, align, provider)                        \
+ 113:../../../os/oslib/include/chmempools.h ****   memory_pool_t name = __MEMORYPOOL_DATA(name, size, align, provider)
+ 114:../../../os/oslib/include/chmempools.h **** 
+ 115:../../../os/oslib/include/chmempools.h **** #if (CH_CFG_USE_SEMAPHORES == TRUE) || defined(__DOXYGEN__)
+ 116:../../../os/oslib/include/chmempools.h **** /**
+ 117:../../../os/oslib/include/chmempools.h ****  * @brief   Data part of a static guarded memory pool initializer.
+ 118:../../../os/oslib/include/chmempools.h ****  * @details This macro should be used when statically initializing a
+ 119:../../../os/oslib/include/chmempools.h ****  *          memory pool that is part of a bigger structure.
+ 120:../../../os/oslib/include/chmempools.h ****  *
+ 121:../../../os/oslib/include/chmempools.h ****  * @param[in] name      the name of the memory pool variable
+ 122:../../../os/oslib/include/chmempools.h ****  * @param[in] size      size of the memory pool contained objects
+ 123:../../../os/oslib/include/chmempools.h ****  * @param[in] align     required memory alignment
+ 124:../../../os/oslib/include/chmempools.h ****  */
+ 125:../../../os/oslib/include/chmempools.h **** #define __GUARDEDMEMORYPOOL_DATA(name, size, align) {                       \
+ 126:../../../os/oslib/include/chmempools.h ****   __SEMAPHORE_DATA(name.sem, (cnt_t)0),                                     \
+ 127:../../../os/oslib/include/chmempools.h ****   __MEMORYPOOL_DATA(NULL, size, align, NULL)                                \
+ 128:../../../os/oslib/include/chmempools.h **** }
+ 129:../../../os/oslib/include/chmempools.h **** 
+ 130:../../../os/oslib/include/chmempools.h **** /**
+ 131:../../../os/oslib/include/chmempools.h ****  * @brief   Static guarded memory pool initializer.
+ 132:../../../os/oslib/include/chmempools.h ****  * @details Statically initialized guarded memory pools require no explicit
+ 133:../../../os/oslib/include/chmempools.h ****  *          initialization using @p chGuardedPoolInit().
+ 134:../../../os/oslib/include/chmempools.h ****  *
+ 135:../../../os/oslib/include/chmempools.h ****  * @param[in] name      the name of the guarded memory pool variable
+ 136:../../../os/oslib/include/chmempools.h ****  * @param[in] size      size of the memory pool contained objects
+ 137:../../../os/oslib/include/chmempools.h ****  * @param[in] align     required memory alignment
+ 138:../../../os/oslib/include/chmempools.h ****  */
+ 139:../../../os/oslib/include/chmempools.h **** #define GUARDEDMEMORYPOOL_DECL(name, size, align)                           \
+ 140:../../../os/oslib/include/chmempools.h ****   guarded_memory_pool_t name = __GUARDEDMEMORYPOOL_DATA(name, size, align)
+ 141:../../../os/oslib/include/chmempools.h **** #endif /* CH_CFG_USE_SEMAPHORES == TRUE */
+ 142:../../../os/oslib/include/chmempools.h **** 
+ 143:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+ 144:../../../os/oslib/include/chmempools.h **** /* External declarations.                                                    */
+ 145:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+ 146:../../../os/oslib/include/chmempools.h **** 
+ 147:../../../os/oslib/include/chmempools.h **** #ifdef __cplusplus
+ 148:../../../os/oslib/include/chmempools.h **** extern "C" {
+ 149:../../../os/oslib/include/chmempools.h **** #endif
+ 150:../../../os/oslib/include/chmempools.h ****   void chPoolObjectInitAligned(memory_pool_t *mp, size_t size,
+ 151:../../../os/oslib/include/chmempools.h ****                                unsigned align, memgetfunc_t provider);
+ 152:../../../os/oslib/include/chmempools.h ****   void chPoolLoadArray(memory_pool_t *mp, void *p, size_t n);
+ 153:../../../os/oslib/include/chmempools.h ****   void *chPoolAllocI(memory_pool_t *mp);
+ 154:../../../os/oslib/include/chmempools.h ****   void *chPoolAlloc(memory_pool_t *mp);
+ 155:../../../os/oslib/include/chmempools.h ****   void chPoolFreeI(memory_pool_t *mp, void *objp);
+ 156:../../../os/oslib/include/chmempools.h ****   void chPoolFree(memory_pool_t *mp, void *objp);
+ 157:../../../os/oslib/include/chmempools.h **** #if CH_CFG_USE_SEMAPHORES == TRUE
+ 158:../../../os/oslib/include/chmempools.h ****   void chGuardedPoolObjectInitAligned(guarded_memory_pool_t *gmp,
+ 159:../../../os/oslib/include/chmempools.h ****                                       size_t size,
+ 160:../../../os/oslib/include/chmempools.h ****                                       unsigned align);
+ 161:../../../os/oslib/include/chmempools.h ****   void chGuardedPoolLoadArray(guarded_memory_pool_t *gmp, void *p, size_t n);
+ 162:../../../os/oslib/include/chmempools.h ****   void *chGuardedPoolAllocTimeoutS(guarded_memory_pool_t *gmp,
+ 163:../../../os/oslib/include/chmempools.h ****                                    sysinterval_t timeout);
+ 164:../../../os/oslib/include/chmempools.h ****   void *chGuardedPoolAllocTimeout(guarded_memory_pool_t *gmp,
+ 165:../../../os/oslib/include/chmempools.h ****                                   sysinterval_t timeout);
+ 166:../../../os/oslib/include/chmempools.h ****   void chGuardedPoolFree(guarded_memory_pool_t *gmp, void *objp);
+ 167:../../../os/oslib/include/chmempools.h **** #endif
+ 168:../../../os/oslib/include/chmempools.h **** #ifdef __cplusplus
+ 169:../../../os/oslib/include/chmempools.h **** }
+ 170:../../../os/oslib/include/chmempools.h **** #endif
+ 171:../../../os/oslib/include/chmempools.h **** 
+ 172:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+ 173:../../../os/oslib/include/chmempools.h **** /* Module inline functions.                                                  */
+ 174:../../../os/oslib/include/chmempools.h **** /*===========================================================================*/
+ 175:../../../os/oslib/include/chmempools.h **** 
+ 176:../../../os/oslib/include/chmempools.h **** /**
+ 177:../../../os/oslib/include/chmempools.h ****  * @brief   Initializes an empty memory pool.
+ 178:../../../os/oslib/include/chmempools.h ****  *
+ 179:../../../os/oslib/include/chmempools.h ****  * @param[out] mp       pointer to a @p memory_pool_t structure
+ 180:../../../os/oslib/include/chmempools.h ****  * @param[in] size      the size of the objects contained in this memory pool,
+ 181:../../../os/oslib/include/chmempools.h ****  *                      the minimum accepted size is the size of a pointer to
+ 182:../../../os/oslib/include/chmempools.h ****  *                      void.
+ 183:../../../os/oslib/include/chmempools.h ****  * @param[in] provider  memory provider function for the memory pool or
+ 184:../../../os/oslib/include/chmempools.h ****  *                      @p NULL if the pool is not allowed to grow
+ 185:../../../os/oslib/include/chmempools.h ****  *                      automatically
+ 186:../../../os/oslib/include/chmempools.h ****  *
+ 187:../../../os/oslib/include/chmempools.h ****  * @init
+ 188:../../../os/oslib/include/chmempools.h ****  */
+ 189:../../../os/oslib/include/chmempools.h **** static inline void chPoolObjectInit(memory_pool_t *mp,
+ 190:../../../os/oslib/include/chmempools.h ****                                     size_t size,
+ 191:../../../os/oslib/include/chmempools.h ****                                     memgetfunc_t provider) {
+ 192:../../../os/oslib/include/chmempools.h **** 
+ 193:../../../os/oslib/include/chmempools.h ****   chPoolObjectInitAligned(mp, size, PORT_NATURAL_ALIGN, provider);
+ 593               		.loc 3 193 0
+ 594 0014 20E0      		ldi r18,lo8(gs(chCoreAllocAlignedI))
+ 595 0016 30E0      		ldi r19,hi8(gs(chCoreAllocAlignedI))
+ 596 0018 41E0      		ldi r20,lo8(1)
+ 597 001a 50E0      		ldi r21,0
+ 598 001c 6DE0      		ldi r22,lo8(13)
+ 599 001e 70E0      		ldi r23,0
+ 600 0020 80E0      		ldi r24,lo8(ch_factory+3)
+ 601 0022 90E0      		ldi r25,hi8(ch_factory+3)
+ 602               	.LVL67:
+ 603 0024 0E94 0000 		call chPoolObjectInitAligned
+ 604               	.LVL68:
+ 605               	.LBE105:
+ 606               	.LBE104:
+ 607               	.LBB106:
+ 608               	.LBB107:
+ 100:../../../os/oslib/src/chfactory.c **** }
+ 609               		.loc 2 100 0
+ 610 0028 80E0      		ldi r24,lo8(ch_factory+11)
+ 611 002a 90E0      		ldi r25,hi8(ch_factory+11)
+ 612               	.LVL69:
+ 613 002c 9C87      		std Y+12,r25
+ 614 002e 8B87      		std Y+11,r24
+ 615               	.LVL70:
+ 616               	.LBE107:
+ 617               	.LBE106:
+ 618               	.LBB108:
+ 619               	.LBB109:
+ 620 0030 80E0      		ldi r24,lo8(ch_factory+13)
+ 621 0032 90E0      		ldi r25,hi8(ch_factory+13)
+ 622               	.LVL71:
+ 623 0034 9E87      		std Y+14,r25
+ 624 0036 8D87      		std Y+13,r24
+ 625               	.LVL72:
+ 626               	.LBE109:
+ 627               	.LBE108:
+ 628               	.LBB110:
+ 629               	.LBB111:
+ 630               		.loc 3 193 0
+ 631 0038 20E0      		ldi r18,lo8(gs(chCoreAllocAlignedI))
+ 632 003a 30E0      		ldi r19,hi8(gs(chCoreAllocAlignedI))
+ 633 003c 41E0      		ldi r20,lo8(1)
+ 634 003e 50E0      		ldi r21,0
+ 635 0040 6CE0      		ldi r22,lo8(12)
+ 636 0042 70E0      		ldi r23,0
+ 637 0044 80E0      		ldi r24,lo8(ch_factory+15)
+ 638 0046 90E0      		ldi r25,hi8(ch_factory+15)
+ 639               	.LVL73:
+ 640 0048 0E94 0000 		call chPoolObjectInitAligned
+ 641               	.LVL74:
+ 642               	.LBE111:
+ 643               	.LBE110:
+ 644               	.LBB112:
+ 645               	.LBB113:
+ 100:../../../os/oslib/src/chfactory.c **** }
+ 646               		.loc 2 100 0
+ 647 004c 80E0      		ldi r24,lo8(ch_factory+23)
+ 648 004e 90E0      		ldi r25,hi8(ch_factory+23)
+ 649               	.LVL75:
+ 650 0050 988F      		std Y+24,r25
+ 651 0052 8F8B      		std Y+23,r24
+ 652               	.LVL76:
+ 653               	.LBE113:
+ 654               	.LBE112:
+ 655               	.LBB114:
+ 656               	.LBB115:
+ 657 0054 80E0      		ldi r24,lo8(ch_factory+25)
+ 658 0056 90E0      		ldi r25,hi8(ch_factory+25)
+ 659               	.LVL77:
+ 660 0058 9A8F      		std Y+26,r25
+ 661 005a 898F      		std Y+25,r24
+ 662               	.LVL78:
+ 663               	.LBE115:
+ 664               	.LBE114:
+ 665               	.LBB116:
+ 666               	.LBB117:
+ 667 005c 80E0      		ldi r24,lo8(ch_factory+27)
+ 668 005e 90E0      		ldi r25,hi8(ch_factory+27)
+ 669               	.LVL79:
+ 670 0060 9C8F      		std Y+28,r25
+ 671 0062 8B8F      		std Y+27,r24
+ 672               	.LVL80:
+ 673               	/* epilogue start */
+ 674               	.LBE117:
+ 675               	.LBE116:
+ 257:../../../os/oslib/src/chfactory.c **** #endif
+ 258:../../../os/oslib/src/chfactory.c **** 
+ 259:../../../os/oslib/src/chfactory.c **** #if CH_CFG_FACTORY_OBJECTS_REGISTRY == TRUE
+ 260:../../../os/oslib/src/chfactory.c ****   dyn_list_init(&ch_factory.obj_list);
+ 261:../../../os/oslib/src/chfactory.c ****   chPoolObjectInit(&ch_factory.obj_pool,
+ 262:../../../os/oslib/src/chfactory.c ****                    sizeof (registered_object_t),
+ 263:../../../os/oslib/src/chfactory.c ****                    chCoreAllocAlignedI);
+ 264:../../../os/oslib/src/chfactory.c **** #endif
+ 265:../../../os/oslib/src/chfactory.c **** #if CH_CFG_FACTORY_GENERIC_BUFFERS == TRUE
+ 266:../../../os/oslib/src/chfactory.c ****   dyn_list_init(&ch_factory.buf_list);
+ 267:../../../os/oslib/src/chfactory.c **** #endif
+ 268:../../../os/oslib/src/chfactory.c **** #if CH_CFG_FACTORY_SEMAPHORES == TRUE
+ 269:../../../os/oslib/src/chfactory.c ****   dyn_list_init(&ch_factory.sem_list);
+ 270:../../../os/oslib/src/chfactory.c ****   chPoolObjectInit(&ch_factory.sem_pool,
+ 271:../../../os/oslib/src/chfactory.c ****                    sizeof (dyn_semaphore_t),
+ 272:../../../os/oslib/src/chfactory.c ****                    chCoreAllocAlignedI);
+ 273:../../../os/oslib/src/chfactory.c **** #endif
+ 274:../../../os/oslib/src/chfactory.c **** #if CH_CFG_FACTORY_MAILBOXES == TRUE
+ 275:../../../os/oslib/src/chfactory.c ****   dyn_list_init(&ch_factory.mbx_list);
+ 276:../../../os/oslib/src/chfactory.c **** #endif
+ 277:../../../os/oslib/src/chfactory.c **** #if CH_CFG_FACTORY_OBJ_FIFOS == TRUE
+ 278:../../../os/oslib/src/chfactory.c ****   dyn_list_init(&ch_factory.fifo_list);
+ 279:../../../os/oslib/src/chfactory.c **** #endif
+ 280:../../../os/oslib/src/chfactory.c **** #if CH_CFG_FACTORY_PIPES == TRUE
+ 281:../../../os/oslib/src/chfactory.c ****   dyn_list_init(&ch_factory.pipe_list);
+ 282:../../../os/oslib/src/chfactory.c **** #endif
+ 283:../../../os/oslib/src/chfactory.c **** }
+ 676               		.loc 2 283 0
+ 677 0064 DF91      		pop r29
+ 678 0066 CF91      		pop r28
+ 679 0068 0895      		ret
+ 680               		.cfi_endproc
+ 681               	.LFE107:
+ 683               		.section	.text.chFactoryRegisterObject,"ax",@progbits
+ 684               	.global	chFactoryRegisterObject
+ 686               	chFactoryRegisterObject:
+ 687               	.LFB108:
+ 284:../../../os/oslib/src/chfactory.c **** 
+ 285:../../../os/oslib/src/chfactory.c **** #if (CH_CFG_FACTORY_OBJECTS_REGISTRY == TRUE) || defined(__DOXIGEN__)
+ 286:../../../os/oslib/src/chfactory.c **** /**
+ 287:../../../os/oslib/src/chfactory.c ****  * @brief   Registers a generic object.
+ 288:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the registered object is returned and the
+ 289:../../../os/oslib/src/chfactory.c ****  *          reference counter is initialized to one.
+ 290:../../../os/oslib/src/chfactory.c ****  *
+ 291:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name to be assigned to the registered object
+ 292:../../../os/oslib/src/chfactory.c ****  * @param[in] objp      pointer to the object to be registered
+ 293:../../../os/oslib/src/chfactory.c ****  *
+ 294:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the registered object.
+ 295:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if the object to be registered cannot be allocated or
+ 296:../../../os/oslib/src/chfactory.c ****  *                      a registered object with the same name exists.
+ 297:../../../os/oslib/src/chfactory.c ****  *
+ 298:../../../os/oslib/src/chfactory.c ****  * @api
+ 299:../../../os/oslib/src/chfactory.c ****  */
+ 300:../../../os/oslib/src/chfactory.c **** registered_object_t *chFactoryRegisterObject(const char *name,
+ 301:../../../os/oslib/src/chfactory.c ****                                              void *objp) {
+ 688               		.loc 2 301 0
+ 689               		.cfi_startproc
+ 690               	.LVL81:
+ 691 0000 0F93      		push r16
+ 692               	.LCFI26:
+ 693               		.cfi_def_cfa_offset 3
+ 694               		.cfi_offset 16, -2
+ 695 0002 1F93      		push r17
+ 696               	.LCFI27:
+ 697               		.cfi_def_cfa_offset 4
+ 698               		.cfi_offset 17, -3
+ 699 0004 CF93      		push r28
+ 700               	.LCFI28:
+ 701               		.cfi_def_cfa_offset 5
+ 702               		.cfi_offset 28, -4
+ 703 0006 DF93      		push r29
+ 704               	.LCFI29:
+ 705               		.cfi_def_cfa_offset 6
+ 706               		.cfi_offset 29, -5
+ 707               	/* prologue: function */
+ 708               	/* frame size = 0 */
+ 709               	/* stack size = 4 */
+ 710               	.L__stack_usage = 4
+ 711 0008 EC01      		movw r28,r24
+ 712 000a 8B01      		movw r16,r22
+ 302:../../../os/oslib/src/chfactory.c ****   registered_object_t *rop;
+ 303:../../../os/oslib/src/chfactory.c **** 
+ 304:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 713               		.loc 2 304 0
+ 714 000c 60E0      		ldi r22,0
+ 715 000e 70E0      		ldi r23,0
+ 716               	.LVL82:
+ 717 0010 80E0      		ldi r24,lo8(ch_factory)
+ 718 0012 90E0      		ldi r25,hi8(ch_factory)
+ 719               	.LVL83:
+ 720 0014 0E94 0000 		call chSemWaitTimeout
+ 721               	.LVL84:
+ 305:../../../os/oslib/src/chfactory.c **** 
+ 306:../../../os/oslib/src/chfactory.c ****   rop = (registered_object_t *)dyn_create_object_pool(name,
+ 722               		.loc 2 306 0
+ 723 0018 40E0      		ldi r20,lo8(ch_factory+3)
+ 724 001a 50E0      		ldi r21,hi8(ch_factory+3)
+ 725 001c 60E0      		ldi r22,lo8(ch_factory+1)
+ 726 001e 70E0      		ldi r23,hi8(ch_factory+1)
+ 727 0020 CE01      		movw r24,r28
+ 728 0022 0E94 0000 		call dyn_create_object_pool
+ 729               	.LVL85:
+ 730 0026 EC01      		movw r28,r24
+ 731               	.LVL86:
+ 307:../../../os/oslib/src/chfactory.c ****                                                       &ch_factory.obj_list,
+ 308:../../../os/oslib/src/chfactory.c ****                                                       &ch_factory.obj_pool);
+ 309:../../../os/oslib/src/chfactory.c ****   if (rop != NULL) {
+ 732               		.loc 2 309 0
+ 733 0028 892B      		or r24,r25
+ 734 002a 01F0      		breq .L60
+ 310:../../../os/oslib/src/chfactory.c ****     /* Initializing registered object data.*/
+ 311:../../../os/oslib/src/chfactory.c ****     rop->objp = objp;
+ 735               		.loc 2 311 0
+ 736 002c 1C87      		std Y+12,r17
+ 737 002e 0B87      		std Y+11,r16
+ 738               	.L60:
+ 312:../../../os/oslib/src/chfactory.c ****   }
+ 313:../../../os/oslib/src/chfactory.c **** 
+ 314:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 739               		.loc 2 314 0
+ 740 0030 80E0      		ldi r24,lo8(ch_factory)
+ 741 0032 90E0      		ldi r25,hi8(ch_factory)
+ 742               	.LVL87:
+ 743 0034 0E94 0000 		call chSemSignal
+ 744               	.LVL88:
+ 315:../../../os/oslib/src/chfactory.c **** 
+ 316:../../../os/oslib/src/chfactory.c ****   return rop;
+ 317:../../../os/oslib/src/chfactory.c **** }
+ 745               		.loc 2 317 0
+ 746 0038 CE01      		movw r24,r28
+ 747               	/* epilogue start */
+ 748 003a DF91      		pop r29
+ 749 003c CF91      		pop r28
+ 750               	.LVL89:
+ 751 003e 1F91      		pop r17
+ 752 0040 0F91      		pop r16
+ 753               	.LVL90:
+ 754 0042 0895      		ret
+ 755               		.cfi_endproc
+ 756               	.LFE108:
+ 758               		.section	.text.chFactoryFindObject,"ax",@progbits
+ 759               	.global	chFactoryFindObject
+ 761               	chFactoryFindObject:
+ 762               	.LFB109:
+ 318:../../../os/oslib/src/chfactory.c **** 
+ 319:../../../os/oslib/src/chfactory.c **** /**
+ 320:../../../os/oslib/src/chfactory.c ****  * @brief   Retrieves a registered object.
+ 321:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the registered object is returned with the
+ 322:../../../os/oslib/src/chfactory.c ****  *          reference counter increased by one.
+ 323:../../../os/oslib/src/chfactory.c ****  *
+ 324:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name of the registered object
+ 325:../../../os/oslib/src/chfactory.c ****  *
+ 326:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the found registered object.
+ 327:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if a registered object with the specified name
+ 328:../../../os/oslib/src/chfactory.c ****  *                      does not exist.
+ 329:../../../os/oslib/src/chfactory.c ****  *
+ 330:../../../os/oslib/src/chfactory.c ****  * @api
+ 331:../../../os/oslib/src/chfactory.c ****  */
+ 332:../../../os/oslib/src/chfactory.c **** registered_object_t *chFactoryFindObject(const char *name) {
+ 763               		.loc 2 332 0
+ 764               		.cfi_startproc
+ 765               	.LVL91:
+ 766 0000 CF93      		push r28
+ 767               	.LCFI30:
+ 768               		.cfi_def_cfa_offset 3
+ 769               		.cfi_offset 28, -2
+ 770 0002 DF93      		push r29
+ 771               	.LCFI31:
+ 772               		.cfi_def_cfa_offset 4
+ 773               		.cfi_offset 29, -3
+ 774               	/* prologue: function */
+ 775               	/* frame size = 0 */
+ 776               	/* stack size = 2 */
+ 777               	.L__stack_usage = 2
+ 778 0004 EC01      		movw r28,r24
+ 333:../../../os/oslib/src/chfactory.c ****   registered_object_t *rop;
+ 334:../../../os/oslib/src/chfactory.c **** 
+ 335:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 779               		.loc 2 335 0
+ 780 0006 60E0      		ldi r22,0
+ 781 0008 70E0      		ldi r23,0
+ 782 000a 80E0      		ldi r24,lo8(ch_factory)
+ 783 000c 90E0      		ldi r25,hi8(ch_factory)
+ 784               	.LVL92:
+ 785 000e 0E94 0000 		call chSemWaitTimeout
+ 786               	.LVL93:
+ 336:../../../os/oslib/src/chfactory.c **** 
+ 337:../../../os/oslib/src/chfactory.c ****   rop = (registered_object_t *)dyn_find_object(name, &ch_factory.obj_list);
+ 787               		.loc 2 337 0
+ 788 0012 60E0      		ldi r22,lo8(ch_factory+1)
+ 789 0014 70E0      		ldi r23,hi8(ch_factory+1)
+ 790 0016 CE01      		movw r24,r28
+ 791 0018 0E94 0000 		call dyn_find_object
+ 792               	.LVL94:
+ 793 001c EC01      		movw r28,r24
+ 794               	.LVL95:
+ 338:../../../os/oslib/src/chfactory.c **** 
+ 339:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 795               		.loc 2 339 0
+ 796 001e 80E0      		ldi r24,lo8(ch_factory)
+ 797 0020 90E0      		ldi r25,hi8(ch_factory)
+ 798               	.LVL96:
+ 799 0022 0E94 0000 		call chSemSignal
+ 800               	.LVL97:
+ 340:../../../os/oslib/src/chfactory.c **** 
+ 341:../../../os/oslib/src/chfactory.c ****   return rop;
+ 342:../../../os/oslib/src/chfactory.c **** }
+ 801               		.loc 2 342 0
+ 802 0026 CE01      		movw r24,r28
+ 803               	/* epilogue start */
+ 804 0028 DF91      		pop r29
+ 805 002a CF91      		pop r28
+ 806               	.LVL98:
+ 807 002c 0895      		ret
+ 808               		.cfi_endproc
+ 809               	.LFE109:
+ 811               		.section	.text.chFactoryFindObjectByPointer,"ax",@progbits
+ 812               	.global	chFactoryFindObjectByPointer
+ 814               	chFactoryFindObjectByPointer:
+ 815               	.LFB110:
+ 343:../../../os/oslib/src/chfactory.c **** 
+ 344:../../../os/oslib/src/chfactory.c **** /**
+ 345:../../../os/oslib/src/chfactory.c ****  * @brief   Retrieves a registered object by pointer.
+ 346:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the registered object is returned with the
+ 347:../../../os/oslib/src/chfactory.c ****  *          reference counter increased by one.
+ 348:../../../os/oslib/src/chfactory.c ****  *
+ 349:../../../os/oslib/src/chfactory.c ****  * @param[in] objp      pointer to the object to be retrieved
+ 350:../../../os/oslib/src/chfactory.c ****  *
+ 351:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the found registered object.
+ 352:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if a registered object with the specified pointer
+ 353:../../../os/oslib/src/chfactory.c ****  *                      does not exist.
+ 354:../../../os/oslib/src/chfactory.c ****  *
+ 355:../../../os/oslib/src/chfactory.c ****  * @api
+ 356:../../../os/oslib/src/chfactory.c ****  */
+ 357:../../../os/oslib/src/chfactory.c **** registered_object_t *chFactoryFindObjectByPointer(void *objp) {
+ 816               		.loc 2 357 0
+ 817               		.cfi_startproc
+ 818               	.LVL99:
+ 819 0000 0F93      		push r16
+ 820               	.LCFI32:
+ 821               		.cfi_def_cfa_offset 3
+ 822               		.cfi_offset 16, -2
+ 823 0002 1F93      		push r17
+ 824               	.LCFI33:
+ 825               		.cfi_def_cfa_offset 4
+ 826               		.cfi_offset 17, -3
+ 827 0004 CF93      		push r28
+ 828               	.LCFI34:
+ 829               		.cfi_def_cfa_offset 5
+ 830               		.cfi_offset 28, -4
+ 831 0006 DF93      		push r29
+ 832               	.LCFI35:
+ 833               		.cfi_def_cfa_offset 6
+ 834               		.cfi_offset 29, -5
+ 835               	/* prologue: function */
+ 836               	/* frame size = 0 */
+ 837               	/* stack size = 4 */
+ 838               	.L__stack_usage = 4
+ 839 0008 8C01      		movw r16,r24
+ 358:../../../os/oslib/src/chfactory.c ****   registered_object_t *rop = (registered_object_t *)ch_factory.obj_list.next;
+ 840               		.loc 2 358 0
+ 841 000a C091 0000 		lds r28,ch_factory+1
+ 842 000e D091 0000 		lds r29,ch_factory+1+1
+ 843               	.LVL100:
+ 359:../../../os/oslib/src/chfactory.c **** 
+ 360:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 844               		.loc 2 360 0
+ 845 0012 60E0      		ldi r22,0
+ 846 0014 70E0      		ldi r23,0
+ 847 0016 80E0      		ldi r24,lo8(ch_factory)
+ 848 0018 90E0      		ldi r25,hi8(ch_factory)
+ 849               	.LVL101:
+ 850 001a 0E94 0000 		call chSemWaitTimeout
+ 851               	.LVL102:
+ 361:../../../os/oslib/src/chfactory.c **** 
+ 362:../../../os/oslib/src/chfactory.c ****   while ((void *)rop != (void *)&ch_factory.obj_list) {
+ 852               		.loc 2 362 0
+ 853 001e 80E0      		ldi r24,hi8(ch_factory+1)
+ 854 0020 C030      		cpi r28,lo8(ch_factory+1)
+ 855 0022 D807      		cpc r29,r24
+ 856 0024 01F0      		breq .L66
+ 363:../../../os/oslib/src/chfactory.c ****     if (rop->objp == objp) {
+ 857               		.loc 2 363 0
+ 858 0026 8B85      		ldd r24,Y+11
+ 859 0028 9C85      		ldd r25,Y+12
+ 860 002a 0817      		cp r16,r24
+ 861 002c 1907      		cpc r17,r25
+ 862 002e 01F4      		brne .L69
+ 863 0030 00C0      		rjmp .L67
+ 864               	.L71:
+ 865 0032 8B85      		ldd r24,Y+11
+ 866 0034 9C85      		ldd r25,Y+12
+ 867 0036 8017      		cp r24,r16
+ 868 0038 9107      		cpc r25,r17
+ 869 003a 01F0      		breq .L67
+ 870               	.L69:
+ 364:../../../os/oslib/src/chfactory.c ****       rop->element.refs++;
+ 365:../../../os/oslib/src/chfactory.c **** 
+ 366:../../../os/oslib/src/chfactory.c ****       F_UNLOCK();
+ 367:../../../os/oslib/src/chfactory.c **** 
+ 368:../../../os/oslib/src/chfactory.c ****       return rop;
+ 369:../../../os/oslib/src/chfactory.c ****     }
+ 370:../../../os/oslib/src/chfactory.c ****     rop = (registered_object_t *)rop->element.next;
+ 871               		.loc 2 370 0
+ 872 003c 0990      		ld __tmp_reg__,Y+
+ 873 003e D881      		ld r29,Y
+ 874 0040 C02D      		mov r28,__tmp_reg__
+ 875               	.LVL103:
+ 362:../../../os/oslib/src/chfactory.c ****     if (rop->objp == objp) {
+ 876               		.loc 2 362 0
+ 877 0042 80E0      		ldi r24,hi8(ch_factory+1)
+ 878 0044 C030      		cpi r28,lo8(ch_factory+1)
+ 879 0046 D807      		cpc r29,r24
+ 880 0048 01F4      		brne .L71
+ 881               	.L66:
+ 371:../../../os/oslib/src/chfactory.c ****   }
+ 372:../../../os/oslib/src/chfactory.c **** 
+ 373:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 882               		.loc 2 373 0
+ 883 004a 80E0      		ldi r24,lo8(ch_factory)
+ 884 004c 90E0      		ldi r25,hi8(ch_factory)
+ 885 004e 0E94 0000 		call chSemSignal
+ 886               	.LVL104:
+ 374:../../../os/oslib/src/chfactory.c **** 
+ 375:../../../os/oslib/src/chfactory.c ****   return NULL;
+ 887               		.loc 2 375 0
+ 888 0052 80E0      		ldi r24,0
+ 889 0054 90E0      		ldi r25,0
+ 890               	/* epilogue start */
+ 376:../../../os/oslib/src/chfactory.c **** }
+ 891               		.loc 2 376 0
+ 892 0056 DF91      		pop r29
+ 893 0058 CF91      		pop r28
+ 894               	.LVL105:
+ 895 005a 1F91      		pop r17
+ 896 005c 0F91      		pop r16
+ 897               	.LVL106:
+ 898 005e 0895      		ret
+ 899               	.LVL107:
+ 900               	.L67:
+ 364:../../../os/oslib/src/chfactory.c **** 
+ 901               		.loc 2 364 0
+ 902 0060 8A81      		ldd r24,Y+2
+ 903 0062 8F5F      		subi r24,lo8(-(1))
+ 904 0064 8A83      		std Y+2,r24
+ 366:../../../os/oslib/src/chfactory.c **** 
+ 905               		.loc 2 366 0
+ 906 0066 80E0      		ldi r24,lo8(ch_factory)
+ 907 0068 90E0      		ldi r25,hi8(ch_factory)
+ 908 006a 0E94 0000 		call chSemSignal
+ 909               	.LVL108:
+ 368:../../../os/oslib/src/chfactory.c ****     }
+ 910               		.loc 2 368 0
+ 911 006e CE01      		movw r24,r28
+ 912               	/* epilogue start */
+ 913               		.loc 2 376 0
+ 914 0070 DF91      		pop r29
+ 915 0072 CF91      		pop r28
+ 916               	.LVL109:
+ 917 0074 1F91      		pop r17
+ 918 0076 0F91      		pop r16
+ 919               	.LVL110:
+ 920 0078 0895      		ret
+ 921               		.cfi_endproc
+ 922               	.LFE110:
+ 924               		.section	.text.chFactoryReleaseObject,"ax",@progbits
+ 925               	.global	chFactoryReleaseObject
+ 927               	chFactoryReleaseObject:
+ 928               	.LFB111:
+ 377:../../../os/oslib/src/chfactory.c **** 
+ 378:../../../os/oslib/src/chfactory.c **** /**
+ 379:../../../os/oslib/src/chfactory.c ****  * @brief   Releases a registered object.
+ 380:../../../os/oslib/src/chfactory.c ****  * @details The reference counter of the registered object is decreased
+ 381:../../../os/oslib/src/chfactory.c ****  *          by one, if reaches zero then the registered object memory
+ 382:../../../os/oslib/src/chfactory.c ****  *          is freed.
+ 383:../../../os/oslib/src/chfactory.c ****  * @note    The object itself is not freed, it could be static, only the
+ 384:../../../os/oslib/src/chfactory.c ****  *          allocated list element is freed.
+ 385:../../../os/oslib/src/chfactory.c ****  *
+ 386:../../../os/oslib/src/chfactory.c ****  * @param[in] rop       registered object reference
+ 387:../../../os/oslib/src/chfactory.c ****  *
+ 388:../../../os/oslib/src/chfactory.c ****  * @api
+ 389:../../../os/oslib/src/chfactory.c ****  */
+ 390:../../../os/oslib/src/chfactory.c **** void chFactoryReleaseObject(registered_object_t *rop) {
+ 929               		.loc 2 390 0
+ 930               		.cfi_startproc
+ 931               	.LVL111:
+ 932 0000 CF93      		push r28
+ 933               	.LCFI36:
+ 934               		.cfi_def_cfa_offset 3
+ 935               		.cfi_offset 28, -2
+ 936 0002 DF93      		push r29
+ 937               	.LCFI37:
+ 938               		.cfi_def_cfa_offset 4
+ 939               		.cfi_offset 29, -3
+ 940               	/* prologue: function */
+ 941               	/* frame size = 0 */
+ 942               	/* stack size = 2 */
+ 943               	.L__stack_usage = 2
+ 944 0004 EC01      		movw r28,r24
+ 391:../../../os/oslib/src/chfactory.c **** 
+ 392:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 945               		.loc 2 392 0
+ 946 0006 60E0      		ldi r22,0
+ 947 0008 70E0      		ldi r23,0
+ 948 000a 80E0      		ldi r24,lo8(ch_factory)
+ 949 000c 90E0      		ldi r25,hi8(ch_factory)
+ 950               	.LVL112:
+ 951 000e 0E94 0000 		call chSemWaitTimeout
+ 952               	.LVL113:
+ 953               	.LBB124:
+ 954               	.LBB125:
+ 219:../../../os/oslib/src/chfactory.c ****   if (dep->refs == (ucnt_t)0) {
+ 955               		.loc 2 219 0
+ 956 0012 8A81      		ldd r24,Y+2
+ 957 0014 8150      		subi r24,lo8(-(-1))
+ 958 0016 8A83      		std Y+2,r24
+ 220:../../../os/oslib/src/chfactory.c ****     dep = dyn_list_unlink(dep, dlp);
+ 959               		.loc 2 220 0
+ 960 0018 8823      		tst r24
+ 961 001a 01F0      		breq .L84
+ 962               	.LVL114:
+ 963               	.LBE125:
+ 964               	.LBE124:
+ 393:../../../os/oslib/src/chfactory.c **** 
+ 394:../../../os/oslib/src/chfactory.c ****   dyn_release_object_pool(&rop->element,
+ 395:../../../os/oslib/src/chfactory.c ****                           &ch_factory.obj_list,
+ 396:../../../os/oslib/src/chfactory.c ****                           &ch_factory.obj_pool);
+ 397:../../../os/oslib/src/chfactory.c **** 
+ 398:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 965               		.loc 2 398 0
+ 966 001c 80E0      		ldi r24,lo8(ch_factory)
+ 967 001e 90E0      		ldi r25,hi8(ch_factory)
+ 968               	/* epilogue start */
+ 399:../../../os/oslib/src/chfactory.c **** }
+ 969               		.loc 2 399 0
+ 970 0020 DF91      		pop r29
+ 971 0022 CF91      		pop r28
+ 972               	.LVL115:
+ 398:../../../os/oslib/src/chfactory.c **** }
+ 973               		.loc 2 398 0
+ 974 0024 0C94 0000 		jmp chSemSignal
+ 975               	.LVL116:
+ 976               	.L84:
+ 394:../../../os/oslib/src/chfactory.c ****                           &ch_factory.obj_list,
+ 977               		.loc 2 394 0
+ 978 0028 BE01      		movw r22,r28
+ 979 002a E0E0      		ldi r30,lo8(ch_factory+1)
+ 980 002c F0E0      		ldi r31,hi8(ch_factory+1)
+ 981               	.LVL117:
+ 982 002e 00C0      		rjmp .L79
+ 983               	.LVL118:
+ 984               	.L81:
+ 985               	.LBB136:
+ 986               	.LBB134:
+ 987               	.LBB126:
+ 988               	.LBB127:
+ 989               	.LBB128:
+ 990               	.LBB129:
+ 122:../../../os/oslib/src/chfactory.c ****       /* Found.*/
+ 991               		.loc 2 122 0
+ 992 0030 C817      		cp r28,r24
+ 993 0032 D907      		cpc r29,r25
+ 994 0034 01F0      		breq .L85
+ 995 0036 FC01      		movw r30,r24
+ 996               	.LVL119:
+ 997               	.L79:
+ 121:../../../os/oslib/src/chfactory.c ****     if (prev->next == element) {
+ 998               		.loc 2 121 0
+ 999 0038 8081      		ld r24,Z
+ 1000 003a 9181      		ldd r25,Z+1
+ 1001 003c 20E0      		ldi r18,hi8(ch_factory+1)
+ 1002 003e 8030      		cpi r24,lo8(ch_factory+1)
+ 1003 0040 9207      		cpc r25,r18
+ 1004 0042 01F4      		brne .L81
+ 132:../../../os/oslib/src/chfactory.c **** }
+ 1005               		.loc 2 132 0
+ 1006 0044 60E0      		ldi r22,0
+ 1007               	.LVL120:
+ 1008 0046 70E0      		ldi r23,0
+ 1009               	.L80:
+ 1010               	.LBE129:
+ 1011               	.LBE128:
+ 222:../../../os/oslib/src/chfactory.c ****   }
+ 1012               		.loc 2 222 0
+ 1013 0048 80E0      		ldi r24,lo8(ch_factory+3)
+ 1014 004a 90E0      		ldi r25,hi8(ch_factory+3)
+ 1015               	.LVL121:
+ 1016 004c 0E94 0000 		call chPoolFree
+ 1017               	.LVL122:
+ 1018               	.LBE127:
+ 1019               	.LBE126:
+ 1020               	.LBE134:
+ 1021               	.LBE136:
+ 398:../../../os/oslib/src/chfactory.c **** }
+ 1022               		.loc 2 398 0
+ 1023 0050 80E0      		ldi r24,lo8(ch_factory)
+ 1024 0052 90E0      		ldi r25,hi8(ch_factory)
+ 1025               	/* epilogue start */
+ 1026               		.loc 2 399 0
+ 1027 0054 DF91      		pop r29
+ 1028 0056 CF91      		pop r28
+ 1029               	.LVL123:
+ 398:../../../os/oslib/src/chfactory.c **** }
+ 1030               		.loc 2 398 0
+ 1031 0058 0C94 0000 		jmp chSemSignal
+ 1032               	.LVL124:
+ 1033               	.L85:
+ 1034               	.LBB137:
+ 1035               	.LBB135:
+ 1036               	.LBB133:
+ 1037               	.LBB132:
+ 1038               	.LBB131:
+ 1039               	.LBB130:
+ 124:../../../os/oslib/src/chfactory.c ****       return element;
+ 1040               		.loc 2 124 0
+ 1041 005c 8881      		ld r24,Y
+ 1042 005e 9981      		ldd r25,Y+1
+ 1043 0060 9183      		std Z+1,r25
+ 1044 0062 8083      		st Z,r24
+ 1045 0064 00C0      		rjmp .L80
+ 1046               	.LBE130:
+ 1047               	.LBE131:
+ 1048               	.LBE132:
+ 1049               	.LBE133:
+ 1050               	.LBE135:
+ 1051               	.LBE137:
+ 1052               		.cfi_endproc
+ 1053               	.LFE111:
+ 1055               		.section	.text.chFactoryCreateBuffer,"ax",@progbits
+ 1056               	.global	chFactoryCreateBuffer
+ 1058               	chFactoryCreateBuffer:
+ 1059               	.LFB112:
+ 400:../../../os/oslib/src/chfactory.c **** #endif /* CH_CFG_FACTORY_OBJECTS_REGISTRY == TRUE */
+ 401:../../../os/oslib/src/chfactory.c **** 
+ 402:../../../os/oslib/src/chfactory.c **** #if (CH_CFG_FACTORY_GENERIC_BUFFERS == TRUE) || defined(__DOXIGEN__)
+ 403:../../../os/oslib/src/chfactory.c **** /**
+ 404:../../../os/oslib/src/chfactory.c ****  * @brief   Creates a generic dynamic buffer object.
+ 405:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the dynamic buffer object is returned and the
+ 406:../../../os/oslib/src/chfactory.c ****  *          reference counter is initialized to one.
+ 407:../../../os/oslib/src/chfactory.c ****  * @post    The dynamic buffer object is filled with zeros.
+ 408:../../../os/oslib/src/chfactory.c ****  *
+ 409:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name to be assigned to the new dynamic buffer object
+ 410:../../../os/oslib/src/chfactory.c ****  * @param[in] size      payload size of the dynamic buffer object to be created
+ 411:../../../os/oslib/src/chfactory.c ****  *
+ 412:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the created dynamic buffer object.
+ 413:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if the dynamic buffer object cannot be allocated or
+ 414:../../../os/oslib/src/chfactory.c ****  *                      a dynamic buffer object with the same name exists.
+ 415:../../../os/oslib/src/chfactory.c ****  *
+ 416:../../../os/oslib/src/chfactory.c ****  * @api
+ 417:../../../os/oslib/src/chfactory.c ****  */
+ 418:../../../os/oslib/src/chfactory.c **** dyn_buffer_t *chFactoryCreateBuffer(const char *name, size_t size) {
+ 1060               		.loc 2 418 0
+ 1061               		.cfi_startproc
+ 1062               	.LVL125:
+ 1063 0000 0F93      		push r16
+ 1064               	.LCFI38:
+ 1065               		.cfi_def_cfa_offset 3
+ 1066               		.cfi_offset 16, -2
+ 1067 0002 1F93      		push r17
+ 1068               	.LCFI39:
+ 1069               		.cfi_def_cfa_offset 4
+ 1070               		.cfi_offset 17, -3
+ 1071 0004 CF93      		push r28
+ 1072               	.LCFI40:
+ 1073               		.cfi_def_cfa_offset 5
+ 1074               		.cfi_offset 28, -4
+ 1075 0006 DF93      		push r29
+ 1076               	.LCFI41:
+ 1077               		.cfi_def_cfa_offset 6
+ 1078               		.cfi_offset 29, -5
+ 1079               	/* prologue: function */
+ 1080               	/* frame size = 0 */
+ 1081               	/* stack size = 4 */
+ 1082               	.L__stack_usage = 4
+ 1083 0008 EC01      		movw r28,r24
+ 1084 000a 8B01      		movw r16,r22
+ 419:../../../os/oslib/src/chfactory.c ****   dyn_buffer_t *dbp;
+ 420:../../../os/oslib/src/chfactory.c **** 
+ 421:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1085               		.loc 2 421 0
+ 1086 000c 60E0      		ldi r22,0
+ 1087 000e 70E0      		ldi r23,0
+ 1088               	.LVL126:
+ 1089 0010 80E0      		ldi r24,lo8(ch_factory)
+ 1090 0012 90E0      		ldi r25,hi8(ch_factory)
+ 1091               	.LVL127:
+ 1092 0014 0E94 0000 		call chSemWaitTimeout
+ 1093               	.LVL128:
+ 422:../../../os/oslib/src/chfactory.c **** 
+ 423:../../../os/oslib/src/chfactory.c ****   dbp = (dyn_buffer_t *)dyn_create_object_heap(name,
+ 1094               		.loc 2 423 0
+ 1095 0018 A801      		movw r20,r16
+ 1096 001a 455F      		subi r20,-11
+ 1097 001c 5F4F      		sbci r21,-1
+ 1098 001e 24E0      		ldi r18,lo8(4)
+ 1099 0020 30E0      		ldi r19,0
+ 1100 0022 60E0      		ldi r22,lo8(ch_factory+11)
+ 1101 0024 70E0      		ldi r23,hi8(ch_factory+11)
+ 1102 0026 CE01      		movw r24,r28
+ 1103 0028 0E94 0000 		call dyn_create_object_heap
+ 1104               	.LVL129:
+ 1105 002c EC01      		movw r28,r24
+ 1106               	.LVL130:
+ 424:../../../os/oslib/src/chfactory.c ****                                                &ch_factory.buf_list,
+ 425:../../../os/oslib/src/chfactory.c ****                                                sizeof (dyn_buffer_t) + size,
+ 426:../../../os/oslib/src/chfactory.c ****                                                CH_HEAP_ALIGNMENT);
+ 427:../../../os/oslib/src/chfactory.c ****   if (dbp != NULL) {
+ 1107               		.loc 2 427 0
+ 1108 002e 0097      		sbiw r24,0
+ 1109 0030 01F0      		breq .L87
+ 428:../../../os/oslib/src/chfactory.c ****     /* Initializing buffer object data.*/
+ 429:../../../os/oslib/src/chfactory.c ****     memset((void *)(dbp + 1), 0, size);
+ 1110               		.loc 2 429 0
+ 1111 0032 A801      		movw r20,r16
+ 1112 0034 60E0      		ldi r22,0
+ 1113 0036 70E0      		ldi r23,0
+ 1114 0038 0B96      		adiw r24,11
+ 1115               	.LVL131:
+ 1116 003a 0E94 0000 		call memset
+ 1117               	.LVL132:
+ 1118               	.L87:
+ 430:../../../os/oslib/src/chfactory.c ****   }
+ 431:../../../os/oslib/src/chfactory.c **** 
+ 432:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1119               		.loc 2 432 0
+ 1120 003e 80E0      		ldi r24,lo8(ch_factory)
+ 1121 0040 90E0      		ldi r25,hi8(ch_factory)
+ 1122 0042 0E94 0000 		call chSemSignal
+ 1123               	.LVL133:
+ 433:../../../os/oslib/src/chfactory.c **** 
+ 434:../../../os/oslib/src/chfactory.c ****   return dbp;
+ 435:../../../os/oslib/src/chfactory.c **** }
+ 1124               		.loc 2 435 0
+ 1125 0046 CE01      		movw r24,r28
+ 1126               	/* epilogue start */
+ 1127 0048 DF91      		pop r29
+ 1128 004a CF91      		pop r28
+ 1129               	.LVL134:
+ 1130 004c 1F91      		pop r17
+ 1131 004e 0F91      		pop r16
+ 1132               	.LVL135:
+ 1133 0050 0895      		ret
+ 1134               		.cfi_endproc
+ 1135               	.LFE112:
+ 1137               		.section	.text.chFactoryFindBuffer,"ax",@progbits
+ 1138               	.global	chFactoryFindBuffer
+ 1140               	chFactoryFindBuffer:
+ 1141               	.LFB113:
+ 436:../../../os/oslib/src/chfactory.c **** 
+ 437:../../../os/oslib/src/chfactory.c **** /**
+ 438:../../../os/oslib/src/chfactory.c ****  * @brief   Retrieves a dynamic buffer object.
+ 439:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the dynamic buffer object is returned with the
+ 440:../../../os/oslib/src/chfactory.c ****  *          reference counter increased by one.
+ 441:../../../os/oslib/src/chfactory.c ****  *
+ 442:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name of the dynamic buffer object
+ 443:../../../os/oslib/src/chfactory.c ****  *
+ 444:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the found dynamic buffer object.
+ 445:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if a dynamic buffer object with the specified name
+ 446:../../../os/oslib/src/chfactory.c ****  *                      does not exist.
+ 447:../../../os/oslib/src/chfactory.c ****  *
+ 448:../../../os/oslib/src/chfactory.c ****  * @api
+ 449:../../../os/oslib/src/chfactory.c ****  */
+ 450:../../../os/oslib/src/chfactory.c **** dyn_buffer_t *chFactoryFindBuffer(const char *name) {
+ 1142               		.loc 2 450 0
+ 1143               		.cfi_startproc
+ 1144               	.LVL136:
+ 1145 0000 CF93      		push r28
+ 1146               	.LCFI42:
+ 1147               		.cfi_def_cfa_offset 3
+ 1148               		.cfi_offset 28, -2
+ 1149 0002 DF93      		push r29
+ 1150               	.LCFI43:
+ 1151               		.cfi_def_cfa_offset 4
+ 1152               		.cfi_offset 29, -3
+ 1153               	/* prologue: function */
+ 1154               	/* frame size = 0 */
+ 1155               	/* stack size = 2 */
+ 1156               	.L__stack_usage = 2
+ 1157 0004 EC01      		movw r28,r24
+ 451:../../../os/oslib/src/chfactory.c ****   dyn_buffer_t *dbp;
+ 452:../../../os/oslib/src/chfactory.c **** 
+ 453:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1158               		.loc 2 453 0
+ 1159 0006 60E0      		ldi r22,0
+ 1160 0008 70E0      		ldi r23,0
+ 1161 000a 80E0      		ldi r24,lo8(ch_factory)
+ 1162 000c 90E0      		ldi r25,hi8(ch_factory)
+ 1163               	.LVL137:
+ 1164 000e 0E94 0000 		call chSemWaitTimeout
+ 1165               	.LVL138:
+ 454:../../../os/oslib/src/chfactory.c **** 
+ 455:../../../os/oslib/src/chfactory.c ****   dbp = (dyn_buffer_t *)dyn_find_object(name, &ch_factory.buf_list);
+ 1166               		.loc 2 455 0
+ 1167 0012 60E0      		ldi r22,lo8(ch_factory+11)
+ 1168 0014 70E0      		ldi r23,hi8(ch_factory+11)
+ 1169 0016 CE01      		movw r24,r28
+ 1170 0018 0E94 0000 		call dyn_find_object
+ 1171               	.LVL139:
+ 1172 001c EC01      		movw r28,r24
+ 1173               	.LVL140:
+ 456:../../../os/oslib/src/chfactory.c **** 
+ 457:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1174               		.loc 2 457 0
+ 1175 001e 80E0      		ldi r24,lo8(ch_factory)
+ 1176 0020 90E0      		ldi r25,hi8(ch_factory)
+ 1177               	.LVL141:
+ 1178 0022 0E94 0000 		call chSemSignal
+ 1179               	.LVL142:
+ 458:../../../os/oslib/src/chfactory.c **** 
+ 459:../../../os/oslib/src/chfactory.c ****   return dbp;
+ 460:../../../os/oslib/src/chfactory.c **** }
+ 1180               		.loc 2 460 0
+ 1181 0026 CE01      		movw r24,r28
+ 1182               	/* epilogue start */
+ 1183 0028 DF91      		pop r29
+ 1184 002a CF91      		pop r28
+ 1185               	.LVL143:
+ 1186 002c 0895      		ret
+ 1187               		.cfi_endproc
+ 1188               	.LFE113:
+ 1190               		.section	.text.chFactoryReleaseBuffer,"ax",@progbits
+ 1191               	.global	chFactoryReleaseBuffer
+ 1193               	chFactoryReleaseBuffer:
+ 1194               	.LFB114:
+ 461:../../../os/oslib/src/chfactory.c **** 
+ 462:../../../os/oslib/src/chfactory.c **** /**
+ 463:../../../os/oslib/src/chfactory.c ****  * @brief   Releases a dynamic buffer object.
+ 464:../../../os/oslib/src/chfactory.c ****  * @details The reference counter of the dynamic buffer object is decreased
+ 465:../../../os/oslib/src/chfactory.c ****  *          by one, if reaches zero then the dynamic buffer object memory
+ 466:../../../os/oslib/src/chfactory.c ****  *          is freed.
+ 467:../../../os/oslib/src/chfactory.c ****  *
+ 468:../../../os/oslib/src/chfactory.c ****  * @param[in] dbp       dynamic buffer object reference
+ 469:../../../os/oslib/src/chfactory.c ****  *
+ 470:../../../os/oslib/src/chfactory.c ****  * @api
+ 471:../../../os/oslib/src/chfactory.c ****  */
+ 472:../../../os/oslib/src/chfactory.c **** void chFactoryReleaseBuffer(dyn_buffer_t *dbp) {
+ 1195               		.loc 2 472 0
+ 1196               		.cfi_startproc
+ 1197               	.LVL144:
+ 1198 0000 CF93      		push r28
+ 1199               	.LCFI44:
+ 1200               		.cfi_def_cfa_offset 3
+ 1201               		.cfi_offset 28, -2
+ 1202 0002 DF93      		push r29
+ 1203               	.LCFI45:
+ 1204               		.cfi_def_cfa_offset 4
+ 1205               		.cfi_offset 29, -3
+ 1206               	/* prologue: function */
+ 1207               	/* frame size = 0 */
+ 1208               	/* stack size = 2 */
+ 1209               	.L__stack_usage = 2
+ 1210 0004 EC01      		movw r28,r24
+ 473:../../../os/oslib/src/chfactory.c **** 
+ 474:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1211               		.loc 2 474 0
+ 1212 0006 60E0      		ldi r22,0
+ 1213 0008 70E0      		ldi r23,0
+ 1214 000a 80E0      		ldi r24,lo8(ch_factory)
+ 1215 000c 90E0      		ldi r25,hi8(ch_factory)
+ 1216               	.LVL145:
+ 1217 000e 0E94 0000 		call chSemWaitTimeout
+ 1218               	.LVL146:
+ 1219               	.LBB138:
+ 1220               	.LBB139:
+ 173:../../../os/oslib/src/chfactory.c ****   if (dep->refs == (ucnt_t)0) {
+ 1221               		.loc 2 173 0
+ 1222 0012 8A81      		ldd r24,Y+2
+ 1223 0014 8150      		subi r24,lo8(-(-1))
+ 1224 0016 8A83      		std Y+2,r24
+ 174:../../../os/oslib/src/chfactory.c ****     dep = dyn_list_unlink(dep, dlp);
+ 1225               		.loc 2 174 0
+ 1226 0018 8111      		cpse r24,__zero_reg__
+ 1227 001a 00C0      		rjmp .L93
+ 1228 001c 60E0      		ldi r22,lo8(ch_factory+11)
+ 1229 001e 70E0      		ldi r23,hi8(ch_factory+11)
+ 1230               	.LVL147:
+ 1231 0020 CE01      		movw r24,r28
+ 1232 0022 0E94 0000 		call dyn_release_object_heap.part.3
+ 1233               	.LVL148:
+ 1234               	.L93:
+ 1235               	.LBE139:
+ 1236               	.LBE138:
+ 475:../../../os/oslib/src/chfactory.c **** 
+ 476:../../../os/oslib/src/chfactory.c ****   dyn_release_object_heap(&dbp->element, &ch_factory.buf_list);
+ 477:../../../os/oslib/src/chfactory.c **** 
+ 478:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1237               		.loc 2 478 0
+ 1238 0026 80E0      		ldi r24,lo8(ch_factory)
+ 1239 0028 90E0      		ldi r25,hi8(ch_factory)
+ 1240               	/* epilogue start */
+ 479:../../../os/oslib/src/chfactory.c **** }
+ 1241               		.loc 2 479 0
+ 1242 002a DF91      		pop r29
+ 1243 002c CF91      		pop r28
+ 1244               	.LVL149:
+ 478:../../../os/oslib/src/chfactory.c **** }
+ 1245               		.loc 2 478 0
+ 1246 002e 0C94 0000 		jmp chSemSignal
+ 1247               	.LVL150:
+ 1248               		.cfi_endproc
+ 1249               	.LFE114:
+ 1251               		.section	.text.chFactoryCreateSemaphore,"ax",@progbits
+ 1252               	.global	chFactoryCreateSemaphore
+ 1254               	chFactoryCreateSemaphore:
+ 1255               	.LFB115:
+ 480:../../../os/oslib/src/chfactory.c **** #endif /* CH_CFG_FACTORY_GENERIC_BUFFERS = TRUE */
+ 481:../../../os/oslib/src/chfactory.c **** 
+ 482:../../../os/oslib/src/chfactory.c **** #if (CH_CFG_FACTORY_SEMAPHORES == TRUE) || defined(__DOXIGEN__)
+ 483:../../../os/oslib/src/chfactory.c **** /**
+ 484:../../../os/oslib/src/chfactory.c ****  * @brief   Creates a dynamic semaphore object.
+ 485:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the dynamic semaphore object is returned and the
+ 486:../../../os/oslib/src/chfactory.c ****  *          reference counter is initialized to one.
+ 487:../../../os/oslib/src/chfactory.c ****  * @post    The dynamic semaphore object is initialized and ready to use.
+ 488:../../../os/oslib/src/chfactory.c ****  *
+ 489:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name to be assigned to the new dynamic semaphore object
+ 490:../../../os/oslib/src/chfactory.c ****  * @param[in] n         dynamic semaphore object counter initialization value
+ 491:../../../os/oslib/src/chfactory.c ****  *
+ 492:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the created dynamic semaphore object.
+ 493:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if the dynamic semaphore object cannot be allocated or
+ 494:../../../os/oslib/src/chfactory.c ****  *                      a dynamic semaphore with the same name exists.
+ 495:../../../os/oslib/src/chfactory.c ****  *
+ 496:../../../os/oslib/src/chfactory.c ****  * @api
+ 497:../../../os/oslib/src/chfactory.c ****  */
+ 498:../../../os/oslib/src/chfactory.c **** dyn_semaphore_t *chFactoryCreateSemaphore(const char *name, cnt_t n) {
+ 1256               		.loc 2 498 0
+ 1257               		.cfi_startproc
+ 1258               	.LVL151:
+ 1259 0000 1F93      		push r17
+ 1260               	.LCFI46:
+ 1261               		.cfi_def_cfa_offset 3
+ 1262               		.cfi_offset 17, -2
+ 1263 0002 CF93      		push r28
+ 1264               	.LCFI47:
+ 1265               		.cfi_def_cfa_offset 4
+ 1266               		.cfi_offset 28, -3
+ 1267 0004 DF93      		push r29
+ 1268               	.LCFI48:
+ 1269               		.cfi_def_cfa_offset 5
+ 1270               		.cfi_offset 29, -4
+ 1271               	/* prologue: function */
+ 1272               	/* frame size = 0 */
+ 1273               	/* stack size = 3 */
+ 1274               	.L__stack_usage = 3
+ 1275 0006 EC01      		movw r28,r24
+ 1276 0008 162F      		mov r17,r22
+ 499:../../../os/oslib/src/chfactory.c ****   dyn_semaphore_t *dsp;
+ 500:../../../os/oslib/src/chfactory.c **** 
+ 501:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1277               		.loc 2 501 0
+ 1278 000a 60E0      		ldi r22,0
+ 1279 000c 70E0      		ldi r23,0
+ 1280               	.LVL152:
+ 1281 000e 80E0      		ldi r24,lo8(ch_factory)
+ 1282 0010 90E0      		ldi r25,hi8(ch_factory)
+ 1283               	.LVL153:
+ 1284 0012 0E94 0000 		call chSemWaitTimeout
+ 1285               	.LVL154:
+ 502:../../../os/oslib/src/chfactory.c **** 
+ 503:../../../os/oslib/src/chfactory.c ****   dsp = (dyn_semaphore_t *)dyn_create_object_pool(name,
+ 1286               		.loc 2 503 0
+ 1287 0016 40E0      		ldi r20,lo8(ch_factory+15)
+ 1288 0018 50E0      		ldi r21,hi8(ch_factory+15)
+ 1289 001a 60E0      		ldi r22,lo8(ch_factory+13)
+ 1290 001c 70E0      		ldi r23,hi8(ch_factory+13)
+ 1291 001e CE01      		movw r24,r28
+ 1292 0020 0E94 0000 		call dyn_create_object_pool
+ 1293               	.LVL155:
+ 1294 0024 EC01      		movw r28,r24
+ 1295               	.LVL156:
+ 504:../../../os/oslib/src/chfactory.c ****                                                   &ch_factory.sem_list,
+ 505:../../../os/oslib/src/chfactory.c ****                                                   &ch_factory.sem_pool);
+ 506:../../../os/oslib/src/chfactory.c ****   if (dsp != NULL) {
+ 1296               		.loc 2 506 0
+ 1297 0026 892B      		or r24,r25
+ 1298 0028 01F0      		breq .L95
+ 507:../../../os/oslib/src/chfactory.c ****     /* Initializing semaphore object dataa.*/
+ 508:../../../os/oslib/src/chfactory.c ****     chSemObjectInit(&dsp->sem, n);
+ 1299               		.loc 2 508 0
+ 1300 002a 1B87      		std Y+11,r17
+ 1301               	.L95:
+ 509:../../../os/oslib/src/chfactory.c ****   }
+ 510:../../../os/oslib/src/chfactory.c **** 
+ 511:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1302               		.loc 2 511 0
+ 1303 002c 80E0      		ldi r24,lo8(ch_factory)
+ 1304 002e 90E0      		ldi r25,hi8(ch_factory)
+ 1305               	.LVL157:
+ 1306 0030 0E94 0000 		call chSemSignal
+ 1307               	.LVL158:
+ 512:../../../os/oslib/src/chfactory.c **** 
+ 513:../../../os/oslib/src/chfactory.c ****   return dsp;
+ 514:../../../os/oslib/src/chfactory.c **** }
+ 1308               		.loc 2 514 0
+ 1309 0034 CE01      		movw r24,r28
+ 1310               	/* epilogue start */
+ 1311 0036 DF91      		pop r29
+ 1312 0038 CF91      		pop r28
+ 1313               	.LVL159:
+ 1314 003a 1F91      		pop r17
+ 1315               	.LVL160:
+ 1316 003c 0895      		ret
+ 1317               		.cfi_endproc
+ 1318               	.LFE115:
+ 1320               		.section	.text.chFactoryFindSemaphore,"ax",@progbits
+ 1321               	.global	chFactoryFindSemaphore
+ 1323               	chFactoryFindSemaphore:
+ 1324               	.LFB116:
+ 515:../../../os/oslib/src/chfactory.c **** 
+ 516:../../../os/oslib/src/chfactory.c **** /**
+ 517:../../../os/oslib/src/chfactory.c ****  * @brief   Retrieves a dynamic semaphore object.
+ 518:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the dynamic semaphore object is returned with the
+ 519:../../../os/oslib/src/chfactory.c ****  *          reference counter increased by one.
+ 520:../../../os/oslib/src/chfactory.c ****  *
+ 521:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name of the dynamic semaphore object
+ 522:../../../os/oslib/src/chfactory.c ****  *
+ 523:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the found dynamic semaphore object.
+ 524:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if a dynamic semaphore object with the specified name
+ 525:../../../os/oslib/src/chfactory.c ****  *                      does not exist.
+ 526:../../../os/oslib/src/chfactory.c ****  *
+ 527:../../../os/oslib/src/chfactory.c ****  * @api
+ 528:../../../os/oslib/src/chfactory.c ****  */
+ 529:../../../os/oslib/src/chfactory.c **** dyn_semaphore_t *chFactoryFindSemaphore(const char *name) {
+ 1325               		.loc 2 529 0
+ 1326               		.cfi_startproc
+ 1327               	.LVL161:
+ 1328 0000 CF93      		push r28
+ 1329               	.LCFI49:
+ 1330               		.cfi_def_cfa_offset 3
+ 1331               		.cfi_offset 28, -2
+ 1332 0002 DF93      		push r29
+ 1333               	.LCFI50:
+ 1334               		.cfi_def_cfa_offset 4
+ 1335               		.cfi_offset 29, -3
+ 1336               	/* prologue: function */
+ 1337               	/* frame size = 0 */
+ 1338               	/* stack size = 2 */
+ 1339               	.L__stack_usage = 2
+ 1340 0004 EC01      		movw r28,r24
+ 530:../../../os/oslib/src/chfactory.c ****   dyn_semaphore_t *dsp;
+ 531:../../../os/oslib/src/chfactory.c **** 
+ 532:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1341               		.loc 2 532 0
+ 1342 0006 60E0      		ldi r22,0
+ 1343 0008 70E0      		ldi r23,0
+ 1344 000a 80E0      		ldi r24,lo8(ch_factory)
+ 1345 000c 90E0      		ldi r25,hi8(ch_factory)
+ 1346               	.LVL162:
+ 1347 000e 0E94 0000 		call chSemWaitTimeout
+ 1348               	.LVL163:
+ 533:../../../os/oslib/src/chfactory.c **** 
+ 534:../../../os/oslib/src/chfactory.c ****   dsp = (dyn_semaphore_t *)dyn_find_object(name, &ch_factory.sem_list);
+ 1349               		.loc 2 534 0
+ 1350 0012 60E0      		ldi r22,lo8(ch_factory+13)
+ 1351 0014 70E0      		ldi r23,hi8(ch_factory+13)
+ 1352 0016 CE01      		movw r24,r28
+ 1353 0018 0E94 0000 		call dyn_find_object
+ 1354               	.LVL164:
+ 1355 001c EC01      		movw r28,r24
+ 1356               	.LVL165:
+ 535:../../../os/oslib/src/chfactory.c **** 
+ 536:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1357               		.loc 2 536 0
+ 1358 001e 80E0      		ldi r24,lo8(ch_factory)
+ 1359 0020 90E0      		ldi r25,hi8(ch_factory)
+ 1360               	.LVL166:
+ 1361 0022 0E94 0000 		call chSemSignal
+ 1362               	.LVL167:
+ 537:../../../os/oslib/src/chfactory.c **** 
+ 538:../../../os/oslib/src/chfactory.c ****   return dsp;
+ 539:../../../os/oslib/src/chfactory.c **** }
+ 1363               		.loc 2 539 0
+ 1364 0026 CE01      		movw r24,r28
+ 1365               	/* epilogue start */
+ 1366 0028 DF91      		pop r29
+ 1367 002a CF91      		pop r28
+ 1368               	.LVL168:
+ 1369 002c 0895      		ret
+ 1370               		.cfi_endproc
+ 1371               	.LFE116:
+ 1373               		.section	.text.chFactoryReleaseSemaphore,"ax",@progbits
+ 1374               	.global	chFactoryReleaseSemaphore
+ 1376               	chFactoryReleaseSemaphore:
+ 1377               	.LFB117:
+ 540:../../../os/oslib/src/chfactory.c **** 
+ 541:../../../os/oslib/src/chfactory.c **** /**
+ 542:../../../os/oslib/src/chfactory.c ****  * @brief   Releases a dynamic semaphore object.
+ 543:../../../os/oslib/src/chfactory.c ****  * @details The reference counter of the dynamic semaphore object is decreased
+ 544:../../../os/oslib/src/chfactory.c ****  *          by one, if reaches zero then the dynamic semaphore object memory
+ 545:../../../os/oslib/src/chfactory.c ****  *          is freed.
+ 546:../../../os/oslib/src/chfactory.c ****  *
+ 547:../../../os/oslib/src/chfactory.c ****  * @param[in] dsp       dynamic semaphore object reference
+ 548:../../../os/oslib/src/chfactory.c ****  *
+ 549:../../../os/oslib/src/chfactory.c ****  * @api
+ 550:../../../os/oslib/src/chfactory.c ****  */
+ 551:../../../os/oslib/src/chfactory.c **** void chFactoryReleaseSemaphore(dyn_semaphore_t *dsp) {
+ 1378               		.loc 2 551 0
+ 1379               		.cfi_startproc
+ 1380               	.LVL169:
+ 1381 0000 CF93      		push r28
+ 1382               	.LCFI51:
+ 1383               		.cfi_def_cfa_offset 3
+ 1384               		.cfi_offset 28, -2
+ 1385 0002 DF93      		push r29
+ 1386               	.LCFI52:
+ 1387               		.cfi_def_cfa_offset 4
+ 1388               		.cfi_offset 29, -3
+ 1389               	/* prologue: function */
+ 1390               	/* frame size = 0 */
+ 1391               	/* stack size = 2 */
+ 1392               	.L__stack_usage = 2
+ 1393 0004 EC01      		movw r28,r24
+ 552:../../../os/oslib/src/chfactory.c **** 
+ 553:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1394               		.loc 2 553 0
+ 1395 0006 60E0      		ldi r22,0
+ 1396 0008 70E0      		ldi r23,0
+ 1397 000a 80E0      		ldi r24,lo8(ch_factory)
+ 1398 000c 90E0      		ldi r25,hi8(ch_factory)
+ 1399               	.LVL170:
+ 1400 000e 0E94 0000 		call chSemWaitTimeout
+ 1401               	.LVL171:
+ 1402               	.LBB146:
+ 1403               	.LBB147:
+ 219:../../../os/oslib/src/chfactory.c ****   if (dep->refs == (ucnt_t)0) {
+ 1404               		.loc 2 219 0
+ 1405 0012 8A81      		ldd r24,Y+2
+ 1406 0014 8150      		subi r24,lo8(-(-1))
+ 1407 0016 8A83      		std Y+2,r24
+ 220:../../../os/oslib/src/chfactory.c ****     dep = dyn_list_unlink(dep, dlp);
+ 1408               		.loc 2 220 0
+ 1409 0018 8823      		tst r24
+ 1410 001a 01F0      		breq .L108
+ 1411               	.LVL172:
+ 1412               	.LBE147:
+ 1413               	.LBE146:
+ 554:../../../os/oslib/src/chfactory.c **** 
+ 555:../../../os/oslib/src/chfactory.c ****   dyn_release_object_pool(&dsp->element,
+ 556:../../../os/oslib/src/chfactory.c ****                           &ch_factory.sem_list,
+ 557:../../../os/oslib/src/chfactory.c ****                           &ch_factory.sem_pool);
+ 558:../../../os/oslib/src/chfactory.c **** 
+ 559:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1414               		.loc 2 559 0
+ 1415 001c 80E0      		ldi r24,lo8(ch_factory)
+ 1416 001e 90E0      		ldi r25,hi8(ch_factory)
+ 1417               	/* epilogue start */
+ 560:../../../os/oslib/src/chfactory.c **** }
+ 1418               		.loc 2 560 0
+ 1419 0020 DF91      		pop r29
+ 1420 0022 CF91      		pop r28
+ 1421               	.LVL173:
+ 559:../../../os/oslib/src/chfactory.c **** }
+ 1422               		.loc 2 559 0
+ 1423 0024 0C94 0000 		jmp chSemSignal
+ 1424               	.LVL174:
+ 1425               	.L108:
+ 555:../../../os/oslib/src/chfactory.c ****                           &ch_factory.sem_list,
+ 1426               		.loc 2 555 0
+ 1427 0028 BE01      		movw r22,r28
+ 1428 002a E0E0      		ldi r30,lo8(ch_factory+13)
+ 1429 002c F0E0      		ldi r31,hi8(ch_factory+13)
+ 1430               	.LVL175:
+ 1431 002e 00C0      		rjmp .L103
+ 1432               	.LVL176:
+ 1433               	.L105:
+ 1434               	.LBB158:
+ 1435               	.LBB156:
+ 1436               	.LBB148:
+ 1437               	.LBB149:
+ 1438               	.LBB150:
+ 1439               	.LBB151:
+ 122:../../../os/oslib/src/chfactory.c ****       /* Found.*/
+ 1440               		.loc 2 122 0
+ 1441 0030 C817      		cp r28,r24
+ 1442 0032 D907      		cpc r29,r25
+ 1443 0034 01F0      		breq .L109
+ 1444 0036 FC01      		movw r30,r24
+ 1445               	.LVL177:
+ 1446               	.L103:
+ 121:../../../os/oslib/src/chfactory.c ****     if (prev->next == element) {
+ 1447               		.loc 2 121 0
+ 1448 0038 8081      		ld r24,Z
+ 1449 003a 9181      		ldd r25,Z+1
+ 1450 003c 20E0      		ldi r18,hi8(ch_factory+13)
+ 1451 003e 8030      		cpi r24,lo8(ch_factory+13)
+ 1452 0040 9207      		cpc r25,r18
+ 1453 0042 01F4      		brne .L105
+ 132:../../../os/oslib/src/chfactory.c **** }
+ 1454               		.loc 2 132 0
+ 1455 0044 60E0      		ldi r22,0
+ 1456               	.LVL178:
+ 1457 0046 70E0      		ldi r23,0
+ 1458               	.L104:
+ 1459               	.LBE151:
+ 1460               	.LBE150:
+ 222:../../../os/oslib/src/chfactory.c ****   }
+ 1461               		.loc 2 222 0
+ 1462 0048 80E0      		ldi r24,lo8(ch_factory+15)
+ 1463 004a 90E0      		ldi r25,hi8(ch_factory+15)
+ 1464               	.LVL179:
+ 1465 004c 0E94 0000 		call chPoolFree
+ 1466               	.LVL180:
+ 1467               	.LBE149:
+ 1468               	.LBE148:
+ 1469               	.LBE156:
+ 1470               	.LBE158:
+ 559:../../../os/oslib/src/chfactory.c **** }
+ 1471               		.loc 2 559 0
+ 1472 0050 80E0      		ldi r24,lo8(ch_factory)
+ 1473 0052 90E0      		ldi r25,hi8(ch_factory)
+ 1474               	/* epilogue start */
+ 1475               		.loc 2 560 0
+ 1476 0054 DF91      		pop r29
+ 1477 0056 CF91      		pop r28
+ 1478               	.LVL181:
+ 559:../../../os/oslib/src/chfactory.c **** }
+ 1479               		.loc 2 559 0
+ 1480 0058 0C94 0000 		jmp chSemSignal
+ 1481               	.LVL182:
+ 1482               	.L109:
+ 1483               	.LBB159:
+ 1484               	.LBB157:
+ 1485               	.LBB155:
+ 1486               	.LBB154:
+ 1487               	.LBB153:
+ 1488               	.LBB152:
+ 124:../../../os/oslib/src/chfactory.c ****       return element;
+ 1489               		.loc 2 124 0
+ 1490 005c 8881      		ld r24,Y
+ 1491 005e 9981      		ldd r25,Y+1
+ 1492 0060 9183      		std Z+1,r25
+ 1493 0062 8083      		st Z,r24
+ 1494 0064 00C0      		rjmp .L104
+ 1495               	.LBE152:
+ 1496               	.LBE153:
+ 1497               	.LBE154:
+ 1498               	.LBE155:
+ 1499               	.LBE157:
+ 1500               	.LBE159:
+ 1501               		.cfi_endproc
+ 1502               	.LFE117:
+ 1504               		.section	.text.chFactoryCreateMailbox,"ax",@progbits
+ 1505               	.global	chFactoryCreateMailbox
+ 1507               	chFactoryCreateMailbox:
+ 1508               	.LFB118:
+ 561:../../../os/oslib/src/chfactory.c **** #endif /* CH_CFG_FACTORY_SEMAPHORES = TRUE */
+ 562:../../../os/oslib/src/chfactory.c **** 
+ 563:../../../os/oslib/src/chfactory.c **** #if (CH_CFG_FACTORY_MAILBOXES == TRUE) || defined(__DOXIGEN__)
+ 564:../../../os/oslib/src/chfactory.c **** /**
+ 565:../../../os/oslib/src/chfactory.c ****  * @brief   Creates a dynamic mailbox object.
+ 566:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the dynamic mailbox object is returned and the
+ 567:../../../os/oslib/src/chfactory.c ****  *          reference counter is initialized to one.
+ 568:../../../os/oslib/src/chfactory.c ****  * @post    The dynamic mailbox object is initialized and ready to use.
+ 569:../../../os/oslib/src/chfactory.c ****  *
+ 570:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name to be assigned to the new dynamic mailbox object
+ 571:../../../os/oslib/src/chfactory.c ****  * @param[in] n         mailbox buffer size as number of messages
+ 572:../../../os/oslib/src/chfactory.c ****  *
+ 573:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the created dynamic mailbox object.
+ 574:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if the dynamic mailbox object cannot be allocated or
+ 575:../../../os/oslib/src/chfactory.c ****  *                      a dynamic mailbox object with the same name exists.
+ 576:../../../os/oslib/src/chfactory.c ****  *
+ 577:../../../os/oslib/src/chfactory.c ****  * @api
+ 578:../../../os/oslib/src/chfactory.c ****  */
+ 579:../../../os/oslib/src/chfactory.c **** dyn_mailbox_t *chFactoryCreateMailbox(const char *name, size_t n) {
+ 1509               		.loc 2 579 0
+ 1510               		.cfi_startproc
+ 1511               	.LVL183:
+ 1512 0000 0F93      		push r16
+ 1513               	.LCFI53:
+ 1514               		.cfi_def_cfa_offset 3
+ 1515               		.cfi_offset 16, -2
+ 1516 0002 1F93      		push r17
+ 1517               	.LCFI54:
+ 1518               		.cfi_def_cfa_offset 4
+ 1519               		.cfi_offset 17, -3
+ 1520 0004 CF93      		push r28
+ 1521               	.LCFI55:
+ 1522               		.cfi_def_cfa_offset 5
+ 1523               		.cfi_offset 28, -4
+ 1524 0006 DF93      		push r29
+ 1525               	.LCFI56:
+ 1526               		.cfi_def_cfa_offset 6
+ 1527               		.cfi_offset 29, -5
+ 1528               	/* prologue: function */
+ 1529               	/* frame size = 0 */
+ 1530               	/* stack size = 4 */
+ 1531               	.L__stack_usage = 4
+ 1532 0008 EC01      		movw r28,r24
+ 1533 000a 8B01      		movw r16,r22
+ 580:../../../os/oslib/src/chfactory.c ****   dyn_mailbox_t *dmp;
+ 581:../../../os/oslib/src/chfactory.c **** 
+ 582:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1534               		.loc 2 582 0
+ 1535 000c 60E0      		ldi r22,0
+ 1536 000e 70E0      		ldi r23,0
+ 1537               	.LVL184:
+ 1538 0010 80E0      		ldi r24,lo8(ch_factory)
+ 1539 0012 90E0      		ldi r25,hi8(ch_factory)
+ 1540               	.LVL185:
+ 1541 0014 0E94 0000 		call chSemWaitTimeout
+ 1542               	.LVL186:
+ 583:../../../os/oslib/src/chfactory.c **** 
+ 584:../../../os/oslib/src/chfactory.c ****   dmp = (dyn_mailbox_t *)dyn_create_object_heap(name,
+ 1543               		.loc 2 584 0
+ 1544 0018 A801      		movw r20,r16
+ 1545 001a 445F      		subi r20,-12
+ 1546 001c 5F4F      		sbci r21,-1
+ 1547 001e 440F      		lsl r20
+ 1548 0020 551F      		rol r21
+ 1549 0022 24E0      		ldi r18,lo8(4)
+ 1550 0024 30E0      		ldi r19,0
+ 1551 0026 60E0      		ldi r22,lo8(ch_factory+23)
+ 1552 0028 70E0      		ldi r23,hi8(ch_factory+23)
+ 1553 002a CE01      		movw r24,r28
+ 1554 002c 0E94 0000 		call dyn_create_object_heap
+ 1555               	.LVL187:
+ 1556 0030 EC01      		movw r28,r24
+ 1557               	.LVL188:
+ 585:../../../os/oslib/src/chfactory.c ****                                                 &ch_factory.mbx_list,
+ 586:../../../os/oslib/src/chfactory.c ****                                                 sizeof (dyn_mailbox_t) +
+ 587:../../../os/oslib/src/chfactory.c ****                                                 (n * sizeof (msg_t)),
+ 588:../../../os/oslib/src/chfactory.c ****                                                 CH_HEAP_ALIGNMENT);
+ 589:../../../os/oslib/src/chfactory.c ****   if (dmp != NULL) {
+ 1558               		.loc 2 589 0
+ 1559 0032 0097      		sbiw r24,0
+ 1560 0034 01F0      		breq .L111
+ 590:../../../os/oslib/src/chfactory.c ****     /* Initializing mailbox object data.*/
+ 591:../../../os/oslib/src/chfactory.c ****     chMBObjectInit(&dmp->mbx, (msg_t *)(dmp + 1), n);
+ 1561               		.loc 2 591 0
+ 1562 0036 A801      		movw r20,r16
+ 1563 0038 BC01      		movw r22,r24
+ 1564 003a 685E      		subi r22,-24
+ 1565 003c 7F4F      		sbci r23,-1
+ 1566 003e 0B96      		adiw r24,11
+ 1567               	.LVL189:
+ 1568 0040 0E94 0000 		call chMBObjectInit
+ 1569               	.LVL190:
+ 1570               	.L111:
+ 592:../../../os/oslib/src/chfactory.c ****   }
+ 593:../../../os/oslib/src/chfactory.c **** 
+ 594:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1571               		.loc 2 594 0
+ 1572 0044 80E0      		ldi r24,lo8(ch_factory)
+ 1573 0046 90E0      		ldi r25,hi8(ch_factory)
+ 1574 0048 0E94 0000 		call chSemSignal
+ 1575               	.LVL191:
+ 595:../../../os/oslib/src/chfactory.c **** 
+ 596:../../../os/oslib/src/chfactory.c ****   return dmp;
+ 597:../../../os/oslib/src/chfactory.c **** }
+ 1576               		.loc 2 597 0
+ 1577 004c CE01      		movw r24,r28
+ 1578               	/* epilogue start */
+ 1579 004e DF91      		pop r29
+ 1580 0050 CF91      		pop r28
+ 1581               	.LVL192:
+ 1582 0052 1F91      		pop r17
+ 1583 0054 0F91      		pop r16
+ 1584               	.LVL193:
+ 1585 0056 0895      		ret
+ 1586               		.cfi_endproc
+ 1587               	.LFE118:
+ 1589               		.section	.text.chFactoryFindMailbox,"ax",@progbits
+ 1590               	.global	chFactoryFindMailbox
+ 1592               	chFactoryFindMailbox:
+ 1593               	.LFB119:
+ 598:../../../os/oslib/src/chfactory.c **** 
+ 599:../../../os/oslib/src/chfactory.c **** /**
+ 600:../../../os/oslib/src/chfactory.c ****  * @brief   Retrieves a dynamic mailbox object.
+ 601:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the dynamic mailbox object is returned with the
+ 602:../../../os/oslib/src/chfactory.c ****  *          reference counter increased by one.
+ 603:../../../os/oslib/src/chfactory.c ****  *
+ 604:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name of the dynamic mailbox object
+ 605:../../../os/oslib/src/chfactory.c ****  *
+ 606:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the found dynamic mailbox object.
+ 607:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if a dynamic mailbox object with the specified name
+ 608:../../../os/oslib/src/chfactory.c ****  *                      does not exist.
+ 609:../../../os/oslib/src/chfactory.c ****  *
+ 610:../../../os/oslib/src/chfactory.c ****  * @api
+ 611:../../../os/oslib/src/chfactory.c ****  */
+ 612:../../../os/oslib/src/chfactory.c **** dyn_mailbox_t *chFactoryFindMailbox(const char *name) {
+ 1594               		.loc 2 612 0
+ 1595               		.cfi_startproc
+ 1596               	.LVL194:
+ 1597 0000 CF93      		push r28
+ 1598               	.LCFI57:
+ 1599               		.cfi_def_cfa_offset 3
+ 1600               		.cfi_offset 28, -2
+ 1601 0002 DF93      		push r29
+ 1602               	.LCFI58:
+ 1603               		.cfi_def_cfa_offset 4
+ 1604               		.cfi_offset 29, -3
+ 1605               	/* prologue: function */
+ 1606               	/* frame size = 0 */
+ 1607               	/* stack size = 2 */
+ 1608               	.L__stack_usage = 2
+ 1609 0004 EC01      		movw r28,r24
+ 613:../../../os/oslib/src/chfactory.c ****   dyn_mailbox_t *dmp;
+ 614:../../../os/oslib/src/chfactory.c **** 
+ 615:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1610               		.loc 2 615 0
+ 1611 0006 60E0      		ldi r22,0
+ 1612 0008 70E0      		ldi r23,0
+ 1613 000a 80E0      		ldi r24,lo8(ch_factory)
+ 1614 000c 90E0      		ldi r25,hi8(ch_factory)
+ 1615               	.LVL195:
+ 1616 000e 0E94 0000 		call chSemWaitTimeout
+ 1617               	.LVL196:
+ 616:../../../os/oslib/src/chfactory.c **** 
+ 617:../../../os/oslib/src/chfactory.c ****   dmp = (dyn_mailbox_t *)dyn_find_object(name, &ch_factory.mbx_list);
+ 1618               		.loc 2 617 0
+ 1619 0012 60E0      		ldi r22,lo8(ch_factory+23)
+ 1620 0014 70E0      		ldi r23,hi8(ch_factory+23)
+ 1621 0016 CE01      		movw r24,r28
+ 1622 0018 0E94 0000 		call dyn_find_object
+ 1623               	.LVL197:
+ 1624 001c EC01      		movw r28,r24
+ 1625               	.LVL198:
+ 618:../../../os/oslib/src/chfactory.c **** 
+ 619:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1626               		.loc 2 619 0
+ 1627 001e 80E0      		ldi r24,lo8(ch_factory)
+ 1628 0020 90E0      		ldi r25,hi8(ch_factory)
+ 1629               	.LVL199:
+ 1630 0022 0E94 0000 		call chSemSignal
+ 1631               	.LVL200:
+ 620:../../../os/oslib/src/chfactory.c **** 
+ 621:../../../os/oslib/src/chfactory.c ****   return dmp;
+ 622:../../../os/oslib/src/chfactory.c **** }
+ 1632               		.loc 2 622 0
+ 1633 0026 CE01      		movw r24,r28
+ 1634               	/* epilogue start */
+ 1635 0028 DF91      		pop r29
+ 1636 002a CF91      		pop r28
+ 1637               	.LVL201:
+ 1638 002c 0895      		ret
+ 1639               		.cfi_endproc
+ 1640               	.LFE119:
+ 1642               		.section	.text.chFactoryReleaseMailbox,"ax",@progbits
+ 1643               	.global	chFactoryReleaseMailbox
+ 1645               	chFactoryReleaseMailbox:
+ 1646               	.LFB120:
+ 623:../../../os/oslib/src/chfactory.c **** 
+ 624:../../../os/oslib/src/chfactory.c **** /**
+ 625:../../../os/oslib/src/chfactory.c ****  * @brief   Releases a dynamic mailbox object.
+ 626:../../../os/oslib/src/chfactory.c ****  * @details The reference counter of the dynamic mailbox object is decreased
+ 627:../../../os/oslib/src/chfactory.c ****  *          by one, if reaches zero then the dynamic mailbox object memory
+ 628:../../../os/oslib/src/chfactory.c ****  *          is freed.
+ 629:../../../os/oslib/src/chfactory.c ****  *
+ 630:../../../os/oslib/src/chfactory.c ****  * @param[in] dmp       dynamic mailbox object reference
+ 631:../../../os/oslib/src/chfactory.c ****  *
+ 632:../../../os/oslib/src/chfactory.c ****  * @api
+ 633:../../../os/oslib/src/chfactory.c ****  */
+ 634:../../../os/oslib/src/chfactory.c **** void chFactoryReleaseMailbox(dyn_mailbox_t *dmp) {
+ 1647               		.loc 2 634 0
+ 1648               		.cfi_startproc
+ 1649               	.LVL202:
+ 1650 0000 CF93      		push r28
+ 1651               	.LCFI59:
+ 1652               		.cfi_def_cfa_offset 3
+ 1653               		.cfi_offset 28, -2
+ 1654 0002 DF93      		push r29
+ 1655               	.LCFI60:
+ 1656               		.cfi_def_cfa_offset 4
+ 1657               		.cfi_offset 29, -3
+ 1658               	/* prologue: function */
+ 1659               	/* frame size = 0 */
+ 1660               	/* stack size = 2 */
+ 1661               	.L__stack_usage = 2
+ 1662 0004 EC01      		movw r28,r24
+ 635:../../../os/oslib/src/chfactory.c **** 
+ 636:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1663               		.loc 2 636 0
+ 1664 0006 60E0      		ldi r22,0
+ 1665 0008 70E0      		ldi r23,0
+ 1666 000a 80E0      		ldi r24,lo8(ch_factory)
+ 1667 000c 90E0      		ldi r25,hi8(ch_factory)
+ 1668               	.LVL203:
+ 1669 000e 0E94 0000 		call chSemWaitTimeout
+ 1670               	.LVL204:
+ 1671               	.LBB160:
+ 1672               	.LBB161:
+ 173:../../../os/oslib/src/chfactory.c ****   if (dep->refs == (ucnt_t)0) {
+ 1673               		.loc 2 173 0
+ 1674 0012 8A81      		ldd r24,Y+2
+ 1675 0014 8150      		subi r24,lo8(-(-1))
+ 1676 0016 8A83      		std Y+2,r24
+ 174:../../../os/oslib/src/chfactory.c ****     dep = dyn_list_unlink(dep, dlp);
+ 1677               		.loc 2 174 0
+ 1678 0018 8111      		cpse r24,__zero_reg__
+ 1679 001a 00C0      		rjmp .L117
+ 1680 001c 60E0      		ldi r22,lo8(ch_factory+23)
+ 1681 001e 70E0      		ldi r23,hi8(ch_factory+23)
+ 1682               	.LVL205:
+ 1683 0020 CE01      		movw r24,r28
+ 1684 0022 0E94 0000 		call dyn_release_object_heap.part.3
+ 1685               	.LVL206:
+ 1686               	.L117:
+ 1687               	.LBE161:
+ 1688               	.LBE160:
+ 637:../../../os/oslib/src/chfactory.c **** 
+ 638:../../../os/oslib/src/chfactory.c ****   dyn_release_object_heap(&dmp->element, &ch_factory.mbx_list);
+ 639:../../../os/oslib/src/chfactory.c **** 
+ 640:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1689               		.loc 2 640 0
+ 1690 0026 80E0      		ldi r24,lo8(ch_factory)
+ 1691 0028 90E0      		ldi r25,hi8(ch_factory)
+ 1692               	/* epilogue start */
+ 641:../../../os/oslib/src/chfactory.c **** }
+ 1693               		.loc 2 641 0
+ 1694 002a DF91      		pop r29
+ 1695 002c CF91      		pop r28
+ 1696               	.LVL207:
+ 640:../../../os/oslib/src/chfactory.c **** }
+ 1697               		.loc 2 640 0
+ 1698 002e 0C94 0000 		jmp chSemSignal
+ 1699               	.LVL208:
+ 1700               		.cfi_endproc
+ 1701               	.LFE120:
+ 1703               		.section	.text.chFactoryCreateObjectsFIFO,"ax",@progbits
+ 1704               	.global	chFactoryCreateObjectsFIFO
+ 1706               	chFactoryCreateObjectsFIFO:
+ 1707               	.LFB121:
+ 642:../../../os/oslib/src/chfactory.c **** #endif /* CH_CFG_FACTORY_MAILBOXES = TRUE */
+ 643:../../../os/oslib/src/chfactory.c **** 
+ 644:../../../os/oslib/src/chfactory.c **** #if (CH_CFG_FACTORY_OBJ_FIFOS == TRUE) || defined(__DOXIGEN__)
+ 645:../../../os/oslib/src/chfactory.c **** /**
+ 646:../../../os/oslib/src/chfactory.c ****  * @brief   Creates a dynamic "objects FIFO" object.
+ 647:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the dynamic "objects FIFO" object is returned and
+ 648:../../../os/oslib/src/chfactory.c ****  *          the reference counter is initialized to one.
+ 649:../../../os/oslib/src/chfactory.c ****  * @post    The dynamic "objects FIFO" object is initialized and ready to use.
+ 650:../../../os/oslib/src/chfactory.c ****  *
+ 651:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name to be assigned to the new dynamic "objects FIFO"
+ 652:../../../os/oslib/src/chfactory.c ****  *                      object
+ 653:../../../os/oslib/src/chfactory.c ****  * @param[in] objsize   size of objects
+ 654:../../../os/oslib/src/chfactory.c ****  * @param[in] objn      number of objects available
+ 655:../../../os/oslib/src/chfactory.c ****  * @param[in] objalign  required objects alignment
+ 656:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the created dynamic "objects FIFO"
+ 657:../../../os/oslib/src/chfactory.c ****  *                      object.
+ 658:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if the dynamic "objects FIFO" object cannot be
+ 659:../../../os/oslib/src/chfactory.c ****  *                      allocated or a dynamic "objects FIFO" object with
+ 660:../../../os/oslib/src/chfactory.c ****  *                      the same name exists.
+ 661:../../../os/oslib/src/chfactory.c ****  *
+ 662:../../../os/oslib/src/chfactory.c ****  * @api
+ 663:../../../os/oslib/src/chfactory.c ****  */
+ 664:../../../os/oslib/src/chfactory.c **** dyn_objects_fifo_t *chFactoryCreateObjectsFIFO(const char *name,
+ 665:../../../os/oslib/src/chfactory.c ****                                                size_t objsize,
+ 666:../../../os/oslib/src/chfactory.c ****                                                size_t objn,
+ 667:../../../os/oslib/src/chfactory.c ****                                                unsigned objalign) {
+ 1708               		.loc 2 667 0
+ 1709               		.cfi_startproc
+ 1710               	.LVL209:
+ 1711 0000 AF92      		push r10
+ 1712               	.LCFI61:
+ 1713               		.cfi_def_cfa_offset 3
+ 1714               		.cfi_offset 10, -2
+ 1715 0002 BF92      		push r11
+ 1716               	.LCFI62:
+ 1717               		.cfi_def_cfa_offset 4
+ 1718               		.cfi_offset 11, -3
+ 1719 0004 CF92      		push r12
+ 1720               	.LCFI63:
+ 1721               		.cfi_def_cfa_offset 5
+ 1722               		.cfi_offset 12, -4
+ 1723 0006 DF92      		push r13
+ 1724               	.LCFI64:
+ 1725               		.cfi_def_cfa_offset 6
+ 1726               		.cfi_offset 13, -5
+ 1727 0008 EF92      		push r14
+ 1728               	.LCFI65:
+ 1729               		.cfi_def_cfa_offset 7
+ 1730               		.cfi_offset 14, -6
+ 1731 000a FF92      		push r15
+ 1732               	.LCFI66:
+ 1733               		.cfi_def_cfa_offset 8
+ 1734               		.cfi_offset 15, -7
+ 1735 000c 0F93      		push r16
+ 1736               	.LCFI67:
+ 1737               		.cfi_def_cfa_offset 9
+ 1738               		.cfi_offset 16, -8
+ 1739 000e 1F93      		push r17
+ 1740               	.LCFI68:
+ 1741               		.cfi_def_cfa_offset 10
+ 1742               		.cfi_offset 17, -9
+ 1743 0010 CF93      		push r28
+ 1744               	.LCFI69:
+ 1745               		.cfi_def_cfa_offset 11
+ 1746               		.cfi_offset 28, -10
+ 1747 0012 DF93      		push r29
+ 1748               	.LCFI70:
+ 1749               		.cfi_def_cfa_offset 12
+ 1750               		.cfi_offset 29, -11
+ 1751               	/* prologue: function */
+ 1752               	/* frame size = 0 */
+ 1753               	/* stack size = 10 */
+ 1754               	.L__stack_usage = 10
+ 1755 0014 7C01      		movw r14,r24
+ 1756 0016 EB01      		movw r28,r22
+ 1757 0018 5A01      		movw r10,r20
+ 1758 001a 6901      		movw r12,r18
+ 668:../../../os/oslib/src/chfactory.c ****   size_t size1, size2;
+ 669:../../../os/oslib/src/chfactory.c ****   dyn_objects_fifo_t *dofp;
+ 670:../../../os/oslib/src/chfactory.c **** 
+ 671:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1759               		.loc 2 671 0
+ 1760 001c 60E0      		ldi r22,0
+ 1761 001e 70E0      		ldi r23,0
+ 1762               	.LVL210:
+ 1763 0020 80E0      		ldi r24,lo8(ch_factory)
+ 1764 0022 90E0      		ldi r25,hi8(ch_factory)
+ 1765               	.LVL211:
+ 1766 0024 0E94 0000 		call chSemWaitTimeout
+ 1767               	.LVL212:
+ 672:../../../os/oslib/src/chfactory.c **** 
+ 673:../../../os/oslib/src/chfactory.c ****   /* Enforcing alignment for the objects array.*/
+ 674:../../../os/oslib/src/chfactory.c ****   objsize = MEM_ALIGN_NEXT(objsize, objalign);
+ 1768               		.loc 2 674 0
+ 1769 0028 2197      		sbiw r28,1
+ 1770               	.LVL213:
+ 1771 002a CC0D      		add r28,r12
+ 1772 002c DD1D      		adc r29,r13
+ 1773               	.LVL214:
+ 1774 002e 8827      		clr r24
+ 1775 0030 9927      		clr r25
+ 1776 0032 8C19      		sub r24,r12
+ 1777 0034 9D09      		sbc r25,r13
+ 1778 0036 C823      		and r28,r24
+ 1779 0038 D923      		and r29,r25
+ 1780               	.LVL215:
+ 675:../../../os/oslib/src/chfactory.c ****   size1   = MEM_ALIGN_NEXT(sizeof (dyn_objects_fifo_t) + (objn * sizeof (msg_t)),
+ 1781               		.loc 2 675 0
+ 1782 003a 8501      		movw r16,r10
+ 1783 003c 000F      		lsl r16
+ 1784 003e 111F      		rol r17
+ 1785 0040 005E      		subi r16,-32
+ 1786 0042 1F4F      		sbci r17,-1
+ 1787 0044 0C0D      		add r16,r12
+ 1788 0046 1D1D      		adc r17,r13
+ 1789 0048 0823      		and r16,r24
+ 1790 004a 1923      		and r17,r25
+ 1791               	.LVL216:
+ 676:../../../os/oslib/src/chfactory.c ****                            objalign);
+ 677:../../../os/oslib/src/chfactory.c ****   size2   = objn * objsize;
+ 678:../../../os/oslib/src/chfactory.c **** 
+ 679:../../../os/oslib/src/chfactory.c ****   /* Allocating the FIFO object with messages buffer and objects buffer.*/
+ 680:../../../os/oslib/src/chfactory.c ****   dofp = (dyn_objects_fifo_t *)dyn_create_object_heap(name,
+ 1792               		.loc 2 680 0
+ 1793 004c CA9D      		mul r28,r10
+ 1794 004e A001      		movw r20,r0
+ 1795 0050 CB9D      		mul r28,r11
+ 1796 0052 500D      		add r21,r0
+ 1797 0054 DA9D      		mul r29,r10
+ 1798 0056 500D      		add r21,r0
+ 1799 0058 1124      		clr r1
+ 1800               	.LVL217:
+ 1801 005a 400F      		add r20,r16
+ 1802 005c 511F      		adc r21,r17
+ 1803               	.LVL218:
+ 1804 005e 9601      		movw r18,r12
+ 1805 0060 60E0      		ldi r22,lo8(ch_factory+25)
+ 1806 0062 70E0      		ldi r23,hi8(ch_factory+25)
+ 1807 0064 C701      		movw r24,r14
+ 1808 0066 0E94 0000 		call dyn_create_object_heap
+ 1809               	.LVL219:
+ 1810 006a 7C01      		movw r14,r24
+ 1811               	.LVL220:
+ 681:../../../os/oslib/src/chfactory.c ****                                                       &ch_factory.fifo_list,
+ 682:../../../os/oslib/src/chfactory.c ****                                                       size1 + size2,
+ 683:../../../os/oslib/src/chfactory.c ****                                                       objalign);
+ 684:../../../os/oslib/src/chfactory.c ****   if (dofp != NULL) {
+ 1812               		.loc 2 684 0
+ 1813 006c 0097      		sbiw r24,0
+ 1814 006e 01F0      		breq .L119
+ 1815               	.LVL221:
+ 1816               	.LBB165:
+ 685:../../../os/oslib/src/chfactory.c ****     msg_t *msgbuf = (msg_t *)(dofp + 1);
+ 686:../../../os/oslib/src/chfactory.c ****     uint8_t *objbuf = (uint8_t *)dofp + size1;
+ 1817               		.loc 2 686 0
+ 1818 0070 080F      		add r16,r24
+ 1819 0072 191F      		adc r17,r25
+ 1820               	.LVL222:
+ 1821               	.LBB166:
+ 1822               	.LBB167:
+ 1823               		.file 4 "../../../os/oslib/include/chobjfifos.h"
+   1:../../../os/oslib/include/chobjfifos.h **** /*
+   2:../../../os/oslib/include/chobjfifos.h ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../../os/oslib/include/chobjfifos.h ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../../os/oslib/include/chobjfifos.h **** 
+   5:../../../os/oslib/include/chobjfifos.h ****     This file is part of ChibiOS.
+   6:../../../os/oslib/include/chobjfifos.h **** 
+   7:../../../os/oslib/include/chobjfifos.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../../os/oslib/include/chobjfifos.h ****     it under the terms of the GNU General Public License as published by
+   9:../../../os/oslib/include/chobjfifos.h ****     the Free Software Foundation version 3 of the License.
+  10:../../../os/oslib/include/chobjfifos.h **** 
+  11:../../../os/oslib/include/chobjfifos.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../../os/oslib/include/chobjfifos.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../../os/oslib/include/chobjfifos.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../../os/oslib/include/chobjfifos.h ****     GNU General Public License for more details.
+  15:../../../os/oslib/include/chobjfifos.h **** 
+  16:../../../os/oslib/include/chobjfifos.h ****     You should have received a copy of the GNU General Public License
+  17:../../../os/oslib/include/chobjfifos.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../../os/oslib/include/chobjfifos.h **** */
+  19:../../../os/oslib/include/chobjfifos.h **** 
+  20:../../../os/oslib/include/chobjfifos.h **** /**
+  21:../../../os/oslib/include/chobjfifos.h ****  * @file    oslib/include/chobjfifos.h
+  22:../../../os/oslib/include/chobjfifos.h ****  * @brief   Objects FIFO structures and macros.
+  23:../../../os/oslib/include/chobjfifos.h ****  * @details This module implements a generic FIFO queue of objects by
+  24:../../../os/oslib/include/chobjfifos.h ****  *          coupling a Guarded Memory Pool (for objects storage) and
+  25:../../../os/oslib/include/chobjfifos.h ****  *          a MailBox.<br>
+  26:../../../os/oslib/include/chobjfifos.h ****  *          On the sender side free objects are taken from the pool, filled
+  27:../../../os/oslib/include/chobjfifos.h ****  *          and then sent to the receiver, on the receiver side objects are
+  28:../../../os/oslib/include/chobjfifos.h ****  *          fetched, used and then returned to the pool.
+  29:../../../os/oslib/include/chobjfifos.h ****  *          Operations defined for object FIFOs:
+  30:../../../os/oslib/include/chobjfifos.h ****  *          - <b>Take</b>: An object is taken from the pool of the free
+  31:../../../os/oslib/include/chobjfifos.h ****  *            objects, can be blocking.
+  32:../../../os/oslib/include/chobjfifos.h ****  *          - <b>Return</b>: An object is returned to the pool of the
+  33:../../../os/oslib/include/chobjfifos.h ****  *            free objects, it is guaranteed to be non-blocking.
+  34:../../../os/oslib/include/chobjfifos.h ****  *          - <b>Send</b>: An object is sent through the mailbox, it is
+  35:../../../os/oslib/include/chobjfifos.h ****  *            guaranteed to be non-blocking
+  36:../../../os/oslib/include/chobjfifos.h ****  *          - <b>Receive</b>: An object is received from the mailbox,
+  37:../../../os/oslib/include/chobjfifos.h ****  *            can be blocking.
+  38:../../../os/oslib/include/chobjfifos.h ****  *          .
+  39:../../../os/oslib/include/chobjfifos.h ****  *
+  40:../../../os/oslib/include/chobjfifos.h ****  * @addtogroup oslib_objects_fifos
+  41:../../../os/oslib/include/chobjfifos.h ****  * @{
+  42:../../../os/oslib/include/chobjfifos.h ****  */
+  43:../../../os/oslib/include/chobjfifos.h **** 
+  44:../../../os/oslib/include/chobjfifos.h **** #ifndef CHOBJFIFOS_H
+  45:../../../os/oslib/include/chobjfifos.h **** #define CHOBJFIFOS_H
+  46:../../../os/oslib/include/chobjfifos.h **** 
+  47:../../../os/oslib/include/chobjfifos.h **** #if (CH_CFG_USE_OBJ_FIFOS == TRUE) || defined(__DOXYGEN__)
+  48:../../../os/oslib/include/chobjfifos.h **** 
+  49:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  50:../../../os/oslib/include/chobjfifos.h **** /* Module constants.                                                         */
+  51:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  52:../../../os/oslib/include/chobjfifos.h **** 
+  53:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  54:../../../os/oslib/include/chobjfifos.h **** /* Module pre-compile time settings.                                         */
+  55:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  56:../../../os/oslib/include/chobjfifos.h **** 
+  57:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  58:../../../os/oslib/include/chobjfifos.h **** /* Derived constants and error checks.                                       */
+  59:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  60:../../../os/oslib/include/chobjfifos.h **** 
+  61:../../../os/oslib/include/chobjfifos.h **** #if CH_CFG_USE_MEMPOOLS == FALSE
+  62:../../../os/oslib/include/chobjfifos.h **** #error "CH_CFG_USE_OBJ_FIFOS requires CH_CFG_USE_MEMPOOLS"
+  63:../../../os/oslib/include/chobjfifos.h **** #endif
+  64:../../../os/oslib/include/chobjfifos.h **** 
+  65:../../../os/oslib/include/chobjfifos.h **** #if CH_CFG_USE_SEMAPHORES == FALSE
+  66:../../../os/oslib/include/chobjfifos.h **** #error "CH_CFG_USE_OBJ_FIFOS requires CH_CFG_USE_SEMAPHORES"
+  67:../../../os/oslib/include/chobjfifos.h **** #endif
+  68:../../../os/oslib/include/chobjfifos.h **** 
+  69:../../../os/oslib/include/chobjfifos.h **** #if CH_CFG_USE_MAILBOXES == FALSE
+  70:../../../os/oslib/include/chobjfifos.h **** #error "CH_CFG_USE_OBJ_FIFOS requires CH_CFG_USE_MAILBOXES"
+  71:../../../os/oslib/include/chobjfifos.h **** #endif
+  72:../../../os/oslib/include/chobjfifos.h **** 
+  73:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  74:../../../os/oslib/include/chobjfifos.h **** /* Module data structures and types.                                         */
+  75:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  76:../../../os/oslib/include/chobjfifos.h **** 
+  77:../../../os/oslib/include/chobjfifos.h **** /**
+  78:../../../os/oslib/include/chobjfifos.h ****  * @brief   Type of an objects FIFO.
+  79:../../../os/oslib/include/chobjfifos.h ****  */
+  80:../../../os/oslib/include/chobjfifos.h **** typedef struct ch_objects_fifo {
+  81:../../../os/oslib/include/chobjfifos.h ****   /**
+  82:../../../os/oslib/include/chobjfifos.h ****    * @brief   Pool of the free objects.
+  83:../../../os/oslib/include/chobjfifos.h ****    */
+  84:../../../os/oslib/include/chobjfifos.h ****   guarded_memory_pool_t     free;
+  85:../../../os/oslib/include/chobjfifos.h ****   /**
+  86:../../../os/oslib/include/chobjfifos.h ****    * @brief   Mailbox of the sent objects.
+  87:../../../os/oslib/include/chobjfifos.h ****    */
+  88:../../../os/oslib/include/chobjfifos.h ****   mailbox_t                 mbx;
+  89:../../../os/oslib/include/chobjfifos.h **** } objects_fifo_t;
+  90:../../../os/oslib/include/chobjfifos.h **** 
+  91:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  92:../../../os/oslib/include/chobjfifos.h **** /* Module macros.                                                            */
+  93:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  94:../../../os/oslib/include/chobjfifos.h **** 
+  95:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  96:../../../os/oslib/include/chobjfifos.h **** /* External declarations.                                                    */
+  97:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+  98:../../../os/oslib/include/chobjfifos.h **** 
+  99:../../../os/oslib/include/chobjfifos.h **** #ifdef __cplusplus
+ 100:../../../os/oslib/include/chobjfifos.h **** extern "C" {
+ 101:../../../os/oslib/include/chobjfifos.h **** #endif
+ 102:../../../os/oslib/include/chobjfifos.h **** 
+ 103:../../../os/oslib/include/chobjfifos.h **** #ifdef __cplusplus
+ 104:../../../os/oslib/include/chobjfifos.h **** }
+ 105:../../../os/oslib/include/chobjfifos.h **** #endif
+ 106:../../../os/oslib/include/chobjfifos.h **** 
+ 107:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+ 108:../../../os/oslib/include/chobjfifos.h **** /* Module inline functions.                                                  */
+ 109:../../../os/oslib/include/chobjfifos.h **** /*===========================================================================*/
+ 110:../../../os/oslib/include/chobjfifos.h **** 
+ 111:../../../os/oslib/include/chobjfifos.h **** /**
+ 112:../../../os/oslib/include/chobjfifos.h ****  * @brief   Initializes a FIFO object.
+ 113:../../../os/oslib/include/chobjfifos.h ****  * @pre     The messages size must be a multiple of the alignment
+ 114:../../../os/oslib/include/chobjfifos.h ****  *          requirement.
+ 115:../../../os/oslib/include/chobjfifos.h ****  *
+ 116:../../../os/oslib/include/chobjfifos.h ****  * @param[out] ofp      pointer to a @p objects_fifo_t structure
+ 117:../../../os/oslib/include/chobjfifos.h ****  * @param[in] objsize   size of objects
+ 118:../../../os/oslib/include/chobjfifos.h ****  * @param[in] objn      number of objects available
+ 119:../../../os/oslib/include/chobjfifos.h ****  * @param[in] objalign  required objects alignment
+ 120:../../../os/oslib/include/chobjfifos.h ****  * @param[in] objbuf    pointer to the buffer of objects, it must be able
+ 121:../../../os/oslib/include/chobjfifos.h ****  *                      to hold @p objn objects of @p objsize size with
+ 122:../../../os/oslib/include/chobjfifos.h ****  *                      @p objalign alignment
+ 123:../../../os/oslib/include/chobjfifos.h ****  * @param[in] msgbuf    pointer to the buffer of messages, it must be able
+ 124:../../../os/oslib/include/chobjfifos.h ****  *                      to hold @p objn messages
+ 125:../../../os/oslib/include/chobjfifos.h ****  *
+ 126:../../../os/oslib/include/chobjfifos.h ****  * @init
+ 127:../../../os/oslib/include/chobjfifos.h ****  */
+ 128:../../../os/oslib/include/chobjfifos.h **** static inline void chFifoObjectInitAligned(objects_fifo_t *ofp, size_t objsize,
+ 129:../../../os/oslib/include/chobjfifos.h ****                                            size_t objn, unsigned objalign,
+ 130:../../../os/oslib/include/chobjfifos.h ****                                            void *objbuf, msg_t *msgbuf) {
+ 131:../../../os/oslib/include/chobjfifos.h **** 
+ 132:../../../os/oslib/include/chobjfifos.h ****   chDbgCheck((objsize >= objalign) && ((objsize % objalign) == 0U));
+ 133:../../../os/oslib/include/chobjfifos.h **** 
+ 134:../../../os/oslib/include/chobjfifos.h ****   chGuardedPoolObjectInitAligned(&ofp->free, objsize, objalign);
+ 1824               		.loc 4 134 0
+ 1825 0074 A601      		movw r20,r12
+ 1826 0076 BE01      		movw r22,r28
+ 1827 0078 EC01      		movw r28,r24
+ 1828               	.LVL223:
+ 1829 007a 2B96      		adiw r28,11
+ 1830               	.LVL224:
+ 1831 007c CE01      		movw r24,r28
+ 1832 007e 0E94 0000 		call chGuardedPoolObjectInitAligned
+ 1833               	.LVL225:
+ 135:../../../os/oslib/include/chobjfifos.h ****   chGuardedPoolLoadArray(&ofp->free, objbuf, objn);
+ 1834               		.loc 4 135 0
+ 1835 0082 A501      		movw r20,r10
+ 1836 0084 B801      		movw r22,r16
+ 1837 0086 CE01      		movw r24,r28
+ 1838 0088 0E94 0000 		call chGuardedPoolLoadArray
+ 1839               	.LVL226:
+ 136:../../../os/oslib/include/chobjfifos.h ****   chMBObjectInit(&ofp->mbx, msgbuf, objn);
+ 1840               		.loc 4 136 0
+ 1841 008c A501      		movw r20,r10
+ 1842 008e B701      		movw r22,r14
+ 1843 0090 6F5D      		subi r22,-33
+ 1844 0092 7F4F      		sbci r23,-1
+ 1845               	.LVL227:
+ 1846 0094 C701      		movw r24,r14
+ 1847 0096 4496      		adiw r24,20
+ 1848 0098 0E94 0000 		call chMBObjectInit
+ 1849               	.LVL228:
+ 1850               	.L119:
+ 1851               	.LBE167:
+ 1852               	.LBE166:
+ 1853               	.LBE165:
+ 687:../../../os/oslib/src/chfactory.c **** 
+ 688:../../../os/oslib/src/chfactory.c ****     /* Initializing mailbox object data.*/
+ 689:../../../os/oslib/src/chfactory.c ****     chFifoObjectInitAligned(&dofp->fifo, objsize, objn, objalign,
+ 690:../../../os/oslib/src/chfactory.c ****                             (void *)objbuf, msgbuf);
+ 691:../../../os/oslib/src/chfactory.c ****   }
+ 692:../../../os/oslib/src/chfactory.c **** 
+ 693:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1854               		.loc 2 693 0
+ 1855 009c 80E0      		ldi r24,lo8(ch_factory)
+ 1856 009e 90E0      		ldi r25,hi8(ch_factory)
+ 1857 00a0 0E94 0000 		call chSemSignal
+ 1858               	.LVL229:
+ 694:../../../os/oslib/src/chfactory.c **** 
+ 695:../../../os/oslib/src/chfactory.c ****   return dofp;
+ 696:../../../os/oslib/src/chfactory.c **** }
+ 1859               		.loc 2 696 0
+ 1860 00a4 C701      		movw r24,r14
+ 1861               	/* epilogue start */
+ 1862 00a6 DF91      		pop r29
+ 1863 00a8 CF91      		pop r28
+ 1864 00aa 1F91      		pop r17
+ 1865 00ac 0F91      		pop r16
+ 1866 00ae FF90      		pop r15
+ 1867 00b0 EF90      		pop r14
+ 1868               	.LVL230:
+ 1869 00b2 DF90      		pop r13
+ 1870 00b4 CF90      		pop r12
+ 1871               	.LVL231:
+ 1872 00b6 BF90      		pop r11
+ 1873 00b8 AF90      		pop r10
+ 1874               	.LVL232:
+ 1875 00ba 0895      		ret
+ 1876               		.cfi_endproc
+ 1877               	.LFE121:
+ 1879               		.section	.text.chFactoryFindObjectsFIFO,"ax",@progbits
+ 1880               	.global	chFactoryFindObjectsFIFO
+ 1882               	chFactoryFindObjectsFIFO:
+ 1883               	.LFB122:
+ 697:../../../os/oslib/src/chfactory.c **** 
+ 698:../../../os/oslib/src/chfactory.c **** /**
+ 699:../../../os/oslib/src/chfactory.c ****  * @brief   Retrieves a dynamic "objects FIFO" object.
+ 700:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the dynamic "objects FIFO" object is returned with
+ 701:../../../os/oslib/src/chfactory.c ****  *          the reference counter increased by one.
+ 702:../../../os/oslib/src/chfactory.c ****  *
+ 703:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name of the dynamic "objects FIFO" object
+ 704:../../../os/oslib/src/chfactory.c ****  *
+ 705:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the found dynamic "objects FIFO"
+ 706:../../../os/oslib/src/chfactory.c ****  *                      object.
+ 707:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if a dynamic "objects FIFO" object with the specified
+ 708:../../../os/oslib/src/chfactory.c ****  *                      name does not exist.
+ 709:../../../os/oslib/src/chfactory.c ****  *
+ 710:../../../os/oslib/src/chfactory.c ****  * @api
+ 711:../../../os/oslib/src/chfactory.c ****  */
+ 712:../../../os/oslib/src/chfactory.c **** dyn_objects_fifo_t *chFactoryFindObjectsFIFO(const char *name) {
+ 1884               		.loc 2 712 0
+ 1885               		.cfi_startproc
+ 1886               	.LVL233:
+ 1887 0000 CF93      		push r28
+ 1888               	.LCFI71:
+ 1889               		.cfi_def_cfa_offset 3
+ 1890               		.cfi_offset 28, -2
+ 1891 0002 DF93      		push r29
+ 1892               	.LCFI72:
+ 1893               		.cfi_def_cfa_offset 4
+ 1894               		.cfi_offset 29, -3
+ 1895               	/* prologue: function */
+ 1896               	/* frame size = 0 */
+ 1897               	/* stack size = 2 */
+ 1898               	.L__stack_usage = 2
+ 1899 0004 EC01      		movw r28,r24
+ 713:../../../os/oslib/src/chfactory.c ****   dyn_objects_fifo_t *dofp;
+ 714:../../../os/oslib/src/chfactory.c **** 
+ 715:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1900               		.loc 2 715 0
+ 1901 0006 60E0      		ldi r22,0
+ 1902 0008 70E0      		ldi r23,0
+ 1903 000a 80E0      		ldi r24,lo8(ch_factory)
+ 1904 000c 90E0      		ldi r25,hi8(ch_factory)
+ 1905               	.LVL234:
+ 1906 000e 0E94 0000 		call chSemWaitTimeout
+ 1907               	.LVL235:
+ 716:../../../os/oslib/src/chfactory.c **** 
+ 717:../../../os/oslib/src/chfactory.c ****   dofp = (dyn_objects_fifo_t *)dyn_find_object(name, &ch_factory.fifo_list);
+ 1908               		.loc 2 717 0
+ 1909 0012 60E0      		ldi r22,lo8(ch_factory+25)
+ 1910 0014 70E0      		ldi r23,hi8(ch_factory+25)
+ 1911 0016 CE01      		movw r24,r28
+ 1912 0018 0E94 0000 		call dyn_find_object
+ 1913               	.LVL236:
+ 1914 001c EC01      		movw r28,r24
+ 1915               	.LVL237:
+ 718:../../../os/oslib/src/chfactory.c **** 
+ 719:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1916               		.loc 2 719 0
+ 1917 001e 80E0      		ldi r24,lo8(ch_factory)
+ 1918 0020 90E0      		ldi r25,hi8(ch_factory)
+ 1919               	.LVL238:
+ 1920 0022 0E94 0000 		call chSemSignal
+ 1921               	.LVL239:
+ 720:../../../os/oslib/src/chfactory.c **** 
+ 721:../../../os/oslib/src/chfactory.c ****   return dofp;
+ 722:../../../os/oslib/src/chfactory.c **** }
+ 1922               		.loc 2 722 0
+ 1923 0026 CE01      		movw r24,r28
+ 1924               	/* epilogue start */
+ 1925 0028 DF91      		pop r29
+ 1926 002a CF91      		pop r28
+ 1927               	.LVL240:
+ 1928 002c 0895      		ret
+ 1929               		.cfi_endproc
+ 1930               	.LFE122:
+ 1932               		.section	.text.chFactoryReleaseObjectsFIFO,"ax",@progbits
+ 1933               	.global	chFactoryReleaseObjectsFIFO
+ 1935               	chFactoryReleaseObjectsFIFO:
+ 1936               	.LFB123:
+ 723:../../../os/oslib/src/chfactory.c **** 
+ 724:../../../os/oslib/src/chfactory.c **** /**
+ 725:../../../os/oslib/src/chfactory.c ****  * @brief   Releases a dynamic "objects FIFO" object.
+ 726:../../../os/oslib/src/chfactory.c ****  * @details The reference counter of the dynamic "objects FIFO" object is
+ 727:../../../os/oslib/src/chfactory.c ****  *          decreased by one, if reaches zero then the dynamic "objects FIFO"
+ 728:../../../os/oslib/src/chfactory.c ****  *          object memory is freed.
+ 729:../../../os/oslib/src/chfactory.c ****  *
+ 730:../../../os/oslib/src/chfactory.c ****  * @param[in] dofp      dynamic "objects FIFO" object reference
+ 731:../../../os/oslib/src/chfactory.c ****  *
+ 732:../../../os/oslib/src/chfactory.c ****  * @api
+ 733:../../../os/oslib/src/chfactory.c ****  */
+ 734:../../../os/oslib/src/chfactory.c **** void chFactoryReleaseObjectsFIFO(dyn_objects_fifo_t *dofp) {
+ 1937               		.loc 2 734 0
+ 1938               		.cfi_startproc
+ 1939               	.LVL241:
+ 1940 0000 CF93      		push r28
+ 1941               	.LCFI73:
+ 1942               		.cfi_def_cfa_offset 3
+ 1943               		.cfi_offset 28, -2
+ 1944 0002 DF93      		push r29
+ 1945               	.LCFI74:
+ 1946               		.cfi_def_cfa_offset 4
+ 1947               		.cfi_offset 29, -3
+ 1948               	/* prologue: function */
+ 1949               	/* frame size = 0 */
+ 1950               	/* stack size = 2 */
+ 1951               	.L__stack_usage = 2
+ 1952 0004 EC01      		movw r28,r24
+ 735:../../../os/oslib/src/chfactory.c **** 
+ 736:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 1953               		.loc 2 736 0
+ 1954 0006 60E0      		ldi r22,0
+ 1955 0008 70E0      		ldi r23,0
+ 1956 000a 80E0      		ldi r24,lo8(ch_factory)
+ 1957 000c 90E0      		ldi r25,hi8(ch_factory)
+ 1958               	.LVL242:
+ 1959 000e 0E94 0000 		call chSemWaitTimeout
+ 1960               	.LVL243:
+ 1961               	.LBB168:
+ 1962               	.LBB169:
+ 173:../../../os/oslib/src/chfactory.c ****   if (dep->refs == (ucnt_t)0) {
+ 1963               		.loc 2 173 0
+ 1964 0012 8A81      		ldd r24,Y+2
+ 1965 0014 8150      		subi r24,lo8(-(-1))
+ 1966 0016 8A83      		std Y+2,r24
+ 174:../../../os/oslib/src/chfactory.c ****     dep = dyn_list_unlink(dep, dlp);
+ 1967               		.loc 2 174 0
+ 1968 0018 8111      		cpse r24,__zero_reg__
+ 1969 001a 00C0      		rjmp .L125
+ 1970 001c 60E0      		ldi r22,lo8(ch_factory+25)
+ 1971 001e 70E0      		ldi r23,hi8(ch_factory+25)
+ 1972               	.LVL244:
+ 1973 0020 CE01      		movw r24,r28
+ 1974 0022 0E94 0000 		call dyn_release_object_heap.part.3
+ 1975               	.LVL245:
+ 1976               	.L125:
+ 1977               	.LBE169:
+ 1978               	.LBE168:
+ 737:../../../os/oslib/src/chfactory.c **** 
+ 738:../../../os/oslib/src/chfactory.c ****   dyn_release_object_heap(&dofp->element, &ch_factory.fifo_list);
+ 739:../../../os/oslib/src/chfactory.c **** 
+ 740:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 1979               		.loc 2 740 0
+ 1980 0026 80E0      		ldi r24,lo8(ch_factory)
+ 1981 0028 90E0      		ldi r25,hi8(ch_factory)
+ 1982               	/* epilogue start */
+ 741:../../../os/oslib/src/chfactory.c **** }
+ 1983               		.loc 2 741 0
+ 1984 002a DF91      		pop r29
+ 1985 002c CF91      		pop r28
+ 1986               	.LVL246:
+ 740:../../../os/oslib/src/chfactory.c **** }
+ 1987               		.loc 2 740 0
+ 1988 002e 0C94 0000 		jmp chSemSignal
+ 1989               	.LVL247:
+ 1990               		.cfi_endproc
+ 1991               	.LFE123:
+ 1993               		.section	.text.chFactoryCreatePipe,"ax",@progbits
+ 1994               	.global	chFactoryCreatePipe
+ 1996               	chFactoryCreatePipe:
+ 1997               	.LFB124:
+ 742:../../../os/oslib/src/chfactory.c **** #endif /* CH_CFG_FACTORY_OBJ_FIFOS = TRUE */
+ 743:../../../os/oslib/src/chfactory.c **** 
+ 744:../../../os/oslib/src/chfactory.c **** #if (CH_CFG_FACTORY_PIPES == TRUE) || defined(__DOXIGEN__)
+ 745:../../../os/oslib/src/chfactory.c **** /**
+ 746:../../../os/oslib/src/chfactory.c ****  * @brief   Creates a dynamic pipe object.
+ 747:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the dynamic pipe object is returned and
+ 748:../../../os/oslib/src/chfactory.c ****  *          the reference counter is initialized to one.
+ 749:../../../os/oslib/src/chfactory.c ****  * @post    The dynamic pipe object is initialized and ready to use.
+ 750:../../../os/oslib/src/chfactory.c ****  *
+ 751:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name to be assigned to the new dynamic pipe
+ 752:../../../os/oslib/src/chfactory.c ****  *                      object
+ 753:../../../os/oslib/src/chfactory.c ****  * @param[in] size      pipe buffer size
+ 754:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the created dynamic pipe
+ 755:../../../os/oslib/src/chfactory.c ****  *                      object.
+ 756:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if the dynamic pipe object cannot be
+ 757:../../../os/oslib/src/chfactory.c ****  *                      allocated or a dynamic pipe object with
+ 758:../../../os/oslib/src/chfactory.c ****  *                      the same name exists.
+ 759:../../../os/oslib/src/chfactory.c ****  *
+ 760:../../../os/oslib/src/chfactory.c ****  * @api
+ 761:../../../os/oslib/src/chfactory.c ****  */
+ 762:../../../os/oslib/src/chfactory.c **** dyn_pipe_t *chFactoryCreatePipe(const char *name, size_t size) {
+ 1998               		.loc 2 762 0
+ 1999               		.cfi_startproc
+ 2000               	.LVL248:
+ 2001 0000 0F93      		push r16
+ 2002               	.LCFI75:
+ 2003               		.cfi_def_cfa_offset 3
+ 2004               		.cfi_offset 16, -2
+ 2005 0002 1F93      		push r17
+ 2006               	.LCFI76:
+ 2007               		.cfi_def_cfa_offset 4
+ 2008               		.cfi_offset 17, -3
+ 2009 0004 CF93      		push r28
+ 2010               	.LCFI77:
+ 2011               		.cfi_def_cfa_offset 5
+ 2012               		.cfi_offset 28, -4
+ 2013 0006 DF93      		push r29
+ 2014               	.LCFI78:
+ 2015               		.cfi_def_cfa_offset 6
+ 2016               		.cfi_offset 29, -5
+ 2017               	/* prologue: function */
+ 2018               	/* frame size = 0 */
+ 2019               	/* stack size = 4 */
+ 2020               	.L__stack_usage = 4
+ 2021 0008 EC01      		movw r28,r24
+ 2022 000a 8B01      		movw r16,r22
+ 763:../../../os/oslib/src/chfactory.c ****   dyn_pipe_t *dpp;
+ 764:../../../os/oslib/src/chfactory.c **** 
+ 765:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 2023               		.loc 2 765 0
+ 2024 000c 60E0      		ldi r22,0
+ 2025 000e 70E0      		ldi r23,0
+ 2026               	.LVL249:
+ 2027 0010 80E0      		ldi r24,lo8(ch_factory)
+ 2028 0012 90E0      		ldi r25,hi8(ch_factory)
+ 2029               	.LVL250:
+ 2030 0014 0E94 0000 		call chSemWaitTimeout
+ 2031               	.LVL251:
+ 766:../../../os/oslib/src/chfactory.c **** 
+ 767:../../../os/oslib/src/chfactory.c ****   dpp = (dyn_pipe_t *)dyn_create_object_heap(name,
+ 2032               		.loc 2 767 0
+ 2033 0018 A801      		movw r20,r16
+ 2034 001a 435E      		subi r20,-29
+ 2035 001c 5F4F      		sbci r21,-1
+ 2036 001e 24E0      		ldi r18,lo8(4)
+ 2037 0020 30E0      		ldi r19,0
+ 2038 0022 60E0      		ldi r22,lo8(ch_factory+27)
+ 2039 0024 70E0      		ldi r23,hi8(ch_factory+27)
+ 2040 0026 CE01      		movw r24,r28
+ 2041 0028 0E94 0000 		call dyn_create_object_heap
+ 2042               	.LVL252:
+ 2043 002c EC01      		movw r28,r24
+ 2044               	.LVL253:
+ 768:../../../os/oslib/src/chfactory.c ****                                              &ch_factory.pipe_list,
+ 769:../../../os/oslib/src/chfactory.c ****                                              sizeof (dyn_pipe_t) + size,
+ 770:../../../os/oslib/src/chfactory.c ****                                              CH_HEAP_ALIGNMENT);
+ 771:../../../os/oslib/src/chfactory.c ****   if (dpp != NULL) {
+ 2045               		.loc 2 771 0
+ 2046 002e 0097      		sbiw r24,0
+ 2047 0030 01F0      		breq .L127
+ 772:../../../os/oslib/src/chfactory.c ****     /* Initializing mailbox object data.*/
+ 773:../../../os/oslib/src/chfactory.c ****     chPipeObjectInit(&dpp->pipe, (uint8_t *)(dpp + 1), size);
+ 2048               		.loc 2 773 0
+ 2049 0032 A801      		movw r20,r16
+ 2050 0034 BC01      		movw r22,r24
+ 2051 0036 635E      		subi r22,-29
+ 2052 0038 7F4F      		sbci r23,-1
+ 2053 003a 0B96      		adiw r24,11
+ 2054               	.LVL254:
+ 2055 003c 0E94 0000 		call chPipeObjectInit
+ 2056               	.LVL255:
+ 2057               	.L127:
+ 774:../../../os/oslib/src/chfactory.c ****   }
+ 775:../../../os/oslib/src/chfactory.c **** 
+ 776:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 2058               		.loc 2 776 0
+ 2059 0040 80E0      		ldi r24,lo8(ch_factory)
+ 2060 0042 90E0      		ldi r25,hi8(ch_factory)
+ 2061 0044 0E94 0000 		call chSemSignal
+ 2062               	.LVL256:
+ 777:../../../os/oslib/src/chfactory.c **** 
+ 778:../../../os/oslib/src/chfactory.c ****   return dpp;
+ 779:../../../os/oslib/src/chfactory.c **** }
+ 2063               		.loc 2 779 0
+ 2064 0048 CE01      		movw r24,r28
+ 2065               	/* epilogue start */
+ 2066 004a DF91      		pop r29
+ 2067 004c CF91      		pop r28
+ 2068               	.LVL257:
+ 2069 004e 1F91      		pop r17
+ 2070 0050 0F91      		pop r16
+ 2071               	.LVL258:
+ 2072 0052 0895      		ret
+ 2073               		.cfi_endproc
+ 2074               	.LFE124:
+ 2076               		.section	.text.chFactoryFindPipe,"ax",@progbits
+ 2077               	.global	chFactoryFindPipe
+ 2079               	chFactoryFindPipe:
+ 2080               	.LFB125:
+ 780:../../../os/oslib/src/chfactory.c **** 
+ 781:../../../os/oslib/src/chfactory.c **** /**
+ 782:../../../os/oslib/src/chfactory.c ****  * @brief   Retrieves a dynamic pipe object.
+ 783:../../../os/oslib/src/chfactory.c ****  * @post    A reference to the dynamic pipe object is returned with
+ 784:../../../os/oslib/src/chfactory.c ****  *          the reference counter increased by one.
+ 785:../../../os/oslib/src/chfactory.c ****  *
+ 786:../../../os/oslib/src/chfactory.c ****  * @param[in] name      name of the pipe object
+ 787:../../../os/oslib/src/chfactory.c ****  *
+ 788:../../../os/oslib/src/chfactory.c ****  * @return              The reference to the found dynamic pipe
+ 789:../../../os/oslib/src/chfactory.c ****  *                      object.
+ 790:../../../os/oslib/src/chfactory.c ****  * @retval NULL         if a dynamic pipe object with the specified
+ 791:../../../os/oslib/src/chfactory.c ****  *                      name does not exist.
+ 792:../../../os/oslib/src/chfactory.c ****  *
+ 793:../../../os/oslib/src/chfactory.c ****  * @api
+ 794:../../../os/oslib/src/chfactory.c ****  */
+ 795:../../../os/oslib/src/chfactory.c **** dyn_pipe_t *chFactoryFindPipe(const char *name) {
+ 2081               		.loc 2 795 0
+ 2082               		.cfi_startproc
+ 2083               	.LVL259:
+ 2084 0000 CF93      		push r28
+ 2085               	.LCFI79:
+ 2086               		.cfi_def_cfa_offset 3
+ 2087               		.cfi_offset 28, -2
+ 2088 0002 DF93      		push r29
+ 2089               	.LCFI80:
+ 2090               		.cfi_def_cfa_offset 4
+ 2091               		.cfi_offset 29, -3
+ 2092               	/* prologue: function */
+ 2093               	/* frame size = 0 */
+ 2094               	/* stack size = 2 */
+ 2095               	.L__stack_usage = 2
+ 2096 0004 EC01      		movw r28,r24
+ 796:../../../os/oslib/src/chfactory.c ****   dyn_pipe_t *dpp;
+ 797:../../../os/oslib/src/chfactory.c **** 
+ 798:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 2097               		.loc 2 798 0
+ 2098 0006 60E0      		ldi r22,0
+ 2099 0008 70E0      		ldi r23,0
+ 2100 000a 80E0      		ldi r24,lo8(ch_factory)
+ 2101 000c 90E0      		ldi r25,hi8(ch_factory)
+ 2102               	.LVL260:
+ 2103 000e 0E94 0000 		call chSemWaitTimeout
+ 2104               	.LVL261:
+ 799:../../../os/oslib/src/chfactory.c **** 
+ 800:../../../os/oslib/src/chfactory.c ****   dpp = (dyn_pipe_t *)dyn_find_object(name, &ch_factory.pipe_list);
+ 2105               		.loc 2 800 0
+ 2106 0012 60E0      		ldi r22,lo8(ch_factory+27)
+ 2107 0014 70E0      		ldi r23,hi8(ch_factory+27)
+ 2108 0016 CE01      		movw r24,r28
+ 2109 0018 0E94 0000 		call dyn_find_object
+ 2110               	.LVL262:
+ 2111 001c EC01      		movw r28,r24
+ 2112               	.LVL263:
+ 801:../../../os/oslib/src/chfactory.c **** 
+ 802:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 2113               		.loc 2 802 0
+ 2114 001e 80E0      		ldi r24,lo8(ch_factory)
+ 2115 0020 90E0      		ldi r25,hi8(ch_factory)
+ 2116               	.LVL264:
+ 2117 0022 0E94 0000 		call chSemSignal
+ 2118               	.LVL265:
+ 803:../../../os/oslib/src/chfactory.c **** 
+ 804:../../../os/oslib/src/chfactory.c ****   return dpp;
+ 805:../../../os/oslib/src/chfactory.c **** }
+ 2119               		.loc 2 805 0
+ 2120 0026 CE01      		movw r24,r28
+ 2121               	/* epilogue start */
+ 2122 0028 DF91      		pop r29
+ 2123 002a CF91      		pop r28
+ 2124               	.LVL266:
+ 2125 002c 0895      		ret
+ 2126               		.cfi_endproc
+ 2127               	.LFE125:
+ 2129               		.section	.text.chFactoryReleasePipe,"ax",@progbits
+ 2130               	.global	chFactoryReleasePipe
+ 2132               	chFactoryReleasePipe:
+ 2133               	.LFB126:
+ 806:../../../os/oslib/src/chfactory.c **** 
+ 807:../../../os/oslib/src/chfactory.c **** /**
+ 808:../../../os/oslib/src/chfactory.c ****  * @brief   Releases a dynamic pipe object.
+ 809:../../../os/oslib/src/chfactory.c ****  * @details The reference counter of the dynamic pipe object is
+ 810:../../../os/oslib/src/chfactory.c ****  *          decreased by one, if reaches zero then the dynamic pipe
+ 811:../../../os/oslib/src/chfactory.c ****  *          object memory is freed.
+ 812:../../../os/oslib/src/chfactory.c ****  *
+ 813:../../../os/oslib/src/chfactory.c ****  * @param[in] dpp       dynamic pipe object reference
+ 814:../../../os/oslib/src/chfactory.c ****  *
+ 815:../../../os/oslib/src/chfactory.c ****  * @api
+ 816:../../../os/oslib/src/chfactory.c ****  */
+ 817:../../../os/oslib/src/chfactory.c **** void chFactoryReleasePipe(dyn_pipe_t *dpp) {
+ 2134               		.loc 2 817 0
+ 2135               		.cfi_startproc
+ 2136               	.LVL267:
+ 2137 0000 CF93      		push r28
+ 2138               	.LCFI81:
+ 2139               		.cfi_def_cfa_offset 3
+ 2140               		.cfi_offset 28, -2
+ 2141 0002 DF93      		push r29
+ 2142               	.LCFI82:
+ 2143               		.cfi_def_cfa_offset 4
+ 2144               		.cfi_offset 29, -3
+ 2145               	/* prologue: function */
+ 2146               	/* frame size = 0 */
+ 2147               	/* stack size = 2 */
+ 2148               	.L__stack_usage = 2
+ 2149 0004 EC01      		movw r28,r24
+ 818:../../../os/oslib/src/chfactory.c **** 
+ 819:../../../os/oslib/src/chfactory.c ****   F_LOCK();
+ 2150               		.loc 2 819 0
+ 2151 0006 60E0      		ldi r22,0
+ 2152 0008 70E0      		ldi r23,0
+ 2153 000a 80E0      		ldi r24,lo8(ch_factory)
+ 2154 000c 90E0      		ldi r25,hi8(ch_factory)
+ 2155               	.LVL268:
+ 2156 000e 0E94 0000 		call chSemWaitTimeout
+ 2157               	.LVL269:
+ 2158               	.LBB170:
+ 2159               	.LBB171:
+ 173:../../../os/oslib/src/chfactory.c ****   if (dep->refs == (ucnt_t)0) {
+ 2160               		.loc 2 173 0
+ 2161 0012 8A81      		ldd r24,Y+2
+ 2162 0014 8150      		subi r24,lo8(-(-1))
+ 2163 0016 8A83      		std Y+2,r24
+ 174:../../../os/oslib/src/chfactory.c ****     dep = dyn_list_unlink(dep, dlp);
+ 2164               		.loc 2 174 0
+ 2165 0018 8111      		cpse r24,__zero_reg__
+ 2166 001a 00C0      		rjmp .L133
+ 2167 001c 60E0      		ldi r22,lo8(ch_factory+27)
+ 2168 001e 70E0      		ldi r23,hi8(ch_factory+27)
+ 2169               	.LVL270:
+ 2170 0020 CE01      		movw r24,r28
+ 2171 0022 0E94 0000 		call dyn_release_object_heap.part.3
+ 2172               	.LVL271:
+ 2173               	.L133:
+ 2174               	.LBE171:
+ 2175               	.LBE170:
+ 820:../../../os/oslib/src/chfactory.c **** 
+ 821:../../../os/oslib/src/chfactory.c ****   dyn_release_object_heap(&dpp->element, &ch_factory.pipe_list);
+ 822:../../../os/oslib/src/chfactory.c **** 
+ 823:../../../os/oslib/src/chfactory.c ****   F_UNLOCK();
+ 2176               		.loc 2 823 0
+ 2177 0026 80E0      		ldi r24,lo8(ch_factory)
+ 2178 0028 90E0      		ldi r25,hi8(ch_factory)
+ 2179               	/* epilogue start */
+ 824:../../../os/oslib/src/chfactory.c **** }
+ 2180               		.loc 2 824 0
+ 2181 002a DF91      		pop r29
+ 2182 002c CF91      		pop r28
+ 2183               	.LVL272:
+ 823:../../../os/oslib/src/chfactory.c **** }
+ 2184               		.loc 2 823 0
+ 2185 002e 0C94 0000 		jmp chSemSignal
+ 2186               	.LVL273:
+ 2187               		.cfi_endproc
+ 2188               	.LFE126:
+ 2190               		.comm	ch_factory,29,1
+ 2191               		.text
+ 2192               	.Letext0:
+ 2193               		.file 5 "/usr/lib/gcc/avr/5.4.0/include/stddef.h"
+ 2194               		.file 6 "/usr/lib/avr/include/stdint.h"
+ 2195               		.file 7 "../../../os/common/ports/AVR/compilers/GCC/chtypes.h"
+ 2196               		.file 8 "../../../os/nil/include/ch.h"
+ 2197               		.file 9 "../../../os/common/ports/AVR/chcore.h"
+ 2198               		.file 10 "../../../os/oslib/include/chmboxes.h"
+ 2199               		.file 11 "../../../os/oslib/include/chpipes.h"
+ 2200               		.file 12 "../../../os/oslib/include/chfactory.h"
+ 2201               		.file 13 "/usr/lib/avr/include/string.h"
+ 2202               		.file 14 "../../../os/oslib/include/chmemheaps.h"
+ 2203               		.file 15 "../../../os/nil/include/chsem.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 chfactory.c
+     /tmp/cchKj7YP.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cchKj7YP.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cchKj7YP.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cchKj7YP.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cchKj7YP.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cchKj7YP.s:12     .text.chCoreAllocAlignedI:0000000000000000 chCoreAllocAlignedI
+     /tmp/cchKj7YP.s:32     .text.dyn_find_object:0000000000000000 dyn_find_object
+     /tmp/cchKj7YP.s:144    .text.dyn_create_object_pool:0000000000000000 dyn_create_object_pool
+     /tmp/cchKj7YP.s:312    .text.dyn_create_object_heap:0000000000000000 dyn_create_object_heap
+     /tmp/cchKj7YP.s:495    .text.dyn_release_object_heap.part.3:0000000000000000 dyn_release_object_heap.part.3
+     /tmp/cchKj7YP.s:557    .text.__factory_init:0000000000000000 __factory_init
+                            *COM*:000000000000001d ch_factory
+     /tmp/cchKj7YP.s:686    .text.chFactoryRegisterObject:0000000000000000 chFactoryRegisterObject
+     /tmp/cchKj7YP.s:761    .text.chFactoryFindObject:0000000000000000 chFactoryFindObject
+     /tmp/cchKj7YP.s:814    .text.chFactoryFindObjectByPointer:0000000000000000 chFactoryFindObjectByPointer
+     /tmp/cchKj7YP.s:927    .text.chFactoryReleaseObject:0000000000000000 chFactoryReleaseObject
+     /tmp/cchKj7YP.s:1058   .text.chFactoryCreateBuffer:0000000000000000 chFactoryCreateBuffer
+     /tmp/cchKj7YP.s:1140   .text.chFactoryFindBuffer:0000000000000000 chFactoryFindBuffer
+     /tmp/cchKj7YP.s:1193   .text.chFactoryReleaseBuffer:0000000000000000 chFactoryReleaseBuffer
+     /tmp/cchKj7YP.s:1254   .text.chFactoryCreateSemaphore:0000000000000000 chFactoryCreateSemaphore
+     /tmp/cchKj7YP.s:1323   .text.chFactoryFindSemaphore:0000000000000000 chFactoryFindSemaphore
+     /tmp/cchKj7YP.s:1376   .text.chFactoryReleaseSemaphore:0000000000000000 chFactoryReleaseSemaphore
+     /tmp/cchKj7YP.s:1507   .text.chFactoryCreateMailbox:0000000000000000 chFactoryCreateMailbox
+     /tmp/cchKj7YP.s:1592   .text.chFactoryFindMailbox:0000000000000000 chFactoryFindMailbox
+     /tmp/cchKj7YP.s:1645   .text.chFactoryReleaseMailbox:0000000000000000 chFactoryReleaseMailbox
+     /tmp/cchKj7YP.s:1706   .text.chFactoryCreateObjectsFIFO:0000000000000000 chFactoryCreateObjectsFIFO
+     /tmp/cchKj7YP.s:1882   .text.chFactoryFindObjectsFIFO:0000000000000000 chFactoryFindObjectsFIFO
+     /tmp/cchKj7YP.s:1935   .text.chFactoryReleaseObjectsFIFO:0000000000000000 chFactoryReleaseObjectsFIFO
+     /tmp/cchKj7YP.s:1996   .text.chFactoryCreatePipe:0000000000000000 chFactoryCreatePipe
+     /tmp/cchKj7YP.s:2079   .text.chFactoryFindPipe:0000000000000000 chFactoryFindPipe
+     /tmp/cchKj7YP.s:2132   .text.chFactoryReleasePipe:0000000000000000 chFactoryReleasePipe
+
+UNDEFINED SYMBOLS
+chCoreAllocFromTopI
+strncmp
+chPoolAlloc
+chHeapAllocAligned
+chHeapFree
+chPoolObjectInitAligned
+chSemWaitTimeout
+chSemSignal
+chPoolFree
+memset
+chMBObjectInit
+chGuardedPoolObjectInitAligned
+chGuardedPoolLoadArray
+chPipeObjectInit
+__do_clear_bss

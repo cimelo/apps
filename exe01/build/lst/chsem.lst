@@ -1,0 +1,1697 @@
+   1               		.file	"chsem.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.file 1 "../../os/nil/src/chsem.c"
+  11               		.section	.text.chSemWaitTimeout,"ax",@progbits
+  12               	.global	chSemWaitTimeout
+  14               	chSemWaitTimeout:
+  15               	.LVL0:
+  16               	.LFB98:
+   1:../../os/nil/src/chsem.c **** /*
+   2:../../os/nil/src/chsem.c ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../os/nil/src/chsem.c ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../os/nil/src/chsem.c **** 
+   5:../../os/nil/src/chsem.c ****     This file is part of ChibiOS.
+   6:../../os/nil/src/chsem.c **** 
+   7:../../os/nil/src/chsem.c ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../os/nil/src/chsem.c ****     it under the terms of the GNU General Public License as published by
+   9:../../os/nil/src/chsem.c ****     the Free Software Foundation version 3 of the License.
+  10:../../os/nil/src/chsem.c **** 
+  11:../../os/nil/src/chsem.c ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../os/nil/src/chsem.c ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../os/nil/src/chsem.c ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../os/nil/src/chsem.c ****     GNU General Public License for more details.
+  15:../../os/nil/src/chsem.c **** 
+  16:../../os/nil/src/chsem.c ****     You should have received a copy of the GNU General Public License
+  17:../../os/nil/src/chsem.c ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../os/nil/src/chsem.c **** */
+  19:../../os/nil/src/chsem.c **** 
+  20:../../os/nil/src/chsem.c **** /**
+  21:../../os/nil/src/chsem.c ****  * @file    nil/src/chsem.c
+  22:../../os/nil/src/chsem.c ****  * @brief   Nil RTOS semaphores source file.
+  23:../../os/nil/src/chsem.c ****  *
+  24:../../os/nil/src/chsem.c ****  * @addtogroup NIL_SEMAPHORES
+  25:../../os/nil/src/chsem.c ****  * @{
+  26:../../os/nil/src/chsem.c ****  */
+  27:../../os/nil/src/chsem.c **** 
+  28:../../os/nil/src/chsem.c **** #include "ch.h"
+  29:../../os/nil/src/chsem.c **** 
+  30:../../os/nil/src/chsem.c **** #if (CH_CFG_USE_SEMAPHORES == TRUE) || defined(__DOXYGEN__)
+  31:../../os/nil/src/chsem.c **** 
+  32:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  33:../../os/nil/src/chsem.c **** /* Module local definitions.                                                 */
+  34:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  35:../../os/nil/src/chsem.c **** 
+  36:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  37:../../os/nil/src/chsem.c **** /* Module exported variables.                                                */
+  38:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  39:../../os/nil/src/chsem.c **** 
+  40:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  41:../../os/nil/src/chsem.c **** /* Module local variables.                                                   */
+  42:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  43:../../os/nil/src/chsem.c **** 
+  44:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  45:../../os/nil/src/chsem.c **** /* Module local functions.                                                   */
+  46:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  47:../../os/nil/src/chsem.c **** 
+  48:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  49:../../os/nil/src/chsem.c **** /* Module interrupt handlers.                                                */
+  50:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  51:../../os/nil/src/chsem.c **** 
+  52:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  53:../../os/nil/src/chsem.c **** /* Module exported functions.                                                */
+  54:../../os/nil/src/chsem.c **** /*===========================================================================*/
+  55:../../os/nil/src/chsem.c **** 
+  56:../../os/nil/src/chsem.c **** /**
+  57:../../os/nil/src/chsem.c ****  * @brief   Performs a wait operation on a semaphore with timeout specification.
+  58:../../os/nil/src/chsem.c ****  *
+  59:../../os/nil/src/chsem.c ****  * @param[in] sp        pointer to a @p semaphore_t structure
+  60:../../os/nil/src/chsem.c ****  * @param[in] timeout   the number of ticks before the operation timeouts,
+  61:../../os/nil/src/chsem.c ****  *                      the following special values are allowed:
+  62:../../os/nil/src/chsem.c ****  *                      - @a TIME_IMMEDIATE immediate timeout.
+  63:../../os/nil/src/chsem.c ****  *                      - @a TIME_INFINITE no timeout.
+  64:../../os/nil/src/chsem.c ****  *                      .
+  65:../../os/nil/src/chsem.c ****  * @return              A message specifying how the invoking thread has been
+  66:../../os/nil/src/chsem.c ****  *                      released from the semaphore.
+  67:../../os/nil/src/chsem.c ****  * @retval NIL_MSG_OK   if the thread has not stopped on the semaphore or the
+  68:../../os/nil/src/chsem.c ****  *                      semaphore has been signaled.
+  69:../../os/nil/src/chsem.c ****  * @retval NIL_MSG_RST  if the semaphore has been reset using @p chSemReset().
+  70:../../os/nil/src/chsem.c ****  * @retval NIL_MSG_TMO  if the semaphore has not been signaled or reset within
+  71:../../os/nil/src/chsem.c ****  *                      the specified timeout.
+  72:../../os/nil/src/chsem.c ****  *
+  73:../../os/nil/src/chsem.c ****  * @api
+  74:../../os/nil/src/chsem.c ****  */
+  75:../../os/nil/src/chsem.c **** msg_t chSemWaitTimeout(semaphore_t *sp, sysinterval_t timeout) {
+  17               		.loc 1 75 64 view -0
+  18               		.cfi_startproc
+  19               	/* prologue: function */
+  20               	/* frame size = 0 */
+  21               	/* stack size = 0 */
+  22               	.L__stack_usage = 0
+  23               		.loc 1 75 64 is_stmt 0 view .LVU1
+  24 0000 FC01      		movw r30,r24
+  76:../../os/nil/src/chsem.c ****   msg_t msg;
+  25               		.loc 1 76 3 is_stmt 1 view .LVU2
+  77:../../os/nil/src/chsem.c **** 
+  78:../../os/nil/src/chsem.c ****   chSysLock();
+  26               		.loc 1 78 3 view .LVU3
+  27               	.LBB23:
+  28               	.LBI23:
+  29               		.file 2 "../../os/common/ports/AVR/chcore.h"
+   1:../../os/common/ports/AVR/chcore.h **** /*
+   2:../../os/common/ports/AVR/chcore.h ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../os/common/ports/AVR/chcore.h ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../os/common/ports/AVR/chcore.h **** 
+   5:../../os/common/ports/AVR/chcore.h ****     This file is part of ChibiOS.
+   6:../../os/common/ports/AVR/chcore.h **** 
+   7:../../os/common/ports/AVR/chcore.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../os/common/ports/AVR/chcore.h ****     it under the terms of the GNU General Public License as published by
+   9:../../os/common/ports/AVR/chcore.h ****     the Free Software Foundation version 3 of the License.
+  10:../../os/common/ports/AVR/chcore.h **** 
+  11:../../os/common/ports/AVR/chcore.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../os/common/ports/AVR/chcore.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../os/common/ports/AVR/chcore.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../os/common/ports/AVR/chcore.h ****     GNU General Public License for more details.
+  15:../../os/common/ports/AVR/chcore.h **** 
+  16:../../os/common/ports/AVR/chcore.h ****     You should have received a copy of the GNU General Public License
+  17:../../os/common/ports/AVR/chcore.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../os/common/ports/AVR/chcore.h **** */
+  19:../../os/common/ports/AVR/chcore.h **** 
+  20:../../os/common/ports/AVR/chcore.h **** /**
+  21:../../os/common/ports/AVR/chcore.h ****  * @file    chcore.h
+  22:../../os/common/ports/AVR/chcore.h ****  * @brief   AVR port macros and structures.
+  23:../../os/common/ports/AVR/chcore.h ****  *
+  24:../../os/common/ports/AVR/chcore.h ****  * @addtogroup AVR_CORE
+  25:../../os/common/ports/AVR/chcore.h ****  * @{
+  26:../../os/common/ports/AVR/chcore.h ****  */
+  27:../../os/common/ports/AVR/chcore.h **** 
+  28:../../os/common/ports/AVR/chcore.h **** #ifndef CHCORE_H
+  29:../../os/common/ports/AVR/chcore.h **** #define CHCORE_H
+  30:../../os/common/ports/AVR/chcore.h **** 
+  31:../../os/common/ports/AVR/chcore.h **** #include <avr/io.h>
+  32:../../os/common/ports/AVR/chcore.h **** #include <avr/interrupt.h>
+  33:../../os/common/ports/AVR/chcore.h **** 
+  34:../../os/common/ports/AVR/chcore.h **** extern bool __avr_in_isr;
+  35:../../os/common/ports/AVR/chcore.h **** 
+  36:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+  37:../../os/common/ports/AVR/chcore.h **** /* Module constants.                                                         */
+  38:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+  39:../../os/common/ports/AVR/chcore.h **** 
+  40:../../os/common/ports/AVR/chcore.h **** /**
+  41:../../os/common/ports/AVR/chcore.h ****  * @name    Port Capabilities and Constants
+  42:../../os/common/ports/AVR/chcore.h ****  * @{
+  43:../../os/common/ports/AVR/chcore.h ****  */
+  44:../../os/common/ports/AVR/chcore.h **** /**
+  45:../../os/common/ports/AVR/chcore.h ****  * @brief   This port supports a realtime counter.
+  46:../../os/common/ports/AVR/chcore.h ****  */
+  47:../../os/common/ports/AVR/chcore.h **** #define PORT_SUPPORTS_RT                FALSE
+  48:../../os/common/ports/AVR/chcore.h **** 
+  49:../../os/common/ports/AVR/chcore.h **** /**
+  50:../../os/common/ports/AVR/chcore.h ****  * @brief   Natural alignment constant.
+  51:../../os/common/ports/AVR/chcore.h ****  * @note    It is the minimum alignment for pointer-size variables.
+  52:../../os/common/ports/AVR/chcore.h ****  */
+  53:../../os/common/ports/AVR/chcore.h **** #define PORT_NATURAL_ALIGN              1U
+  54:../../os/common/ports/AVR/chcore.h **** 
+  55:../../os/common/ports/AVR/chcore.h **** /**
+  56:../../os/common/ports/AVR/chcore.h ****  * @brief   Stack alignment constant.
+  57:../../os/common/ports/AVR/chcore.h ****  * @note    It is the alignment required for the stack pointer.
+  58:../../os/common/ports/AVR/chcore.h ****  */
+  59:../../os/common/ports/AVR/chcore.h **** #define PORT_STACK_ALIGN                1U
+  60:../../os/common/ports/AVR/chcore.h **** 
+  61:../../os/common/ports/AVR/chcore.h **** /**
+  62:../../os/common/ports/AVR/chcore.h ****  * @brief   Working Areas alignment constant.
+  63:../../os/common/ports/AVR/chcore.h ****  * @note    It is the alignment to be enforced for thread working areas.
+  64:../../os/common/ports/AVR/chcore.h ****  */
+  65:../../os/common/ports/AVR/chcore.h **** #define PORT_WORKING_AREA_ALIGN         1U
+  66:../../os/common/ports/AVR/chcore.h **** /** @} */
+  67:../../os/common/ports/AVR/chcore.h **** 
+  68:../../os/common/ports/AVR/chcore.h **** /**
+  69:../../os/common/ports/AVR/chcore.h ****  * @name    Architecture and Compiler
+  70:../../os/common/ports/AVR/chcore.h ****  * @{
+  71:../../os/common/ports/AVR/chcore.h ****  */
+  72:../../os/common/ports/AVR/chcore.h **** /**
+  73:../../os/common/ports/AVR/chcore.h ****  * @brief   Macro defining an AVR architecture.
+  74:../../os/common/ports/AVR/chcore.h ****  */
+  75:../../os/common/ports/AVR/chcore.h **** #define PORT_ARCHITECTURE_AVR
+  76:../../os/common/ports/AVR/chcore.h **** 
+  77:../../os/common/ports/AVR/chcore.h **** /**
+  78:../../os/common/ports/AVR/chcore.h ****  * @brief   Macro defining the specific AVR architecture.
+  79:../../os/common/ports/AVR/chcore.h ****  */
+  80:../../os/common/ports/AVR/chcore.h **** #define PORT_ARCHITECTURE_AVR_MEGAAVR
+  81:../../os/common/ports/AVR/chcore.h **** 
+  82:../../os/common/ports/AVR/chcore.h **** /**
+  83:../../os/common/ports/AVR/chcore.h ****  * @brief   Name of the implemented architecture.
+  84:../../os/common/ports/AVR/chcore.h ****  */
+  85:../../os/common/ports/AVR/chcore.h **** #define PORT_ARCHITECTURE_NAME          "AVR"
+  86:../../os/common/ports/AVR/chcore.h **** 
+  87:../../os/common/ports/AVR/chcore.h **** /**
+  88:../../os/common/ports/AVR/chcore.h ****  * @brief   Name of the architecture variant.
+  89:../../os/common/ports/AVR/chcore.h ****  */
+  90:../../os/common/ports/AVR/chcore.h **** #define PORT_CORE_VARIANT_NAME          "MegaAVR"
+  91:../../os/common/ports/AVR/chcore.h **** 
+  92:../../os/common/ports/AVR/chcore.h **** /**
+  93:../../os/common/ports/AVR/chcore.h ****  * @brief   Compiler name and version.
+  94:../../os/common/ports/AVR/chcore.h ****  */
+  95:../../os/common/ports/AVR/chcore.h **** #if defined(__GNUC__) || defined(__DOXYGEN__)
+  96:../../os/common/ports/AVR/chcore.h **** #define PORT_COMPILER_NAME              "GCC " __VERSION__
+  97:../../os/common/ports/AVR/chcore.h **** 
+  98:../../os/common/ports/AVR/chcore.h **** #else
+  99:../../os/common/ports/AVR/chcore.h **** #error "unsupported compiler"
+ 100:../../os/common/ports/AVR/chcore.h **** #endif
+ 101:../../os/common/ports/AVR/chcore.h **** 
+ 102:../../os/common/ports/AVR/chcore.h **** /**
+ 103:../../os/common/ports/AVR/chcore.h ****  * @brief   Port-specific information string.
+ 104:../../os/common/ports/AVR/chcore.h ****  */
+ 105:../../os/common/ports/AVR/chcore.h **** #define PORT_INFO                       "None"
+ 106:../../os/common/ports/AVR/chcore.h **** /** @} */
+ 107:../../os/common/ports/AVR/chcore.h **** 
+ 108:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 109:../../os/common/ports/AVR/chcore.h **** /* Module pre-compile time settings.                                         */
+ 110:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 111:../../os/common/ports/AVR/chcore.h **** 
+ 112:../../os/common/ports/AVR/chcore.h **** /**
+ 113:../../os/common/ports/AVR/chcore.h ****  * @brief   Stack size for the system idle thread.
+ 114:../../os/common/ports/AVR/chcore.h ****  * @details This size depends on the idle thread implementation, usually
+ 115:../../os/common/ports/AVR/chcore.h ****  *          the idle thread should take no more space than those reserved
+ 116:../../os/common/ports/AVR/chcore.h ****  *          by @p PORT_INT_REQUIRED_STACK.
+ 117:../../os/common/ports/AVR/chcore.h ****  */
+ 118:../../os/common/ports/AVR/chcore.h **** #if !defined(PORT_IDLE_THREAD_STACK_SIZE) || defined(__DOXYGEN__)
+ 119:../../os/common/ports/AVR/chcore.h **** #define PORT_IDLE_THREAD_STACK_SIZE     8
+ 120:../../os/common/ports/AVR/chcore.h **** #endif
+ 121:../../os/common/ports/AVR/chcore.h **** 
+ 122:../../os/common/ports/AVR/chcore.h **** /**
+ 123:../../os/common/ports/AVR/chcore.h ****  * @brief   Per-thread stack overhead for interrupts servicing.
+ 124:../../os/common/ports/AVR/chcore.h ****  * @details This constant is used in the calculation of the correct working
+ 125:../../os/common/ports/AVR/chcore.h ****  *          area size.
+ 126:../../os/common/ports/AVR/chcore.h ****  */
+ 127:../../os/common/ports/AVR/chcore.h **** #if !defined(PORT_INT_REQUIRED_STACK) || defined(__DOXYGEN__)
+ 128:../../os/common/ports/AVR/chcore.h **** #define PORT_INT_REQUIRED_STACK         32
+ 129:../../os/common/ports/AVR/chcore.h **** #endif
+ 130:../../os/common/ports/AVR/chcore.h **** 
+ 131:../../os/common/ports/AVR/chcore.h **** /**
+ 132:../../os/common/ports/AVR/chcore.h ****  * @brief   Enables a "wait for interrupt" instruction in the idle loop.
+ 133:../../os/common/ports/AVR/chcore.h ****  */
+ 134:../../os/common/ports/AVR/chcore.h **** #if !defined(PORT_AVR_WFI_SLEEP_IDLE) || defined(__DOXYGEN__)
+ 135:../../os/common/ports/AVR/chcore.h **** #define PORT_AVR_WFI_SLEEP_IDLE      FALSE
+ 136:../../os/common/ports/AVR/chcore.h **** #endif
+ 137:../../os/common/ports/AVR/chcore.h **** 
+ 138:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 139:../../os/common/ports/AVR/chcore.h **** /* Derived constants and error checks.                                       */
+ 140:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 141:../../os/common/ports/AVR/chcore.h **** 
+ 142:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 143:../../os/common/ports/AVR/chcore.h **** /* Module data structures and types.                                         */
+ 144:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 145:../../os/common/ports/AVR/chcore.h **** 
+ 146:../../os/common/ports/AVR/chcore.h **** /* The following code is not processed when the file is included from an
+ 147:../../os/common/ports/AVR/chcore.h ****    asm module.*/
+ 148:../../os/common/ports/AVR/chcore.h **** #if !defined(_FROM_ASM_)
+ 149:../../os/common/ports/AVR/chcore.h **** 
+ 150:../../os/common/ports/AVR/chcore.h **** /**
+ 151:../../os/common/ports/AVR/chcore.h ****  * @brief   Type of stack and memory alignment enforcement.
+ 152:../../os/common/ports/AVR/chcore.h ****  * @note    In this architecture the stack alignment is enforced to 8 bits.
+ 153:../../os/common/ports/AVR/chcore.h ****  */
+ 154:../../os/common/ports/AVR/chcore.h **** typedef uint8_t stkalign_t;
+ 155:../../os/common/ports/AVR/chcore.h **** 
+ 156:../../os/common/ports/AVR/chcore.h **** /**
+ 157:../../os/common/ports/AVR/chcore.h ****  * @brief   Interrupt saved context.
+ 158:../../os/common/ports/AVR/chcore.h ****  * @details This structure represents the stack frame saved during a
+ 159:../../os/common/ports/AVR/chcore.h ****  *          preemption-capable interrupt handler.
+ 160:../../os/common/ports/AVR/chcore.h ****  * @note    R2 and R13 are not saved because those are assumed to be immutable
+ 161:../../os/common/ports/AVR/chcore.h ****  *          during the system life cycle.
+ 162:../../os/common/ports/AVR/chcore.h ****  */
+ 163:../../os/common/ports/AVR/chcore.h **** struct port_extctx {
+ 164:../../os/common/ports/AVR/chcore.h ****   uint8_t       _next;
+ 165:../../os/common/ports/AVR/chcore.h ****   uint8_t       r31;
+ 166:../../os/common/ports/AVR/chcore.h ****   uint8_t       r30;
+ 167:../../os/common/ports/AVR/chcore.h ****   uint8_t       r27;
+ 168:../../os/common/ports/AVR/chcore.h ****   uint8_t       r26;
+ 169:../../os/common/ports/AVR/chcore.h ****   uint8_t       r25;
+ 170:../../os/common/ports/AVR/chcore.h ****   uint8_t       r24;
+ 171:../../os/common/ports/AVR/chcore.h ****   uint8_t       r23;
+ 172:../../os/common/ports/AVR/chcore.h ****   uint8_t       r22;
+ 173:../../os/common/ports/AVR/chcore.h ****   uint8_t       r21;
+ 174:../../os/common/ports/AVR/chcore.h ****   uint8_t       r20;
+ 175:../../os/common/ports/AVR/chcore.h ****   uint8_t       r19;
+ 176:../../os/common/ports/AVR/chcore.h ****   uint8_t       r18;
+ 177:../../os/common/ports/AVR/chcore.h ****   uint8_t       sr;
+ 178:../../os/common/ports/AVR/chcore.h ****   uint8_t       r1;
+ 179:../../os/common/ports/AVR/chcore.h ****   uint8_t       r0;
+ 180:../../os/common/ports/AVR/chcore.h **** #if defined(__AVR_3_BYTE_PC__)
+ 181:../../os/common/ports/AVR/chcore.h ****   uint8_t       pcx;
+ 182:../../os/common/ports/AVR/chcore.h **** #endif
+ 183:../../os/common/ports/AVR/chcore.h ****   uint16_t      pc;
+ 184:../../os/common/ports/AVR/chcore.h **** };
+ 185:../../os/common/ports/AVR/chcore.h **** 
+ 186:../../os/common/ports/AVR/chcore.h **** /**
+ 187:../../os/common/ports/AVR/chcore.h ****  * @brief   System saved context.
+ 188:../../os/common/ports/AVR/chcore.h ****  * @details This structure represents the inner stack frame during a context
+ 189:../../os/common/ports/AVR/chcore.h ****  *          switching.
+ 190:../../os/common/ports/AVR/chcore.h ****  * @note    R2 and R13 are not saved because those are assumed to be immutable
+ 191:../../os/common/ports/AVR/chcore.h ****  *          during the system life cycle.
+ 192:../../os/common/ports/AVR/chcore.h ****  * @note    LR is stored in the caller context so it is not present in this
+ 193:../../os/common/ports/AVR/chcore.h ****  *          structure.
+ 194:../../os/common/ports/AVR/chcore.h ****  */
+ 195:../../os/common/ports/AVR/chcore.h **** struct port_intctx {
+ 196:../../os/common/ports/AVR/chcore.h ****   uint8_t       _next;
+ 197:../../os/common/ports/AVR/chcore.h ****   uint8_t       r29;
+ 198:../../os/common/ports/AVR/chcore.h ****   uint8_t       r28;
+ 199:../../os/common/ports/AVR/chcore.h ****   uint8_t       r17;
+ 200:../../os/common/ports/AVR/chcore.h ****   uint8_t       r16;
+ 201:../../os/common/ports/AVR/chcore.h ****   uint8_t       r15;
+ 202:../../os/common/ports/AVR/chcore.h ****   uint8_t       r14;
+ 203:../../os/common/ports/AVR/chcore.h ****   uint8_t       r13;
+ 204:../../os/common/ports/AVR/chcore.h ****   uint8_t       r12;
+ 205:../../os/common/ports/AVR/chcore.h ****   uint8_t       r11;
+ 206:../../os/common/ports/AVR/chcore.h ****   uint8_t       r10;
+ 207:../../os/common/ports/AVR/chcore.h ****   uint8_t       r9;
+ 208:../../os/common/ports/AVR/chcore.h ****   uint8_t       r8;
+ 209:../../os/common/ports/AVR/chcore.h ****   uint8_t       r7;
+ 210:../../os/common/ports/AVR/chcore.h ****   uint8_t       r6;
+ 211:../../os/common/ports/AVR/chcore.h ****   uint8_t       r5;
+ 212:../../os/common/ports/AVR/chcore.h ****   uint8_t       r4;
+ 213:../../os/common/ports/AVR/chcore.h ****   uint8_t       r3;
+ 214:../../os/common/ports/AVR/chcore.h ****   uint8_t       r2;
+ 215:../../os/common/ports/AVR/chcore.h **** #if defined(__AVR_3_BYTE_PC__)
+ 216:../../os/common/ports/AVR/chcore.h ****   uint8_t       pcx;
+ 217:../../os/common/ports/AVR/chcore.h **** #endif
+ 218:../../os/common/ports/AVR/chcore.h ****   uint8_t       pcl;
+ 219:../../os/common/ports/AVR/chcore.h ****   uint8_t       pch;
+ 220:../../os/common/ports/AVR/chcore.h **** };
+ 221:../../os/common/ports/AVR/chcore.h **** 
+ 222:../../os/common/ports/AVR/chcore.h **** /**
+ 223:../../os/common/ports/AVR/chcore.h ****  * @brief   Platform dependent part of the @p thread_t structure.
+ 224:../../os/common/ports/AVR/chcore.h ****  * @details This structure usually contains just the saved stack pointer
+ 225:../../os/common/ports/AVR/chcore.h ****  *          defined as a pointer to a @p port_intctx structure.
+ 226:../../os/common/ports/AVR/chcore.h ****  */
+ 227:../../os/common/ports/AVR/chcore.h **** struct port_context {
+ 228:../../os/common/ports/AVR/chcore.h ****   struct port_intctx *sp;
+ 229:../../os/common/ports/AVR/chcore.h **** };
+ 230:../../os/common/ports/AVR/chcore.h **** 
+ 231:../../os/common/ports/AVR/chcore.h **** #endif /* !defined(_FROM_ASM_) */
+ 232:../../os/common/ports/AVR/chcore.h **** 
+ 233:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 234:../../os/common/ports/AVR/chcore.h **** /* Module macros.                                                            */
+ 235:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 236:../../os/common/ports/AVR/chcore.h **** 
+ 237:../../os/common/ports/AVR/chcore.h **** /**
+ 238:../../os/common/ports/AVR/chcore.h ****  * @brief   Platform dependent part of the @p chThdCreateI() API.
+ 239:../../os/common/ports/AVR/chcore.h ****  * @details This code usually setup the context switching frame represented
+ 240:../../os/common/ports/AVR/chcore.h ****  *          by an @p port_intctx structure.
+ 241:../../os/common/ports/AVR/chcore.h ****  */
+ 242:../../os/common/ports/AVR/chcore.h **** #if defined(__AVR_3_BYTE_PC__) || defined(__DOXYGEN__)
+ 243:../../os/common/ports/AVR/chcore.h **** #define PORT_SETUP_CONTEXT(tp, wbase, wtop, pf, arg) {                      \
+ 244:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp = (struct port_intctx *)((uint8_t *)(wtop) -                   \
+ 245:../../os/common/ports/AVR/chcore.h ****                                       sizeof(struct port_intctx));          \
+ 246:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r2  = (uint8_t)(0xff & (uint16_t)pf);                         \
+ 247:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r3  = (uint8_t)((uint16_t)(pf) >> 8);                         \
+ 248:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r4  = (uint8_t)(0xff & (uint16_t)arg);                        \
+ 249:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r5  = (uint8_t)((uint16_t)(arg) >> 8);                        \
+ 250:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pcx = (uint8_t)0;                                             \
+ 251:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pcl = (uint16_t)_port_thread_start >> 8;                      \
+ 252:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pch = (uint8_t)(0xff & (uint16_t)_port_thread_start);         \
+ 253:../../os/common/ports/AVR/chcore.h **** }
+ 254:../../os/common/ports/AVR/chcore.h **** #else /* !__AVR_3_BYTE_PC__ */
+ 255:../../os/common/ports/AVR/chcore.h **** #define PORT_SETUP_CONTEXT(tp, wbase, wtop, pf, arg) {                      \
+ 256:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp = (struct port_intctx *)((uint8_t *)(wtop) -                   \
+ 257:../../os/common/ports/AVR/chcore.h ****                                       sizeof(struct port_intctx));          \
+ 258:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r2  = (uint8_t)(0xff & (uint16_t)pf);                         \
+ 259:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r3  = (uint8_t)((uint16_t)(pf) >> 8);                         \
+ 260:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r4  = (uint8_t)(0xff & (uint16_t)arg);                        \
+ 261:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r5  = (uint8_t)((uint16_t)(arg) >> 8);                        \
+ 262:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pcl = (uint16_t)_port_thread_start >> 8;                      \
+ 263:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pch = (uint8_t)(0xff & (uint16_t)_port_thread_start);         \
+ 264:../../os/common/ports/AVR/chcore.h **** }
+ 265:../../os/common/ports/AVR/chcore.h **** #endif /* !__AVR_3_BYTE_PC__ */
+ 266:../../os/common/ports/AVR/chcore.h **** 
+ 267:../../os/common/ports/AVR/chcore.h **** /**
+ 268:../../os/common/ports/AVR/chcore.h ****  * @brief   Computes the thread working area global size.
+ 269:../../os/common/ports/AVR/chcore.h ****  * @note    There is no need to perform alignments in this macro.
+ 270:../../os/common/ports/AVR/chcore.h ****  */
+ 271:../../os/common/ports/AVR/chcore.h **** #define PORT_WA_SIZE(n) ((sizeof(struct port_intctx) - 1) +                \
+ 272:../../os/common/ports/AVR/chcore.h ****                          (sizeof(struct port_extctx) - 1) +                \
+ 273:../../os/common/ports/AVR/chcore.h ****                          ((size_t)(n)) + ((size_t)(PORT_INT_REQUIRED_STACK)))
+ 274:../../os/common/ports/AVR/chcore.h **** 
+ 275:../../os/common/ports/AVR/chcore.h **** /**
+ 276:../../os/common/ports/AVR/chcore.h ****  * @brief   Static working area allocation.
+ 277:../../os/common/ports/AVR/chcore.h ****  * @details This macro is used to allocate a static thread working area
+ 278:../../os/common/ports/AVR/chcore.h ****  *          aligned as both position and size.
+ 279:../../os/common/ports/AVR/chcore.h ****  *
+ 280:../../os/common/ports/AVR/chcore.h ****  * @param[in] s         the name to be assigned to the stack array
+ 281:../../os/common/ports/AVR/chcore.h ****  * @param[in] n         the stack size to be assigned to the thread
+ 282:../../os/common/ports/AVR/chcore.h ****  */
+ 283:../../os/common/ports/AVR/chcore.h **** #define PORT_WORKING_AREA(s, n)                                             \
+ 284:../../os/common/ports/AVR/chcore.h ****   stkalign_t s[THD_WORKING_AREA_SIZE(n) / sizeof (stkalign_t)]
+ 285:../../os/common/ports/AVR/chcore.h **** 
+ 286:../../os/common/ports/AVR/chcore.h **** /**
+ 287:../../os/common/ports/AVR/chcore.h ****  * @brief   Priority level verification macro.
+ 288:../../os/common/ports/AVR/chcore.h ****  */
+ 289:../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_IS_VALID_PRIORITY(n) false
+ 290:../../os/common/ports/AVR/chcore.h **** 
+ 291:../../os/common/ports/AVR/chcore.h **** /**
+ 292:../../os/common/ports/AVR/chcore.h ****  * @brief   Priority level verification macro.
+ 293:../../os/common/ports/AVR/chcore.h ****  */
+ 294:../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_IS_VALID_KERNEL_PRIORITY(n) false
+ 295:../../os/common/ports/AVR/chcore.h **** 
+ 296:../../os/common/ports/AVR/chcore.h **** /**
+ 297:../../os/common/ports/AVR/chcore.h ****  * @brief   IRQ prologue code.
+ 298:../../os/common/ports/AVR/chcore.h ****  * @details This macro must be inserted at the start of all IRQ handlers
+ 299:../../os/common/ports/AVR/chcore.h ****  *          enabled to invoke system APIs.
+ 300:../../os/common/ports/AVR/chcore.h ****  * @note    This code tricks the compiler to save all the specified registers
+ 301:../../os/common/ports/AVR/chcore.h ****  *          by "touching" them.
+ 302:../../os/common/ports/AVR/chcore.h ****  */
+ 303:../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_PROLOGUE() {                                               \
+ 304:../../os/common/ports/AVR/chcore.h ****   asm ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24",            \
+ 305:../../os/common/ports/AVR/chcore.h ****                 "r25", "r26", "r27", "r30", "r31");                         \
+ 306:../../os/common/ports/AVR/chcore.h ****   __avr_in_isr = true;                                                      \
+ 307:../../os/common/ports/AVR/chcore.h **** }
+ 308:../../os/common/ports/AVR/chcore.h **** 
+ 309:../../os/common/ports/AVR/chcore.h **** /**
+ 310:../../os/common/ports/AVR/chcore.h ****  * @brief   IRQ epilogue code.
+ 311:../../os/common/ports/AVR/chcore.h ****  * @details This macro must be inserted at the end of all IRQ handlers
+ 312:../../os/common/ports/AVR/chcore.h ****  *          enabled to invoke system APIs.
+ 313:../../os/common/ports/AVR/chcore.h ****  */
+ 314:../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_EPILOGUE() {                                               \
+ 315:../../os/common/ports/AVR/chcore.h ****   __avr_in_isr = false;                                                     \
+ 316:../../os/common/ports/AVR/chcore.h ****   __dbg_check_lock();                                                       \
+ 317:../../os/common/ports/AVR/chcore.h ****   if (chSchIsPreemptionRequired())                                          \
+ 318:../../os/common/ports/AVR/chcore.h ****     chSchDoPreemption();                                                    \
+ 319:../../os/common/ports/AVR/chcore.h ****   __dbg_check_unlock();                                                     \
+ 320:../../os/common/ports/AVR/chcore.h **** }
+ 321:../../os/common/ports/AVR/chcore.h **** 
+ 322:../../os/common/ports/AVR/chcore.h **** /**
+ 323:../../os/common/ports/AVR/chcore.h ****  * @brief   IRQ handler function declaration.
+ 324:../../os/common/ports/AVR/chcore.h ****  * @note    @p id can be a function name or a vector number depending on the
+ 325:../../os/common/ports/AVR/chcore.h ****  *          port implementation.
+ 326:../../os/common/ports/AVR/chcore.h ****  */
+ 327:../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_HANDLER(id) ISR(id)
+ 328:../../os/common/ports/AVR/chcore.h **** 
+ 329:../../os/common/ports/AVR/chcore.h **** /**
+ 330:../../os/common/ports/AVR/chcore.h ****  * @brief   Fast IRQ handler function declaration.
+ 331:../../os/common/ports/AVR/chcore.h ****  * @note    @p id can be a function name or a vector number depending on the
+ 332:../../os/common/ports/AVR/chcore.h ****  *          port implementation.
+ 333:../../os/common/ports/AVR/chcore.h ****  */
+ 334:../../os/common/ports/AVR/chcore.h **** #define PORT_FAST_IRQ_HANDLER(id) ISR(id)
+ 335:../../os/common/ports/AVR/chcore.h **** 
+ 336:../../os/common/ports/AVR/chcore.h **** /**
+ 337:../../os/common/ports/AVR/chcore.h ****  * @brief   Performs a context switch between two threads.
+ 338:../../os/common/ports/AVR/chcore.h ****  * @details This is the most critical code in any port, this function
+ 339:../../os/common/ports/AVR/chcore.h ****  *          is responsible for the context switch between 2 threads.
+ 340:../../os/common/ports/AVR/chcore.h ****  * @note    The implementation of this code affects <b>directly</b> the context
+ 341:../../os/common/ports/AVR/chcore.h ****  *          switch performance so optimize here as much as you can.
+ 342:../../os/common/ports/AVR/chcore.h ****  *
+ 343:../../os/common/ports/AVR/chcore.h ****  * @param[in] ntp       the thread to be switched in
+ 344:../../os/common/ports/AVR/chcore.h ****  * @param[in] otp       the thread to be switched out
+ 345:../../os/common/ports/AVR/chcore.h ****  */
+ 346:../../os/common/ports/AVR/chcore.h **** #define port_switch(ntp, otp) {                                             \
+ 347:../../os/common/ports/AVR/chcore.h ****   _port_switch(ntp, otp);                                                   \
+ 348:../../os/common/ports/AVR/chcore.h ****   asm volatile ("" : : : "memory");                                         \
+ 349:../../os/common/ports/AVR/chcore.h **** }
+ 350:../../os/common/ports/AVR/chcore.h **** 
+ 351:../../os/common/ports/AVR/chcore.h **** 
+ 352:../../os/common/ports/AVR/chcore.h **** /**
+ 353:../../os/common/ports/AVR/chcore.h ****  * @brief   Port-related initialization code.
+ 354:../../os/common/ports/AVR/chcore.h ****  * @note    This function is empty in this port.
+ 355:../../os/common/ports/AVR/chcore.h ****  */
+ 356:../../os/common/ports/AVR/chcore.h **** #define port_init(oip) {                                                    \
+ 357:../../os/common/ports/AVR/chcore.h ****   __avr_in_isr = true;                                                      \
+ 358:../../os/common/ports/AVR/chcore.h **** }
+ 359:../../os/common/ports/AVR/chcore.h **** 
+ 360:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 361:../../os/common/ports/AVR/chcore.h **** /* External declarations.                                                    */
+ 362:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 363:../../os/common/ports/AVR/chcore.h **** 
+ 364:../../os/common/ports/AVR/chcore.h **** /* The following code is not processed when the file is included from an
+ 365:../../os/common/ports/AVR/chcore.h ****    asm module.*/
+ 366:../../os/common/ports/AVR/chcore.h **** #if !defined(_FROM_ASM_)
+ 367:../../os/common/ports/AVR/chcore.h **** 
+ 368:../../os/common/ports/AVR/chcore.h **** #ifdef __cplusplus
+ 369:../../os/common/ports/AVR/chcore.h **** extern "C" {
+ 370:../../os/common/ports/AVR/chcore.h **** #endif
+ 371:../../os/common/ports/AVR/chcore.h ****   void _port_switch(thread_t *ntp, thread_t *otp);
+ 372:../../os/common/ports/AVR/chcore.h ****   void _port_thread_start(void);
+ 373:../../os/common/ports/AVR/chcore.h **** #ifdef __cplusplus
+ 374:../../os/common/ports/AVR/chcore.h **** }
+ 375:../../os/common/ports/AVR/chcore.h **** #endif
+ 376:../../os/common/ports/AVR/chcore.h **** 
+ 377:../../os/common/ports/AVR/chcore.h **** #endif /* !defined(_FROM_ASM_) */
+ 378:../../os/common/ports/AVR/chcore.h **** 
+ 379:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 380:../../os/common/ports/AVR/chcore.h **** /* Module inline functions.                                                  */
+ 381:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 382:../../os/common/ports/AVR/chcore.h **** 
+ 383:../../os/common/ports/AVR/chcore.h **** /* The following code is not processed when the file is included from an
+ 384:../../os/common/ports/AVR/chcore.h ****    asm module.*/
+ 385:../../os/common/ports/AVR/chcore.h **** #if !defined(_FROM_ASM_)
+ 386:../../os/common/ports/AVR/chcore.h **** 
+ 387:../../os/common/ports/AVR/chcore.h **** /**
+ 388:../../os/common/ports/AVR/chcore.h ****  * @brief   Returns a word encoding the current interrupts status.
+ 389:../../os/common/ports/AVR/chcore.h ****  *
+ 390:../../os/common/ports/AVR/chcore.h ****  * @return              The interrupts status.
+ 391:../../os/common/ports/AVR/chcore.h ****  */
+ 392:../../os/common/ports/AVR/chcore.h **** static inline syssts_t port_get_irq_status(void) {
+ 393:../../os/common/ports/AVR/chcore.h **** 
+ 394:../../os/common/ports/AVR/chcore.h ****   return SREG;
+ 395:../../os/common/ports/AVR/chcore.h **** }
+ 396:../../os/common/ports/AVR/chcore.h **** 
+ 397:../../os/common/ports/AVR/chcore.h **** /**
+ 398:../../os/common/ports/AVR/chcore.h ****  * @brief   Checks the interrupt status.
+ 399:../../os/common/ports/AVR/chcore.h ****  *
+ 400:../../os/common/ports/AVR/chcore.h ****  * @param[in] sts       the interrupt status word
+ 401:../../os/common/ports/AVR/chcore.h ****  *
+ 402:../../os/common/ports/AVR/chcore.h ****  * @return              The interrupt status.
+ 403:../../os/common/ports/AVR/chcore.h ****  * @retval false        the word specified a disabled interrupts status.
+ 404:../../os/common/ports/AVR/chcore.h ****  * @retval true         the word specified an enabled interrupts status.
+ 405:../../os/common/ports/AVR/chcore.h ****  */
+ 406:../../os/common/ports/AVR/chcore.h **** static inline bool port_irq_enabled(syssts_t sts) {
+ 407:../../os/common/ports/AVR/chcore.h **** 
+ 408:../../os/common/ports/AVR/chcore.h ****   return (bool)((sts & 0x80) != 0);
+ 409:../../os/common/ports/AVR/chcore.h **** }
+ 410:../../os/common/ports/AVR/chcore.h **** 
+ 411:../../os/common/ports/AVR/chcore.h **** /**
+ 412:../../os/common/ports/AVR/chcore.h ****  * @brief   Determines the current execution context.
+ 413:../../os/common/ports/AVR/chcore.h ****  *
+ 414:../../os/common/ports/AVR/chcore.h ****  * @return              The execution context.
+ 415:../../os/common/ports/AVR/chcore.h ****  * @retval false        not running in ISR mode.
+ 416:../../os/common/ports/AVR/chcore.h ****  * @retval true         running in ISR mode.
+ 417:../../os/common/ports/AVR/chcore.h ****  */
+ 418:../../os/common/ports/AVR/chcore.h **** static inline bool port_is_isr_context(void) {
+ 419:../../os/common/ports/AVR/chcore.h **** 
+ 420:../../os/common/ports/AVR/chcore.h ****   return __avr_in_isr;
+ 421:../../os/common/ports/AVR/chcore.h **** }
+ 422:../../os/common/ports/AVR/chcore.h **** 
+ 423:../../os/common/ports/AVR/chcore.h **** /**
+ 424:../../os/common/ports/AVR/chcore.h ****  * @brief   Kernel-lock action.
+ 425:../../os/common/ports/AVR/chcore.h ****  * @details Usually this function just disables interrupts but may perform more
+ 426:../../os/common/ports/AVR/chcore.h ****  *          actions.
+ 427:../../os/common/ports/AVR/chcore.h ****  */
+ 428:../../os/common/ports/AVR/chcore.h **** static inline void port_lock(void) {
+  30               		.loc 2 428 20 view .LVU4
+  31               	.LBB24:
+ 429:../../os/common/ports/AVR/chcore.h **** 
+ 430:../../os/common/ports/AVR/chcore.h ****   asm volatile ("cli" : : : "memory");
+  32               		.loc 2 430 3 view .LVU5
+  33               	/* #APP */
+  34               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+  35 0002 F894      		cli
+  36               	 ;  0 "" 2
+  37               	/* #NOAPP */
+  38               	.LBE24:
+  39               	.LBE23:
+  40               		.loc 1 78 3 discriminator 1 view .LVU6
+  41               		.loc 1 78 14 discriminator 1 view .LVU7
+  79:../../os/nil/src/chsem.c ****   msg = chSemWaitTimeoutS(sp, timeout);
+  42               		.loc 1 79 3 view .LVU8
+  43               	.LVL1:
+  44               	.LBB25:
+  45               	.LBI25:
+  80:../../os/nil/src/chsem.c ****   chSysUnlock();
+  81:../../os/nil/src/chsem.c **** 
+  82:../../os/nil/src/chsem.c ****   return msg;
+  83:../../os/nil/src/chsem.c **** }
+  84:../../os/nil/src/chsem.c **** 
+  85:../../os/nil/src/chsem.c **** /**
+  86:../../os/nil/src/chsem.c ****  * @brief   Performs a wait operation on a semaphore with timeout specification.
+  87:../../os/nil/src/chsem.c ****  *
+  88:../../os/nil/src/chsem.c ****  * @param[in] sp        pointer to a @p semaphore_t structure
+  89:../../os/nil/src/chsem.c ****  * @param[in] timeout   the number of ticks before the operation timeouts,
+  90:../../os/nil/src/chsem.c ****  *                      the following special values are allowed:
+  91:../../os/nil/src/chsem.c ****  *                      - @a TIME_IMMEDIATE immediate timeout.
+  92:../../os/nil/src/chsem.c ****  *                      - @a TIME_INFINITE no timeout.
+  93:../../os/nil/src/chsem.c ****  *                      .
+  94:../../os/nil/src/chsem.c ****  * @return              A message specifying how the invoking thread has been
+  95:../../os/nil/src/chsem.c ****  *                      released from the semaphore.
+  96:../../os/nil/src/chsem.c ****  * @retval NIL_MSG_OK   if the thread has not stopped on the semaphore or the
+  97:../../os/nil/src/chsem.c ****  *                      semaphore has been signaled.
+  98:../../os/nil/src/chsem.c ****  * @retval NIL_MSG_RST  if the semaphore has been reset using @p chSemReset().
+  99:../../os/nil/src/chsem.c ****  * @retval NIL_MSG_TMO  if the semaphore has not been signaled or reset within
+ 100:../../os/nil/src/chsem.c ****  *                      the specified timeout.
+ 101:../../os/nil/src/chsem.c ****  *
+ 102:../../os/nil/src/chsem.c ****  * @sclass
+ 103:../../os/nil/src/chsem.c ****  */
+ 104:../../os/nil/src/chsem.c **** msg_t chSemWaitTimeoutS(semaphore_t *sp, sysinterval_t timeout) {
+  46               		.loc 1 104 7 view .LVU9
+  47               	.LBB26:
+ 105:../../os/nil/src/chsem.c **** 
+ 106:../../os/nil/src/chsem.c ****   chDbgCheckClassS();
+  48               		.loc 1 106 21 view .LVU10
+ 107:../../os/nil/src/chsem.c ****   chDbgCheck(sp != NULL);
+  49               		.loc 1 107 3 view .LVU11
+  50               		.loc 1 107 3 view .LVU12
+  51               		.loc 1 107 3 discriminator 5 view .LVU13
+ 108:../../os/nil/src/chsem.c **** 
+ 109:../../os/nil/src/chsem.c ****   /* Note, the semaphore counter is a volatile variable so accesses are
+ 110:../../os/nil/src/chsem.c ****      manually optimized.*/
+ 111:../../os/nil/src/chsem.c ****   cnt_t cnt = sp->cnt;
+  52               		.loc 1 111 3 view .LVU14
+  53               		.loc 1 111 9 is_stmt 0 view .LVU15
+  54 0004 8081      		ld r24,Z
+  55               	.LVL2:
+ 112:../../os/nil/src/chsem.c ****   if (cnt <= (cnt_t)0) {
+  56               		.loc 1 112 3 is_stmt 1 view .LVU16
+  57               		.loc 1 112 6 is_stmt 0 view .LVU17
+  58 0006 1816      		cp __zero_reg__,r24
+  59 0008 04F4      		brge .L6
+ 113:../../os/nil/src/chsem.c ****     if (TIME_IMMEDIATE == timeout) {
+ 114:../../os/nil/src/chsem.c **** 
+ 115:../../os/nil/src/chsem.c ****       return MSG_TIMEOUT;
+ 116:../../os/nil/src/chsem.c ****     }
+ 117:../../os/nil/src/chsem.c ****     sp->cnt = cnt - (cnt_t)1;
+ 118:../../os/nil/src/chsem.c ****     nil.current->u1.semp = sp;
+ 119:../../os/nil/src/chsem.c **** 
+ 120:../../os/nil/src/chsem.c ****     return chSchGoSleepTimeoutS(NIL_STATE_WTQUEUE, timeout);
+ 121:../../os/nil/src/chsem.c ****   }
+ 122:../../os/nil/src/chsem.c ****   sp->cnt = cnt - (cnt_t)1;
+  60               		.loc 1 122 3 is_stmt 1 view .LVU18
+  61               		.loc 1 122 17 is_stmt 0 view .LVU19
+  62 000a 8150      		subi r24,lo8(-(-1))
+  63               	.LVL3:
+  64               		.loc 1 122 11 view .LVU20
+  65 000c 8083      		st Z,r24
+ 123:../../os/nil/src/chsem.c **** 
+ 124:../../os/nil/src/chsem.c ****   return MSG_OK;
+  66               		.loc 1 124 3 is_stmt 1 view .LVU21
+  67               		.loc 1 124 10 is_stmt 0 view .LVU22
+  68 000e 80E0      		ldi r24,0
+  69               	.LVL4:
+  70               		.loc 1 124 10 view .LVU23
+  71 0010 90E0      		ldi r25,0
+  72               	.LVL5:
+  73               	.L3:
+  74               		.loc 1 124 10 view .LVU24
+  75               	.LBE26:
+  76               	.LBE25:
+  80:../../os/nil/src/chsem.c **** 
+  77               		.loc 1 80 3 is_stmt 1 view .LVU25
+  80:../../os/nil/src/chsem.c **** 
+  78               		.loc 1 80 3 view .LVU26
+  79               	.LBB29:
+  80               	.LBI29:
+ 431:../../os/common/ports/AVR/chcore.h **** }
+ 432:../../os/common/ports/AVR/chcore.h **** 
+ 433:../../os/common/ports/AVR/chcore.h **** /**
+ 434:../../os/common/ports/AVR/chcore.h ****  * @brief   Kernel-unlock action.
+ 435:../../os/common/ports/AVR/chcore.h ****  * @details Usually this function just enables interrupts but may perform more
+ 436:../../os/common/ports/AVR/chcore.h ****  *          actions.
+ 437:../../os/common/ports/AVR/chcore.h ****  */
+ 438:../../os/common/ports/AVR/chcore.h **** static inline void port_unlock(void) {
+  81               		.loc 2 438 20 view .LVU27
+  82               	.LBB30:
+ 439:../../os/common/ports/AVR/chcore.h **** 
+ 440:../../os/common/ports/AVR/chcore.h ****   asm volatile ("sei" : : : "memory");
+  83               		.loc 2 440 3 view .LVU28
+  84               	/* #APP */
+  85               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+  86 0012 7894      		sei
+  87               	 ;  0 "" 2
+  88               	/* #NOAPP */
+  89               	.LBE30:
+  90               	.LBE29:
+  80:../../os/nil/src/chsem.c **** 
+  91               		.loc 1 80 16 discriminator 1 view .LVU29
+  82:../../os/nil/src/chsem.c **** }
+  92               		.loc 1 82 3 view .LVU30
+  93               	/* epilogue start */
+  83:../../os/nil/src/chsem.c **** 
+  94               		.loc 1 83 1 is_stmt 0 view .LVU31
+  95 0014 0895      		ret
+  96               	.LVL6:
+  97               	.L6:
+  98               	.LBB32:
+  99               	.LBB27:
+ 113:../../os/nil/src/chsem.c **** 
+ 100               		.loc 1 113 5 is_stmt 1 view .LVU32
+ 113:../../os/nil/src/chsem.c **** 
+ 101               		.loc 1 113 8 is_stmt 0 view .LVU33
+ 102 0016 6F3F      		cpi r22,-1
+ 103 0018 7607      		cpc r23,r22
+ 104 001a 01F0      		breq .L4
+ 117:../../os/nil/src/chsem.c ****     nil.current->u1.semp = sp;
+ 105               		.loc 1 117 5 is_stmt 1 view .LVU34
+ 117:../../os/nil/src/chsem.c ****     nil.current->u1.semp = sp;
+ 106               		.loc 1 117 19 is_stmt 0 view .LVU35
+ 107 001c 8150      		subi r24,lo8(-(-1))
+ 108               	.LVL7:
+ 117:../../os/nil/src/chsem.c ****     nil.current->u1.semp = sp;
+ 109               		.loc 1 117 13 view .LVU36
+ 110 001e 8083      		st Z,r24
+ 118:../../os/nil/src/chsem.c **** 
+ 111               		.loc 1 118 5 is_stmt 1 view .LVU37
+ 118:../../os/nil/src/chsem.c **** 
+ 112               		.loc 1 118 26 is_stmt 0 view .LVU38
+ 113 0020 A091 0000 		lds r26,nil
+ 114 0024 B091 0000 		lds r27,nil+1
+ 115 0028 1496      		adiw r26,3+1
+ 116 002a FC93      		st X,r31
+ 117 002c EE93      		st -X,r30
+ 118 002e 1397      		sbiw r26,3
+ 120:../../os/nil/src/chsem.c ****   }
+ 119               		.loc 1 120 5 is_stmt 1 view .LVU39
+ 120:../../os/nil/src/chsem.c ****   }
+ 120               		.loc 1 120 12 is_stmt 0 view .LVU40
+ 121 0030 85E0      		ldi r24,lo8(5)
+ 122               	.LVL8:
+ 120:../../os/nil/src/chsem.c ****   }
+ 123               		.loc 1 120 12 view .LVU41
+ 124 0032 0E94 0000 		call chSchGoSleepTimeoutS
+ 125               	.LVL9:
+ 120:../../os/nil/src/chsem.c ****   }
+ 126               		.loc 1 120 12 view .LVU42
+ 127               	.LBE27:
+ 128               	.LBE32:
+  80:../../os/nil/src/chsem.c **** 
+ 129               		.loc 1 80 3 is_stmt 1 view .LVU43
+  80:../../os/nil/src/chsem.c **** 
+ 130               		.loc 1 80 3 view .LVU44
+ 131               	.LBB33:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 132               		.loc 2 438 20 view .LVU45
+ 133               	.LBB31:
+ 134               		.loc 2 440 3 view .LVU46
+ 135               	/* #APP */
+ 136               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 137 0036 7894      		sei
+ 138               	 ;  0 "" 2
+ 139               	/* #NOAPP */
+ 140               	.LBE31:
+ 141               	.LBE33:
+  80:../../os/nil/src/chsem.c **** 
+ 142               		.loc 1 80 16 discriminator 1 view .LVU47
+  82:../../os/nil/src/chsem.c **** }
+ 143               		.loc 1 82 3 view .LVU48
+ 144               	/* epilogue start */
+  83:../../os/nil/src/chsem.c **** 
+ 145               		.loc 1 83 1 is_stmt 0 view .LVU49
+ 146 0038 0895      		ret
+ 147               	.LVL10:
+ 148               	.L4:
+ 149               	.LBB34:
+ 150               	.LBB28:
+ 115:../../os/nil/src/chsem.c ****     }
+ 151               		.loc 1 115 14 view .LVU50
+ 152 003a 8FEF      		ldi r24,lo8(-1)
+ 153               	.LVL11:
+ 115:../../os/nil/src/chsem.c ****     }
+ 154               		.loc 1 115 14 view .LVU51
+ 155 003c 9FEF      		ldi r25,lo8(-1)
+ 156 003e 00C0      		rjmp .L3
+ 157               	.LBE28:
+ 158               	.LBE34:
+ 159               		.cfi_endproc
+ 160               	.LFE98:
+ 162               		.section	.text.chSemWaitTimeoutS,"ax",@progbits
+ 163               	.global	chSemWaitTimeoutS
+ 165               	chSemWaitTimeoutS:
+ 166               	.LVL12:
+ 167               	.LFB99:
+ 104:../../os/nil/src/chsem.c **** 
+ 168               		.loc 1 104 65 is_stmt 1 view -0
+ 169               		.cfi_startproc
+ 170               	/* prologue: function */
+ 171               	/* frame size = 0 */
+ 172               	/* stack size = 0 */
+ 173               	.L__stack_usage = 0
+ 104:../../os/nil/src/chsem.c **** 
+ 174               		.loc 1 104 65 is_stmt 0 view .LVU53
+ 175 0000 FC01      		movw r30,r24
+ 106:../../os/nil/src/chsem.c ****   chDbgCheck(sp != NULL);
+ 176               		.loc 1 106 21 is_stmt 1 view .LVU54
+ 107:../../os/nil/src/chsem.c **** 
+ 177               		.loc 1 107 3 view .LVU55
+ 107:../../os/nil/src/chsem.c **** 
+ 178               		.loc 1 107 3 view .LVU56
+ 107:../../os/nil/src/chsem.c **** 
+ 179               		.loc 1 107 3 discriminator 5 view .LVU57
+ 111:../../os/nil/src/chsem.c ****   if (cnt <= (cnt_t)0) {
+ 180               		.loc 1 111 3 view .LVU58
+ 111:../../os/nil/src/chsem.c ****   if (cnt <= (cnt_t)0) {
+ 181               		.loc 1 111 9 is_stmt 0 view .LVU59
+ 182 0002 8081      		ld r24,Z
+ 183               	.LVL13:
+ 112:../../os/nil/src/chsem.c ****     if (TIME_IMMEDIATE == timeout) {
+ 184               		.loc 1 112 3 is_stmt 1 view .LVU60
+ 112:../../os/nil/src/chsem.c ****     if (TIME_IMMEDIATE == timeout) {
+ 185               		.loc 1 112 6 is_stmt 0 view .LVU61
+ 186 0004 1816      		cp __zero_reg__,r24
+ 187 0006 04F4      		brge .L11
+ 122:../../os/nil/src/chsem.c **** 
+ 188               		.loc 1 122 3 is_stmt 1 view .LVU62
+ 122:../../os/nil/src/chsem.c **** 
+ 189               		.loc 1 122 17 is_stmt 0 view .LVU63
+ 190 0008 8150      		subi r24,lo8(-(-1))
+ 191               	.LVL14:
+ 122:../../os/nil/src/chsem.c **** 
+ 192               		.loc 1 122 11 view .LVU64
+ 193 000a 8083      		st Z,r24
+ 194               		.loc 1 124 3 is_stmt 1 view .LVU65
+ 195               		.loc 1 124 10 is_stmt 0 view .LVU66
+ 196 000c 80E0      		ldi r24,0
+ 197 000e 90E0      		ldi r25,0
+ 198               	.LVL15:
+ 199               		.loc 1 124 10 view .LVU67
+ 200 0010 0895      		ret
+ 201               	.LVL16:
+ 202               	.L11:
+ 113:../../os/nil/src/chsem.c **** 
+ 203               		.loc 1 113 5 is_stmt 1 view .LVU68
+ 113:../../os/nil/src/chsem.c **** 
+ 204               		.loc 1 113 8 is_stmt 0 view .LVU69
+ 205 0012 6F3F      		cpi r22,-1
+ 206 0014 7607      		cpc r23,r22
+ 207 0016 01F0      		breq .L10
+ 117:../../os/nil/src/chsem.c ****     nil.current->u1.semp = sp;
+ 208               		.loc 1 117 5 is_stmt 1 view .LVU70
+ 117:../../os/nil/src/chsem.c ****     nil.current->u1.semp = sp;
+ 209               		.loc 1 117 19 is_stmt 0 view .LVU71
+ 210 0018 8150      		subi r24,lo8(-(-1))
+ 211               	.LVL17:
+ 117:../../os/nil/src/chsem.c ****     nil.current->u1.semp = sp;
+ 212               		.loc 1 117 13 view .LVU72
+ 213 001a 8083      		st Z,r24
+ 118:../../os/nil/src/chsem.c **** 
+ 214               		.loc 1 118 5 is_stmt 1 view .LVU73
+ 118:../../os/nil/src/chsem.c **** 
+ 215               		.loc 1 118 26 is_stmt 0 view .LVU74
+ 216 001c A091 0000 		lds r26,nil
+ 217 0020 B091 0000 		lds r27,nil+1
+ 218 0024 1496      		adiw r26,3+1
+ 219 0026 FC93      		st X,r31
+ 220 0028 EE93      		st -X,r30
+ 221 002a 1397      		sbiw r26,3
+ 120:../../os/nil/src/chsem.c ****   }
+ 222               		.loc 1 120 5 is_stmt 1 view .LVU75
+ 120:../../os/nil/src/chsem.c ****   }
+ 223               		.loc 1 120 12 is_stmt 0 view .LVU76
+ 224 002c 85E0      		ldi r24,lo8(5)
+ 225               	.LVL18:
+ 120:../../os/nil/src/chsem.c ****   }
+ 226               		.loc 1 120 12 view .LVU77
+ 227 002e 0C94 0000 		jmp chSchGoSleepTimeoutS
+ 228               	.LVL19:
+ 229               	.L10:
+ 115:../../os/nil/src/chsem.c ****     }
+ 230               		.loc 1 115 14 view .LVU78
+ 231 0032 8FEF      		ldi r24,lo8(-1)
+ 232 0034 9FEF      		ldi r25,lo8(-1)
+ 233               	.LVL20:
+ 234               	/* epilogue start */
+ 125:../../os/nil/src/chsem.c **** }
+ 235               		.loc 1 125 1 view .LVU79
+ 236 0036 0895      		ret
+ 237               		.cfi_endproc
+ 238               	.LFE99:
+ 240               		.section	.text.chSemSignal,"ax",@progbits
+ 241               	.global	chSemSignal
+ 243               	chSemSignal:
+ 244               	.LVL21:
+ 245               	.LFB100:
+ 126:../../os/nil/src/chsem.c **** 
+ 127:../../os/nil/src/chsem.c **** /**
+ 128:../../os/nil/src/chsem.c ****  * @brief   Performs a signal operation on a semaphore.
+ 129:../../os/nil/src/chsem.c ****  *
+ 130:../../os/nil/src/chsem.c ****  * @param[in] sp    pointer to a @p semaphore_t structure
+ 131:../../os/nil/src/chsem.c ****  *
+ 132:../../os/nil/src/chsem.c ****  * @api
+ 133:../../os/nil/src/chsem.c ****  */
+ 134:../../os/nil/src/chsem.c **** void chSemSignal(semaphore_t *sp) {
+ 246               		.loc 1 134 35 is_stmt 1 view -0
+ 247               		.cfi_startproc
+ 248               	/* prologue: function */
+ 249               	/* frame size = 0 */
+ 250               	/* stack size = 0 */
+ 251               	.L__stack_usage = 0
+ 252               		.loc 1 134 35 is_stmt 0 view .LVU81
+ 253 0000 FC01      		movw r30,r24
+ 135:../../os/nil/src/chsem.c **** 
+ 136:../../os/nil/src/chsem.c ****   chSysLock();
+ 254               		.loc 1 136 3 is_stmt 1 view .LVU82
+ 255               	.LBB44:
+ 256               	.LBI44:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 257               		.loc 2 428 20 view .LVU83
+ 258               	.LBB45:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 259               		.loc 2 430 3 view .LVU84
+ 260               	/* #APP */
+ 261               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 262 0002 F894      		cli
+ 263               	 ;  0 "" 2
+ 264               	/* #NOAPP */
+ 265               	.LBE45:
+ 266               	.LBE44:
+ 267               		.loc 1 136 3 discriminator 1 view .LVU85
+ 268               		.loc 1 136 14 discriminator 1 view .LVU86
+ 137:../../os/nil/src/chsem.c ****   chSemSignalI(sp);
+ 269               		.loc 1 137 3 view .LVU87
+ 270               	.LVL22:
+ 271               	.LBB46:
+ 272               	.LBI46:
+ 138:../../os/nil/src/chsem.c ****   chSchRescheduleS();
+ 139:../../os/nil/src/chsem.c ****   chSysUnlock();
+ 140:../../os/nil/src/chsem.c **** }
+ 141:../../os/nil/src/chsem.c **** 
+ 142:../../os/nil/src/chsem.c **** /**
+ 143:../../os/nil/src/chsem.c ****  * @brief   Performs a signal operation on a semaphore.
+ 144:../../os/nil/src/chsem.c ****  * @post    This function does not reschedule so a call to a rescheduling
+ 145:../../os/nil/src/chsem.c ****  *          function must be performed before unlocking the kernel. Note that
+ 146:../../os/nil/src/chsem.c ****  *          interrupt handlers always reschedule on exit so an explicit
+ 147:../../os/nil/src/chsem.c ****  *          reschedule must not be performed in ISRs.
+ 148:../../os/nil/src/chsem.c ****  *
+ 149:../../os/nil/src/chsem.c ****  * @param[in] sp    pointer to a @p semaphore_t structure
+ 150:../../os/nil/src/chsem.c ****  *
+ 151:../../os/nil/src/chsem.c ****  * @iclass
+ 152:../../os/nil/src/chsem.c ****  */
+ 153:../../os/nil/src/chsem.c **** void chSemSignalI(semaphore_t *sp) {
+ 273               		.loc 1 153 6 view .LVU88
+ 274               	.LBB47:
+ 154:../../os/nil/src/chsem.c **** 
+ 155:../../os/nil/src/chsem.c ****   chDbgCheckClassI();
+ 275               		.loc 1 155 21 view .LVU89
+ 156:../../os/nil/src/chsem.c ****   chDbgCheck(sp != NULL);
+ 276               		.loc 1 156 3 view .LVU90
+ 277               		.loc 1 156 3 view .LVU91
+ 278               		.loc 1 156 3 discriminator 5 view .LVU92
+ 157:../../os/nil/src/chsem.c **** 
+ 158:../../os/nil/src/chsem.c ****   if (++sp->cnt <= (cnt_t)0) {
+ 279               		.loc 1 158 3 view .LVU93
+ 280               		.loc 1 158 11 is_stmt 0 view .LVU94
+ 281 0004 8081      		ld r24,Z
+ 282               	.LVL23:
+ 283               		.loc 1 158 7 view .LVU95
+ 284 0006 8F5F      		subi r24,lo8(-(1))
+ 285               		.loc 1 158 6 view .LVU96
+ 286 0008 8083      		st Z,r24
+ 287 000a 1816      		cp __zero_reg__,r24
+ 288 000c 04F4      		brge .L14
+ 289               	.LVL24:
+ 290               		.loc 1 158 6 view .LVU97
+ 291               	.LBE47:
+ 292               	.LBE46:
+ 138:../../os/nil/src/chsem.c ****   chSysUnlock();
+ 293               		.loc 1 138 3 is_stmt 1 view .LVU98
+ 294 000e 0E94 0000 		call chSchRescheduleS
+ 295               	.LVL25:
+ 139:../../os/nil/src/chsem.c **** }
+ 296               		.loc 1 139 3 view .LVU99
+ 139:../../os/nil/src/chsem.c **** }
+ 297               		.loc 1 139 3 view .LVU100
+ 298               	.LBB52:
+ 299               	.LBI52:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 300               		.loc 2 438 20 view .LVU101
+ 301               	.LBB53:
+ 302               		.loc 2 440 3 view .LVU102
+ 303               	/* #APP */
+ 304               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 305 0012 7894      		sei
+ 306               	 ;  0 "" 2
+ 307               	/* #NOAPP */
+ 308               	.LBE53:
+ 309               	.LBE52:
+ 139:../../os/nil/src/chsem.c **** }
+ 310               		.loc 1 139 16 discriminator 1 view .LVU103
+ 311               	/* epilogue start */
+ 140:../../os/nil/src/chsem.c **** 
+ 312               		.loc 1 140 1 is_stmt 0 view .LVU104
+ 313 0014 0895      		ret
+ 314               	.LVL26:
+ 315               	.L14:
+ 316               	.LBB55:
+ 317               	.LBB51:
+ 318               	.LBB48:
+ 319               	.LBI48:
+ 153:../../os/nil/src/chsem.c **** 
+ 320               		.loc 1 153 6 is_stmt 1 view .LVU105
+ 321               	.LBB49:
+ 322               	.LBB50:
+ 159:../../os/nil/src/chsem.c ****     thread_t *tp = nil_find_thread(NIL_STATE_WTQUEUE, (void *)sp);
+ 323               		.loc 1 159 5 view .LVU106
+ 324               		.loc 1 159 20 is_stmt 0 view .LVU107
+ 325 0016 BF01      		movw r22,r30
+ 326 0018 85E0      		ldi r24,lo8(5)
+ 327 001a 0E94 0000 		call nil_find_thread
+ 328               	.LVL27:
+ 160:../../os/nil/src/chsem.c **** 
+ 161:../../os/nil/src/chsem.c ****     chDbgAssert(tp != NULL, "thread not found");
+ 329               		.loc 1 161 5 is_stmt 1 view .LVU108
+ 330               		.loc 1 161 5 view .LVU109
+ 331               		.loc 1 161 5 discriminator 5 view .LVU110
+ 162:../../os/nil/src/chsem.c **** 
+ 163:../../os/nil/src/chsem.c ****     (void) chSchReadyI(tp, MSG_OK);
+ 332               		.loc 1 163 5 view .LVU111
+ 333               		.loc 1 163 12 is_stmt 0 view .LVU112
+ 334 001e 60E0      		ldi r22,0
+ 335 0020 70E0      		ldi r23,0
+ 336 0022 0E94 0000 		call chSchReadyI
+ 337               	.LVL28:
+ 338               		.loc 1 163 12 view .LVU113
+ 339               	.LBE50:
+ 340               	.LBE49:
+ 341               	.LBE48:
+ 342               	.LBE51:
+ 343               	.LBE55:
+ 138:../../os/nil/src/chsem.c ****   chSysUnlock();
+ 344               		.loc 1 138 3 is_stmt 1 view .LVU114
+ 345 0026 0E94 0000 		call chSchRescheduleS
+ 346               	.LVL29:
+ 139:../../os/nil/src/chsem.c **** }
+ 347               		.loc 1 139 3 view .LVU115
+ 139:../../os/nil/src/chsem.c **** }
+ 348               		.loc 1 139 3 view .LVU116
+ 349               	.LBB56:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 350               		.loc 2 438 20 view .LVU117
+ 351               	.LBB54:
+ 352               		.loc 2 440 3 view .LVU118
+ 353               	/* #APP */
+ 354               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 355 002a 7894      		sei
+ 356               	 ;  0 "" 2
+ 357               	/* #NOAPP */
+ 358               	.LBE54:
+ 359               	.LBE56:
+ 139:../../os/nil/src/chsem.c **** }
+ 360               		.loc 1 139 16 discriminator 1 view .LVU119
+ 361               	/* epilogue start */
+ 140:../../os/nil/src/chsem.c **** 
+ 362               		.loc 1 140 1 is_stmt 0 view .LVU120
+ 363 002c 0895      		ret
+ 364               		.cfi_endproc
+ 365               	.LFE100:
+ 367               		.section	.text.chSemSignalI,"ax",@progbits
+ 368               	.global	chSemSignalI
+ 370               	chSemSignalI:
+ 371               	.LVL30:
+ 372               	.LFB101:
+ 153:../../os/nil/src/chsem.c **** 
+ 373               		.loc 1 153 36 is_stmt 1 view -0
+ 374               		.cfi_startproc
+ 375               	/* prologue: function */
+ 376               	/* frame size = 0 */
+ 377               	/* stack size = 0 */
+ 378               	.L__stack_usage = 0
+ 153:../../os/nil/src/chsem.c **** 
+ 379               		.loc 1 153 36 is_stmt 0 view .LVU122
+ 380 0000 FC01      		movw r30,r24
+ 155:../../os/nil/src/chsem.c ****   chDbgCheck(sp != NULL);
+ 381               		.loc 1 155 21 is_stmt 1 view .LVU123
+ 156:../../os/nil/src/chsem.c **** 
+ 382               		.loc 1 156 3 view .LVU124
+ 156:../../os/nil/src/chsem.c **** 
+ 383               		.loc 1 156 3 view .LVU125
+ 156:../../os/nil/src/chsem.c **** 
+ 384               		.loc 1 156 3 discriminator 5 view .LVU126
+ 158:../../os/nil/src/chsem.c ****     thread_t *tp = nil_find_thread(NIL_STATE_WTQUEUE, (void *)sp);
+ 385               		.loc 1 158 3 view .LVU127
+ 158:../../os/nil/src/chsem.c ****     thread_t *tp = nil_find_thread(NIL_STATE_WTQUEUE, (void *)sp);
+ 386               		.loc 1 158 11 is_stmt 0 view .LVU128
+ 387 0002 8081      		ld r24,Z
+ 388               	.LVL31:
+ 158:../../os/nil/src/chsem.c ****     thread_t *tp = nil_find_thread(NIL_STATE_WTQUEUE, (void *)sp);
+ 389               		.loc 1 158 7 view .LVU129
+ 390 0004 8F5F      		subi r24,lo8(-(1))
+ 158:../../os/nil/src/chsem.c ****     thread_t *tp = nil_find_thread(NIL_STATE_WTQUEUE, (void *)sp);
+ 391               		.loc 1 158 6 view .LVU130
+ 392 0006 8083      		st Z,r24
+ 393 0008 1816      		cp __zero_reg__,r24
+ 394 000a 04F4      		brge .L17
+ 395               	/* epilogue start */
+ 164:../../os/nil/src/chsem.c ****   }
+ 165:../../os/nil/src/chsem.c **** }
+ 396               		.loc 1 165 1 view .LVU131
+ 397 000c 0895      		ret
+ 398               	.L17:
+ 399               	.LVL32:
+ 400               	.LBB60:
+ 401               	.LBI60:
+ 153:../../os/nil/src/chsem.c **** 
+ 402               		.loc 1 153 6 is_stmt 1 view .LVU132
+ 403               	.LBB61:
+ 404               	.LBB62:
+ 159:../../os/nil/src/chsem.c **** 
+ 405               		.loc 1 159 5 view .LVU133
+ 159:../../os/nil/src/chsem.c **** 
+ 406               		.loc 1 159 20 is_stmt 0 view .LVU134
+ 407 000e BF01      		movw r22,r30
+ 408 0010 85E0      		ldi r24,lo8(5)
+ 409 0012 0E94 0000 		call nil_find_thread
+ 410               	.LVL33:
+ 161:../../os/nil/src/chsem.c **** 
+ 411               		.loc 1 161 5 is_stmt 1 view .LVU135
+ 161:../../os/nil/src/chsem.c **** 
+ 412               		.loc 1 161 5 view .LVU136
+ 161:../../os/nil/src/chsem.c **** 
+ 413               		.loc 1 161 5 discriminator 5 view .LVU137
+ 163:../../os/nil/src/chsem.c ****   }
+ 414               		.loc 1 163 5 view .LVU138
+ 163:../../os/nil/src/chsem.c ****   }
+ 415               		.loc 1 163 12 is_stmt 0 view .LVU139
+ 416 0016 60E0      		ldi r22,0
+ 417 0018 70E0      		ldi r23,0
+ 418 001a 0C94 0000 		jmp chSchReadyI
+ 419               	.LVL34:
+ 163:../../os/nil/src/chsem.c ****   }
+ 420               		.loc 1 163 12 view .LVU140
+ 421               	.LBE62:
+ 422               	.LBE61:
+ 423               	.LBE60:
+ 424               		.cfi_endproc
+ 425               	.LFE101:
+ 427               		.section	.text.chSemResetWithMessage,"ax",@progbits
+ 428               	.global	chSemResetWithMessage
+ 430               	chSemResetWithMessage:
+ 431               	.LVL35:
+ 432               	.LFB102:
+ 166:../../os/nil/src/chsem.c **** 
+ 167:../../os/nil/src/chsem.c **** /**
+ 168:../../os/nil/src/chsem.c ****  * @brief   Performs a reset operation on the semaphore.
+ 169:../../os/nil/src/chsem.c ****  * @post    After invoking this function all the threads waiting on the
+ 170:../../os/nil/src/chsem.c ****  *          semaphore, if any, are released and the semaphore counter is set
+ 171:../../os/nil/src/chsem.c ****  *          to the specified, non negative, value.
+ 172:../../os/nil/src/chsem.c ****  * @post    This function does not reschedule so a call to a rescheduling
+ 173:../../os/nil/src/chsem.c ****  *          function must be performed before unlocking the kernel. Note that
+ 174:../../os/nil/src/chsem.c ****  *          interrupt handlers always reschedule on exit so an explicit
+ 175:../../os/nil/src/chsem.c ****  *          reschedule must not be performed in ISRs.
+ 176:../../os/nil/src/chsem.c ****  *
+ 177:../../os/nil/src/chsem.c ****  * @param[in] sp        pointer to a @p semaphore_t structure
+ 178:../../os/nil/src/chsem.c ****  * @param[in] n         the new value of the semaphore counter. The value must
+ 179:../../os/nil/src/chsem.c ****  *                      be non-negative.
+ 180:../../os/nil/src/chsem.c ****  * @param[in] msg       message to be sent
+ 181:../../os/nil/src/chsem.c ****  *
+ 182:../../os/nil/src/chsem.c ****  * @api
+ 183:../../os/nil/src/chsem.c ****  */
+ 184:../../os/nil/src/chsem.c **** void chSemResetWithMessage(semaphore_t *sp, cnt_t n, msg_t msg) {
+ 433               		.loc 1 184 65 is_stmt 1 view -0
+ 434               		.cfi_startproc
+ 435               	/* prologue: function */
+ 436               	/* frame size = 0 */
+ 437               	/* stack size = 0 */
+ 438               	.L__stack_usage = 0
+ 439               		.loc 1 184 65 is_stmt 0 view .LVU142
+ 440 0000 FC01      		movw r30,r24
+ 441 0002 862F      		mov r24,r22
+ 442               	.LVL36:
+ 185:../../os/nil/src/chsem.c **** 
+ 186:../../os/nil/src/chsem.c ****   chSysLock();
+ 443               		.loc 1 186 3 is_stmt 1 view .LVU143
+ 444               	.LBB63:
+ 445               	.LBI63:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 446               		.loc 2 428 20 view .LVU144
+ 447               	.LBB64:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 448               		.loc 2 430 3 view .LVU145
+ 449               	/* #APP */
+ 450               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 451 0004 F894      		cli
+ 452               	 ;  0 "" 2
+ 453               	/* #NOAPP */
+ 454               	.LBE64:
+ 455               	.LBE63:
+ 456               		.loc 1 186 3 discriminator 1 view .LVU146
+ 457               		.loc 1 186 14 discriminator 1 view .LVU147
+ 187:../../os/nil/src/chsem.c ****   chSemResetWithMessageI(sp, n, msg);
+ 458               		.loc 1 187 3 view .LVU148
+ 459               	.LVL37:
+ 460               	.LBB65:
+ 461               	.LBI65:
+ 188:../../os/nil/src/chsem.c ****   chSchRescheduleS();
+ 189:../../os/nil/src/chsem.c ****   chSysUnlock();
+ 190:../../os/nil/src/chsem.c **** }
+ 191:../../os/nil/src/chsem.c **** 
+ 192:../../os/nil/src/chsem.c **** /**
+ 193:../../os/nil/src/chsem.c ****  * @brief   Performs a reset operation on the semaphore.
+ 194:../../os/nil/src/chsem.c ****  * @post    After invoking this function all the threads waiting on the
+ 195:../../os/nil/src/chsem.c ****  *          semaphore, if any, are released and the semaphore counter is set
+ 196:../../os/nil/src/chsem.c ****  *          to the specified, non negative, value.
+ 197:../../os/nil/src/chsem.c ****  * @post    This function does not reschedule so a call to a rescheduling
+ 198:../../os/nil/src/chsem.c ****  *          function must be performed before unlocking the kernel. Note that
+ 199:../../os/nil/src/chsem.c ****  *          interrupt handlers always reschedule on exit so an explicit
+ 200:../../os/nil/src/chsem.c ****  *          reschedule must not be performed in ISRs.
+ 201:../../os/nil/src/chsem.c ****  *
+ 202:../../os/nil/src/chsem.c ****  * @param[in] sp        pointer to a @p semaphore_t structure
+ 203:../../os/nil/src/chsem.c ****  * @param[in] n         the new value of the semaphore counter. The value must
+ 204:../../os/nil/src/chsem.c ****  *                      be non-negative.
+ 205:../../os/nil/src/chsem.c ****  * @param[in] msg       message to be sent
+ 206:../../os/nil/src/chsem.c ****  *
+ 207:../../os/nil/src/chsem.c ****  * @iclass
+ 208:../../os/nil/src/chsem.c ****  */
+ 209:../../os/nil/src/chsem.c **** void chSemResetWithMessageI(semaphore_t *sp, cnt_t n, msg_t msg) {
+ 462               		.loc 1 209 6 view .LVU149
+ 463               	.LBB66:
+ 210:../../os/nil/src/chsem.c ****   cnt_t cnt;
+ 464               		.loc 1 210 3 view .LVU150
+ 211:../../os/nil/src/chsem.c **** 
+ 212:../../os/nil/src/chsem.c ****   chDbgCheckClassI();
+ 465               		.loc 1 212 21 view .LVU151
+ 213:../../os/nil/src/chsem.c ****   chDbgCheck((sp != NULL) && (n >= (cnt_t)0));
+ 466               		.loc 1 213 3 view .LVU152
+ 467               		.loc 1 213 3 view .LVU153
+ 468               		.loc 1 213 3 discriminator 7 view .LVU154
+ 214:../../os/nil/src/chsem.c **** 
+ 215:../../os/nil/src/chsem.c ****   cnt = sp->cnt;
+ 469               		.loc 1 215 3 view .LVU155
+ 470               		.loc 1 215 7 is_stmt 0 view .LVU156
+ 471 0006 6081      		ld r22,Z
+ 472               	.LVL38:
+ 216:../../os/nil/src/chsem.c ****   sp->cnt = n;
+ 473               		.loc 1 216 3 is_stmt 1 view .LVU157
+ 474               		.loc 1 216 11 is_stmt 0 view .LVU158
+ 475 0008 8083      		st Z,r24
+ 217:../../os/nil/src/chsem.c **** 
+ 218:../../os/nil/src/chsem.c ****   /* Does nothing for cnt >= 0, calling anyway.*/
+ 219:../../os/nil/src/chsem.c ****   (void) nil_ready_all((void *)sp, cnt, msg);
+ 476               		.loc 1 219 3 is_stmt 1 view .LVU159
+ 477               		.loc 1 219 10 is_stmt 0 view .LVU160
+ 478 000a CF01      		movw r24,r30
+ 479               	.LVL39:
+ 480               		.loc 1 219 10 view .LVU161
+ 481 000c 0E94 0000 		call nil_ready_all
+ 482               	.LVL40:
+ 483               		.loc 1 219 10 view .LVU162
+ 484               	.LBE66:
+ 485               	.LBE65:
+ 188:../../os/nil/src/chsem.c ****   chSysUnlock();
+ 486               		.loc 1 188 3 is_stmt 1 view .LVU163
+ 487 0010 0E94 0000 		call chSchRescheduleS
+ 488               	.LVL41:
+ 189:../../os/nil/src/chsem.c **** }
+ 489               		.loc 1 189 3 view .LVU164
+ 189:../../os/nil/src/chsem.c **** }
+ 490               		.loc 1 189 3 view .LVU165
+ 491               	.LBB67:
+ 492               	.LBI67:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 493               		.loc 2 438 20 view .LVU166
+ 494               	.LBB68:
+ 495               		.loc 2 440 3 view .LVU167
+ 496               	/* #APP */
+ 497               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 498 0014 7894      		sei
+ 499               	 ;  0 "" 2
+ 500               	/* #NOAPP */
+ 501               	.LBE68:
+ 502               	.LBE67:
+ 189:../../os/nil/src/chsem.c **** }
+ 503               		.loc 1 189 16 discriminator 1 view .LVU168
+ 504               	/* epilogue start */
+ 190:../../os/nil/src/chsem.c **** 
+ 505               		.loc 1 190 1 is_stmt 0 view .LVU169
+ 506 0016 0895      		ret
+ 507               		.cfi_endproc
+ 508               	.LFE102:
+ 510               		.section	.text.chSemResetWithMessageI,"ax",@progbits
+ 511               	.global	chSemResetWithMessageI
+ 513               	chSemResetWithMessageI:
+ 514               	.LVL42:
+ 515               	.LFB103:
+ 209:../../os/nil/src/chsem.c ****   cnt_t cnt;
+ 516               		.loc 1 209 66 is_stmt 1 view -0
+ 517               		.cfi_startproc
+ 518               	/* prologue: function */
+ 519               	/* frame size = 0 */
+ 520               	/* stack size = 0 */
+ 521               	.L__stack_usage = 0
+ 209:../../os/nil/src/chsem.c ****   cnt_t cnt;
+ 522               		.loc 1 209 66 is_stmt 0 view .LVU171
+ 523 0000 FC01      		movw r30,r24
+ 524 0002 862F      		mov r24,r22
+ 525               	.LVL43:
+ 210:../../os/nil/src/chsem.c **** 
+ 526               		.loc 1 210 3 is_stmt 1 view .LVU172
+ 212:../../os/nil/src/chsem.c ****   chDbgCheck((sp != NULL) && (n >= (cnt_t)0));
+ 527               		.loc 1 212 21 view .LVU173
+ 213:../../os/nil/src/chsem.c **** 
+ 528               		.loc 1 213 3 view .LVU174
+ 213:../../os/nil/src/chsem.c **** 
+ 529               		.loc 1 213 3 view .LVU175
+ 213:../../os/nil/src/chsem.c **** 
+ 530               		.loc 1 213 3 discriminator 7 view .LVU176
+ 215:../../os/nil/src/chsem.c ****   sp->cnt = n;
+ 531               		.loc 1 215 3 view .LVU177
+ 215:../../os/nil/src/chsem.c ****   sp->cnt = n;
+ 532               		.loc 1 215 7 is_stmt 0 view .LVU178
+ 533 0004 6081      		ld r22,Z
+ 534               	.LVL44:
+ 216:../../os/nil/src/chsem.c **** 
+ 535               		.loc 1 216 3 is_stmt 1 view .LVU179
+ 216:../../os/nil/src/chsem.c **** 
+ 536               		.loc 1 216 11 is_stmt 0 view .LVU180
+ 537 0006 8083      		st Z,r24
+ 538               		.loc 1 219 3 is_stmt 1 view .LVU181
+ 539               		.loc 1 219 10 is_stmt 0 view .LVU182
+ 540 0008 CF01      		movw r24,r30
+ 541               	.LVL45:
+ 542               		.loc 1 219 10 view .LVU183
+ 543 000a 0C94 0000 		jmp nil_ready_all
+ 544               	.LVL46:
+ 545               		.loc 1 219 10 view .LVU184
+ 546               		.cfi_endproc
+ 547               	.LFE103:
+ 549               		.text
+ 550               	.Letext0:
+ 551               		.file 3 "/usr/avr/include/stdint.h"
+ 552               		.file 4 "../../os/common/ports/AVR/compilers/GCC/chtypes.h"
+ 553               		.file 5 "../../os/nil/include/ch.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 chsem.c
+     /tmp/ccuRJMy7.s:2      *ABS*:0000003e __SP_H__
+     /tmp/ccuRJMy7.s:3      *ABS*:0000003d __SP_L__
+     /tmp/ccuRJMy7.s:4      *ABS*:0000003f __SREG__
+     /tmp/ccuRJMy7.s:5      *ABS*:00000000 __tmp_reg__
+     /tmp/ccuRJMy7.s:6      *ABS*:00000001 __zero_reg__
+     /tmp/ccuRJMy7.s:14     .text.chSemWaitTimeout:00000000 chSemWaitTimeout
+     /tmp/ccuRJMy7.s:17     .text.chSemWaitTimeout:00000000 .Loc.0
+     /tmp/ccuRJMy7.s:18     .text.chSemWaitTimeout:00000000 L0
+     /tmp/ccuRJMy7.s:23     .text.chSemWaitTimeout:00000000 .Loc.1
+     /tmp/ccuRJMy7.s:25     .text.chSemWaitTimeout:00000002 .Loc.2
+     /tmp/ccuRJMy7.s:26     .text.chSemWaitTimeout:00000002 .Loc.3
+     /tmp/ccuRJMy7.s:30     .text.chSemWaitTimeout:00000002 .Loc.4
+     /tmp/ccuRJMy7.s:32     .text.chSemWaitTimeout:00000002 .Loc.5
+     /tmp/ccuRJMy7.s:40     .text.chSemWaitTimeout:00000004 .Loc.6
+     /tmp/ccuRJMy7.s:41     .text.chSemWaitTimeout:00000004 .Loc.7
+     /tmp/ccuRJMy7.s:42     .text.chSemWaitTimeout:00000004 .Loc.8
+     /tmp/ccuRJMy7.s:46     .text.chSemWaitTimeout:00000004 .Loc.9
+     /tmp/ccuRJMy7.s:48     .text.chSemWaitTimeout:00000004 .Loc.10
+     /tmp/ccuRJMy7.s:49     .text.chSemWaitTimeout:00000004 .Loc.11
+     /tmp/ccuRJMy7.s:50     .text.chSemWaitTimeout:00000004 .Loc.12
+     /tmp/ccuRJMy7.s:51     .text.chSemWaitTimeout:00000004 .Loc.13
+     /tmp/ccuRJMy7.s:52     .text.chSemWaitTimeout:00000004 .Loc.14
+     /tmp/ccuRJMy7.s:53     .text.chSemWaitTimeout:00000004 .Loc.15
+     /tmp/ccuRJMy7.s:56     .text.chSemWaitTimeout:00000006 .Loc.16
+     /tmp/ccuRJMy7.s:57     .text.chSemWaitTimeout:00000006 .Loc.17
+     /tmp/ccuRJMy7.s:60     .text.chSemWaitTimeout:0000000a .Loc.18
+     /tmp/ccuRJMy7.s:61     .text.chSemWaitTimeout:0000000a .Loc.19
+     /tmp/ccuRJMy7.s:64     .text.chSemWaitTimeout:0000000c .Loc.20
+     /tmp/ccuRJMy7.s:66     .text.chSemWaitTimeout:0000000e .Loc.21
+     /tmp/ccuRJMy7.s:67     .text.chSemWaitTimeout:0000000e .Loc.22
+     /tmp/ccuRJMy7.s:70     .text.chSemWaitTimeout:00000010 .Loc.23
+     /tmp/ccuRJMy7.s:74     .text.chSemWaitTimeout:00000012 .Loc.24
+     /tmp/ccuRJMy7.s:77     .text.chSemWaitTimeout:00000012 .Loc.25
+     /tmp/ccuRJMy7.s:78     .text.chSemWaitTimeout:00000012 .Loc.26
+     /tmp/ccuRJMy7.s:81     .text.chSemWaitTimeout:00000012 .Loc.27
+     /tmp/ccuRJMy7.s:83     .text.chSemWaitTimeout:00000012 .Loc.28
+     /tmp/ccuRJMy7.s:91     .text.chSemWaitTimeout:00000014 .Loc.29
+     /tmp/ccuRJMy7.s:92     .text.chSemWaitTimeout:00000014 .Loc.30
+     /tmp/ccuRJMy7.s:94     .text.chSemWaitTimeout:00000014 .Loc.31
+     /tmp/ccuRJMy7.s:100    .text.chSemWaitTimeout:00000016 .Loc.32
+     /tmp/ccuRJMy7.s:101    .text.chSemWaitTimeout:00000016 .Loc.33
+     /tmp/ccuRJMy7.s:105    .text.chSemWaitTimeout:0000001c .Loc.34
+     /tmp/ccuRJMy7.s:106    .text.chSemWaitTimeout:0000001c .Loc.35
+     /tmp/ccuRJMy7.s:109    .text.chSemWaitTimeout:0000001e .Loc.36
+     /tmp/ccuRJMy7.s:111    .text.chSemWaitTimeout:00000020 .Loc.37
+     /tmp/ccuRJMy7.s:112    .text.chSemWaitTimeout:00000020 .Loc.38
+     /tmp/ccuRJMy7.s:119    .text.chSemWaitTimeout:00000030 .Loc.39
+     /tmp/ccuRJMy7.s:120    .text.chSemWaitTimeout:00000030 .Loc.40
+     /tmp/ccuRJMy7.s:123    .text.chSemWaitTimeout:00000032 .Loc.41
+     /tmp/ccuRJMy7.s:126    .text.chSemWaitTimeout:00000036 .Loc.42
+     /tmp/ccuRJMy7.s:129    .text.chSemWaitTimeout:00000036 .Loc.43
+     /tmp/ccuRJMy7.s:130    .text.chSemWaitTimeout:00000036 .Loc.44
+     /tmp/ccuRJMy7.s:132    .text.chSemWaitTimeout:00000036 .Loc.45
+     /tmp/ccuRJMy7.s:134    .text.chSemWaitTimeout:00000036 .Loc.46
+     /tmp/ccuRJMy7.s:142    .text.chSemWaitTimeout:00000038 .Loc.47
+     /tmp/ccuRJMy7.s:143    .text.chSemWaitTimeout:00000038 .Loc.48
+     /tmp/ccuRJMy7.s:145    .text.chSemWaitTimeout:00000038 .Loc.49
+     /tmp/ccuRJMy7.s:151    .text.chSemWaitTimeout:0000003a .Loc.50
+     /tmp/ccuRJMy7.s:154    .text.chSemWaitTimeout:0000003c .Loc.51
+     /tmp/ccuRJMy7.s:159    .text.chSemWaitTimeout:00000040 L0
+     /tmp/ccuRJMy7.s:165    .text.chSemWaitTimeoutS:00000000 chSemWaitTimeoutS
+     /tmp/ccuRJMy7.s:168    .text.chSemWaitTimeoutS:00000000 .Loc.52
+     /tmp/ccuRJMy7.s:169    .text.chSemWaitTimeoutS:00000000 L0
+     /tmp/ccuRJMy7.s:174    .text.chSemWaitTimeoutS:00000000 .Loc.53
+     /tmp/ccuRJMy7.s:176    .text.chSemWaitTimeoutS:00000002 .Loc.54
+     /tmp/ccuRJMy7.s:177    .text.chSemWaitTimeoutS:00000002 .Loc.55
+     /tmp/ccuRJMy7.s:178    .text.chSemWaitTimeoutS:00000002 .Loc.56
+     /tmp/ccuRJMy7.s:179    .text.chSemWaitTimeoutS:00000002 .Loc.57
+     /tmp/ccuRJMy7.s:180    .text.chSemWaitTimeoutS:00000002 .Loc.58
+     /tmp/ccuRJMy7.s:181    .text.chSemWaitTimeoutS:00000002 .Loc.59
+     /tmp/ccuRJMy7.s:184    .text.chSemWaitTimeoutS:00000004 .Loc.60
+     /tmp/ccuRJMy7.s:185    .text.chSemWaitTimeoutS:00000004 .Loc.61
+     /tmp/ccuRJMy7.s:188    .text.chSemWaitTimeoutS:00000008 .Loc.62
+     /tmp/ccuRJMy7.s:189    .text.chSemWaitTimeoutS:00000008 .Loc.63
+     /tmp/ccuRJMy7.s:192    .text.chSemWaitTimeoutS:0000000a .Loc.64
+     /tmp/ccuRJMy7.s:194    .text.chSemWaitTimeoutS:0000000c .Loc.65
+     /tmp/ccuRJMy7.s:195    .text.chSemWaitTimeoutS:0000000c .Loc.66
+     /tmp/ccuRJMy7.s:199    .text.chSemWaitTimeoutS:00000010 .Loc.67
+     /tmp/ccuRJMy7.s:203    .text.chSemWaitTimeoutS:00000012 .Loc.68
+     /tmp/ccuRJMy7.s:204    .text.chSemWaitTimeoutS:00000012 .Loc.69
+     /tmp/ccuRJMy7.s:208    .text.chSemWaitTimeoutS:00000018 .Loc.70
+     /tmp/ccuRJMy7.s:209    .text.chSemWaitTimeoutS:00000018 .Loc.71
+     /tmp/ccuRJMy7.s:212    .text.chSemWaitTimeoutS:0000001a .Loc.72
+     /tmp/ccuRJMy7.s:214    .text.chSemWaitTimeoutS:0000001c .Loc.73
+     /tmp/ccuRJMy7.s:215    .text.chSemWaitTimeoutS:0000001c .Loc.74
+     /tmp/ccuRJMy7.s:222    .text.chSemWaitTimeoutS:0000002c .Loc.75
+     /tmp/ccuRJMy7.s:223    .text.chSemWaitTimeoutS:0000002c .Loc.76
+     /tmp/ccuRJMy7.s:226    .text.chSemWaitTimeoutS:0000002e .Loc.77
+     /tmp/ccuRJMy7.s:230    .text.chSemWaitTimeoutS:00000032 .Loc.78
+     /tmp/ccuRJMy7.s:235    .text.chSemWaitTimeoutS:00000036 .Loc.79
+     /tmp/ccuRJMy7.s:237    .text.chSemWaitTimeoutS:00000038 L0
+     /tmp/ccuRJMy7.s:243    .text.chSemSignal:00000000 chSemSignal
+     /tmp/ccuRJMy7.s:246    .text.chSemSignal:00000000 .Loc.80
+     /tmp/ccuRJMy7.s:247    .text.chSemSignal:00000000 L0
+     /tmp/ccuRJMy7.s:252    .text.chSemSignal:00000000 .Loc.81
+     /tmp/ccuRJMy7.s:254    .text.chSemSignal:00000002 .Loc.82
+     /tmp/ccuRJMy7.s:257    .text.chSemSignal:00000002 .Loc.83
+     /tmp/ccuRJMy7.s:259    .text.chSemSignal:00000002 .Loc.84
+     /tmp/ccuRJMy7.s:267    .text.chSemSignal:00000004 .Loc.85
+     /tmp/ccuRJMy7.s:268    .text.chSemSignal:00000004 .Loc.86
+     /tmp/ccuRJMy7.s:269    .text.chSemSignal:00000004 .Loc.87
+     /tmp/ccuRJMy7.s:273    .text.chSemSignal:00000004 .Loc.88
+     /tmp/ccuRJMy7.s:275    .text.chSemSignal:00000004 .Loc.89
+     /tmp/ccuRJMy7.s:276    .text.chSemSignal:00000004 .Loc.90
+     /tmp/ccuRJMy7.s:277    .text.chSemSignal:00000004 .Loc.91
+     /tmp/ccuRJMy7.s:278    .text.chSemSignal:00000004 .Loc.92
+     /tmp/ccuRJMy7.s:279    .text.chSemSignal:00000004 .Loc.93
+     /tmp/ccuRJMy7.s:280    .text.chSemSignal:00000004 .Loc.94
+     /tmp/ccuRJMy7.s:283    .text.chSemSignal:00000006 .Loc.95
+     /tmp/ccuRJMy7.s:285    .text.chSemSignal:00000008 .Loc.96
+     /tmp/ccuRJMy7.s:290    .text.chSemSignal:0000000e .Loc.97
+     /tmp/ccuRJMy7.s:293    .text.chSemSignal:0000000e .Loc.98
+     /tmp/ccuRJMy7.s:296    .text.chSemSignal:00000012 .Loc.99
+     /tmp/ccuRJMy7.s:297    .text.chSemSignal:00000012 .Loc.100
+     /tmp/ccuRJMy7.s:300    .text.chSemSignal:00000012 .Loc.101
+     /tmp/ccuRJMy7.s:302    .text.chSemSignal:00000012 .Loc.102
+     /tmp/ccuRJMy7.s:310    .text.chSemSignal:00000014 .Loc.103
+     /tmp/ccuRJMy7.s:312    .text.chSemSignal:00000014 .Loc.104
+     /tmp/ccuRJMy7.s:320    .text.chSemSignal:00000016 .Loc.105
+     /tmp/ccuRJMy7.s:323    .text.chSemSignal:00000016 .Loc.106
+     /tmp/ccuRJMy7.s:324    .text.chSemSignal:00000016 .Loc.107
+     /tmp/ccuRJMy7.s:329    .text.chSemSignal:0000001e .Loc.108
+     /tmp/ccuRJMy7.s:330    .text.chSemSignal:0000001e .Loc.109
+     /tmp/ccuRJMy7.s:331    .text.chSemSignal:0000001e .Loc.110
+     /tmp/ccuRJMy7.s:332    .text.chSemSignal:0000001e .Loc.111
+     /tmp/ccuRJMy7.s:333    .text.chSemSignal:0000001e .Loc.112
+     /tmp/ccuRJMy7.s:338    .text.chSemSignal:00000026 .Loc.113
+     /tmp/ccuRJMy7.s:344    .text.chSemSignal:00000026 .Loc.114
+     /tmp/ccuRJMy7.s:347    .text.chSemSignal:0000002a .Loc.115
+     /tmp/ccuRJMy7.s:348    .text.chSemSignal:0000002a .Loc.116
+     /tmp/ccuRJMy7.s:350    .text.chSemSignal:0000002a .Loc.117
+     /tmp/ccuRJMy7.s:352    .text.chSemSignal:0000002a .Loc.118
+     /tmp/ccuRJMy7.s:360    .text.chSemSignal:0000002c .Loc.119
+     /tmp/ccuRJMy7.s:362    .text.chSemSignal:0000002c .Loc.120
+     /tmp/ccuRJMy7.s:364    .text.chSemSignal:0000002e L0
+     /tmp/ccuRJMy7.s:370    .text.chSemSignalI:00000000 chSemSignalI
+     /tmp/ccuRJMy7.s:373    .text.chSemSignalI:00000000 .Loc.121
+     /tmp/ccuRJMy7.s:374    .text.chSemSignalI:00000000 L0
+     /tmp/ccuRJMy7.s:379    .text.chSemSignalI:00000000 .Loc.122
+     /tmp/ccuRJMy7.s:381    .text.chSemSignalI:00000002 .Loc.123
+     /tmp/ccuRJMy7.s:382    .text.chSemSignalI:00000002 .Loc.124
+     /tmp/ccuRJMy7.s:383    .text.chSemSignalI:00000002 .Loc.125
+     /tmp/ccuRJMy7.s:384    .text.chSemSignalI:00000002 .Loc.126
+     /tmp/ccuRJMy7.s:385    .text.chSemSignalI:00000002 .Loc.127
+     /tmp/ccuRJMy7.s:386    .text.chSemSignalI:00000002 .Loc.128
+     /tmp/ccuRJMy7.s:389    .text.chSemSignalI:00000004 .Loc.129
+     /tmp/ccuRJMy7.s:391    .text.chSemSignalI:00000006 .Loc.130
+     /tmp/ccuRJMy7.s:396    .text.chSemSignalI:0000000c .Loc.131
+     /tmp/ccuRJMy7.s:402    .text.chSemSignalI:0000000e .Loc.132
+     /tmp/ccuRJMy7.s:405    .text.chSemSignalI:0000000e .Loc.133
+     /tmp/ccuRJMy7.s:406    .text.chSemSignalI:0000000e .Loc.134
+     /tmp/ccuRJMy7.s:411    .text.chSemSignalI:00000016 .Loc.135
+     /tmp/ccuRJMy7.s:412    .text.chSemSignalI:00000016 .Loc.136
+     /tmp/ccuRJMy7.s:413    .text.chSemSignalI:00000016 .Loc.137
+     /tmp/ccuRJMy7.s:414    .text.chSemSignalI:00000016 .Loc.138
+     /tmp/ccuRJMy7.s:415    .text.chSemSignalI:00000016 .Loc.139
+     /tmp/ccuRJMy7.s:420    .text.chSemSignalI:0000001e .Loc.140
+     /tmp/ccuRJMy7.s:424    .text.chSemSignalI:0000001e L0
+     /tmp/ccuRJMy7.s:430    .text.chSemResetWithMessage:00000000 chSemResetWithMessage
+     /tmp/ccuRJMy7.s:433    .text.chSemResetWithMessage:00000000 .Loc.141
+     /tmp/ccuRJMy7.s:434    .text.chSemResetWithMessage:00000000 L0
+     /tmp/ccuRJMy7.s:439    .text.chSemResetWithMessage:00000000 .Loc.142
+     /tmp/ccuRJMy7.s:443    .text.chSemResetWithMessage:00000004 .Loc.143
+     /tmp/ccuRJMy7.s:446    .text.chSemResetWithMessage:00000004 .Loc.144
+     /tmp/ccuRJMy7.s:448    .text.chSemResetWithMessage:00000004 .Loc.145
+     /tmp/ccuRJMy7.s:456    .text.chSemResetWithMessage:00000006 .Loc.146
+     /tmp/ccuRJMy7.s:457    .text.chSemResetWithMessage:00000006 .Loc.147
+     /tmp/ccuRJMy7.s:458    .text.chSemResetWithMessage:00000006 .Loc.148
+     /tmp/ccuRJMy7.s:462    .text.chSemResetWithMessage:00000006 .Loc.149
+     /tmp/ccuRJMy7.s:464    .text.chSemResetWithMessage:00000006 .Loc.150
+     /tmp/ccuRJMy7.s:465    .text.chSemResetWithMessage:00000006 .Loc.151
+     /tmp/ccuRJMy7.s:466    .text.chSemResetWithMessage:00000006 .Loc.152
+     /tmp/ccuRJMy7.s:467    .text.chSemResetWithMessage:00000006 .Loc.153
+     /tmp/ccuRJMy7.s:468    .text.chSemResetWithMessage:00000006 .Loc.154
+     /tmp/ccuRJMy7.s:469    .text.chSemResetWithMessage:00000006 .Loc.155
+     /tmp/ccuRJMy7.s:470    .text.chSemResetWithMessage:00000006 .Loc.156
+     /tmp/ccuRJMy7.s:473    .text.chSemResetWithMessage:00000008 .Loc.157
+     /tmp/ccuRJMy7.s:474    .text.chSemResetWithMessage:00000008 .Loc.158
+     /tmp/ccuRJMy7.s:476    .text.chSemResetWithMessage:0000000a .Loc.159
+     /tmp/ccuRJMy7.s:477    .text.chSemResetWithMessage:0000000a .Loc.160
+     /tmp/ccuRJMy7.s:480    .text.chSemResetWithMessage:0000000c .Loc.161
+     /tmp/ccuRJMy7.s:483    .text.chSemResetWithMessage:00000010 .Loc.162
+     /tmp/ccuRJMy7.s:486    .text.chSemResetWithMessage:00000010 .Loc.163
+     /tmp/ccuRJMy7.s:489    .text.chSemResetWithMessage:00000014 .Loc.164
+     /tmp/ccuRJMy7.s:490    .text.chSemResetWithMessage:00000014 .Loc.165
+     /tmp/ccuRJMy7.s:493    .text.chSemResetWithMessage:00000014 .Loc.166
+     /tmp/ccuRJMy7.s:495    .text.chSemResetWithMessage:00000014 .Loc.167
+     /tmp/ccuRJMy7.s:503    .text.chSemResetWithMessage:00000016 .Loc.168
+     /tmp/ccuRJMy7.s:505    .text.chSemResetWithMessage:00000016 .Loc.169
+     /tmp/ccuRJMy7.s:507    .text.chSemResetWithMessage:00000018 L0
+     /tmp/ccuRJMy7.s:513    .text.chSemResetWithMessageI:00000000 chSemResetWithMessageI
+     /tmp/ccuRJMy7.s:516    .text.chSemResetWithMessageI:00000000 .Loc.170
+     /tmp/ccuRJMy7.s:517    .text.chSemResetWithMessageI:00000000 L0
+     /tmp/ccuRJMy7.s:522    .text.chSemResetWithMessageI:00000000 .Loc.171
+     /tmp/ccuRJMy7.s:526    .text.chSemResetWithMessageI:00000004 .Loc.172
+     /tmp/ccuRJMy7.s:527    .text.chSemResetWithMessageI:00000004 .Loc.173
+     /tmp/ccuRJMy7.s:528    .text.chSemResetWithMessageI:00000004 .Loc.174
+     /tmp/ccuRJMy7.s:529    .text.chSemResetWithMessageI:00000004 .Loc.175
+     /tmp/ccuRJMy7.s:530    .text.chSemResetWithMessageI:00000004 .Loc.176
+     /tmp/ccuRJMy7.s:531    .text.chSemResetWithMessageI:00000004 .Loc.177
+     /tmp/ccuRJMy7.s:532    .text.chSemResetWithMessageI:00000004 .Loc.178
+     /tmp/ccuRJMy7.s:535    .text.chSemResetWithMessageI:00000006 .Loc.179
+     /tmp/ccuRJMy7.s:536    .text.chSemResetWithMessageI:00000006 .Loc.180
+     /tmp/ccuRJMy7.s:538    .text.chSemResetWithMessageI:00000008 .Loc.181
+     /tmp/ccuRJMy7.s:539    .text.chSemResetWithMessageI:00000008 .Loc.182
+     /tmp/ccuRJMy7.s:542    .text.chSemResetWithMessageI:0000000a .Loc.183
+     /tmp/ccuRJMy7.s:545    .text.chSemResetWithMessageI:0000000e .Loc.184
+     /tmp/ccuRJMy7.s:546    .text.chSemResetWithMessageI:0000000e L0
+     /tmp/ccuRJMy7.s:162    .text.chSemWaitTimeout:00000040 L0
+     /tmp/ccuRJMy7.s:240    .text.chSemWaitTimeoutS:00000038 L0
+     /tmp/ccuRJMy7.s:367    .text.chSemSignal:0000002e L0
+     /tmp/ccuRJMy7.s:427    .text.chSemSignalI:0000001e L0
+     /tmp/ccuRJMy7.s:510    .text.chSemResetWithMessage:00000018 L0
+     /tmp/ccuRJMy7.s:549    .text.chSemResetWithMessageI:0000000e L0
+                     .debug_frame:00000000 L0
+     /tmp/ccuRJMy7.s:97     .text.chSemWaitTimeout:00000016 .L6
+     /tmp/ccuRJMy7.s:148    .text.chSemWaitTimeout:0000003a .L4
+     /tmp/ccuRJMy7.s:73     .text.chSemWaitTimeout:00000012 .L3
+     /tmp/ccuRJMy7.s:202    .text.chSemWaitTimeoutS:00000012 .L11
+     /tmp/ccuRJMy7.s:229    .text.chSemWaitTimeoutS:00000032 .L10
+     /tmp/ccuRJMy7.s:315    .text.chSemSignal:00000016 .L14
+     /tmp/ccuRJMy7.s:398    .text.chSemSignalI:0000000e .L17
+     /tmp/ccuRJMy7.s:1923   .debug_abbrev:00000000 .Ldebug_abbrev0
+     /tmp/ccuRJMy7.s:3745   .debug_ranges:00000000 .Ldebug_ranges0
+     /tmp/ccuRJMy7.s:3787   .debug_line:00000000 .Ldebug_line0
+     /tmp/ccuRJMy7.s:432    .text.chSemResetWithMessage:00000000 .LFB102
+     /tmp/ccuRJMy7.s:508    .text.chSemResetWithMessage:00000018 .LFE102
+     /tmp/ccuRJMy7.s:2731   .debug_loc:00000006 .LLST16
+     /tmp/ccuRJMy7.s:2724   .debug_loc:00000000 .LVUS16
+     /tmp/ccuRJMy7.s:2774   .debug_loc:0000004a .LLST17
+     /tmp/ccuRJMy7.s:2765   .debug_loc:00000042 .LVUS17
+     /tmp/ccuRJMy7.s:2808   .debug_loc:0000008c .LLST18
+     /tmp/ccuRJMy7.s:2803   .debug_loc:00000088 .LVUS18
+     /tmp/ccuRJMy7.s:445    .text.chSemResetWithMessage:00000004 .LBI63
+     /tmp/ccuRJMy7.s:444    .text.chSemResetWithMessage:00000004 .LBB63
+     /tmp/ccuRJMy7.s:455    .text.chSemResetWithMessage:00000006 .LBE63
+     /tmp/ccuRJMy7.s:461    .text.chSemResetWithMessage:00000006 .LBI65
+     /tmp/ccuRJMy7.s:460    .text.chSemResetWithMessage:00000006 .LBB65
+     /tmp/ccuRJMy7.s:485    .text.chSemResetWithMessage:00000010 .LBE65
+     /tmp/ccuRJMy7.s:2838   .debug_loc:000000bc .LLST19
+     /tmp/ccuRJMy7.s:2833   .debug_loc:000000b8 .LVUS19
+     /tmp/ccuRJMy7.s:2872   .debug_loc:000000f0 .LLST20
+     /tmp/ccuRJMy7.s:2863   .debug_loc:000000e8 .LVUS20
+     /tmp/ccuRJMy7.s:2904   .debug_loc:00000130 .LLST21
+     /tmp/ccuRJMy7.s:2901   .debug_loc:0000012e .LVUS21
+     /tmp/ccuRJMy7.s:2919   .debug_loc:0000014a .LLST22
+     /tmp/ccuRJMy7.s:2916   .debug_loc:00000148 .LVUS22
+     /tmp/ccuRJMy7.s:482    .text.chSemResetWithMessage:00000010 .LVL40
+     /tmp/ccuRJMy7.s:492    .text.chSemResetWithMessage:00000014 .LBI67
+     /tmp/ccuRJMy7.s:491    .text.chSemResetWithMessage:00000014 .LBB67
+     /tmp/ccuRJMy7.s:502    .text.chSemResetWithMessage:00000016 .LBE67
+     /tmp/ccuRJMy7.s:488    .text.chSemResetWithMessage:00000014 .LVL41
+     /tmp/ccuRJMy7.s:245    .text.chSemSignal:00000000 .LFB100
+     /tmp/ccuRJMy7.s:365    .text.chSemSignal:0000002e .LFE100
+     /tmp/ccuRJMy7.s:2937   .debug_loc:00000167 .LLST9
+     /tmp/ccuRJMy7.s:2926   .debug_loc:0000015d .LVUS9
+     /tmp/ccuRJMy7.s:256    .text.chSemSignal:00000002 .LBI44
+     /tmp/ccuRJMy7.s:255    .text.chSemSignal:00000002 .LBB44
+     /tmp/ccuRJMy7.s:266    .text.chSemSignal:00000004 .LBE44
+     /tmp/ccuRJMy7.s:272    .text.chSemSignal:00000004 .LBI46
+     /tmp/ccuRJMy7.s:3002   .debug_loc:000001cf .LLST10
+     /tmp/ccuRJMy7.s:2993   .debug_loc:000001c7 .LVUS10
+     /tmp/ccuRJMy7.s:319    .text.chSemSignal:00000016 .LBI48
+     /tmp/ccuRJMy7.s:318    .text.chSemSignal:00000016 .LBB48
+     /tmp/ccuRJMy7.s:341    .text.chSemSignal:00000026 .LBE48
+     /tmp/ccuRJMy7.s:3050   .debug_loc:0000021f .LLST11
+     /tmp/ccuRJMy7.s:3045   .debug_loc:0000021b .LVUS11
+     /tmp/ccuRJMy7.s:322    .text.chSemSignal:00000016 .LBB50
+     /tmp/ccuRJMy7.s:339    .text.chSemSignal:00000026 .LBE50
+     /tmp/ccuRJMy7.s:3078   .debug_loc:0000024d .LLST12
+     /tmp/ccuRJMy7.s:3075   .debug_loc:0000024b .LVUS12
+     /tmp/ccuRJMy7.s:328    .text.chSemSignal:0000001e .LVL27
+     /tmp/ccuRJMy7.s:337    .text.chSemSignal:00000026 .LVL28
+     /tmp/ccuRJMy7.s:299    .text.chSemSignal:00000012 .LBI52
+     /tmp/ccuRJMy7.s:295    .text.chSemSignal:00000012 .LVL25
+     /tmp/ccuRJMy7.s:346    .text.chSemSignal:0000002a .LVL29
+     /tmp/ccuRJMy7.s:16     .text.chSemWaitTimeout:00000000 .LFB98
+     /tmp/ccuRJMy7.s:160    .text.chSemWaitTimeout:00000040 .LFE98
+     /tmp/ccuRJMy7.s:3099   .debug_loc:0000026d .LLST0
+     /tmp/ccuRJMy7.s:3090   .debug_loc:00000265 .LVUS0
+     /tmp/ccuRJMy7.s:3149   .debug_loc:000002bf .LLST1
+     /tmp/ccuRJMy7.s:3142   .debug_loc:000002b9 .LVUS1
+     /tmp/ccuRJMy7.s:3188   .debug_loc:000002ff .LLST2
+     /tmp/ccuRJMy7.s:3183   .debug_loc:000002fb .LVUS2
+     /tmp/ccuRJMy7.s:28     .text.chSemWaitTimeout:00000002 .LBI23
+     /tmp/ccuRJMy7.s:27     .text.chSemWaitTimeout:00000002 .LBB23
+     /tmp/ccuRJMy7.s:39     .text.chSemWaitTimeout:00000004 .LBE23
+     /tmp/ccuRJMy7.s:45     .text.chSemWaitTimeout:00000004 .LBI25
+     /tmp/ccuRJMy7.s:3220   .debug_loc:00000331 .LLST3
+     /tmp/ccuRJMy7.s:3209   .debug_loc:00000327 .LVUS3
+     /tmp/ccuRJMy7.s:3281   .debug_loc:00000395 .LLST4
+     /tmp/ccuRJMy7.s:3272   .debug_loc:0000038d .LVUS4
+     /tmp/ccuRJMy7.s:3337   .debug_loc:000003ed .LLST5
+     /tmp/ccuRJMy7.s:3324   .debug_loc:000003e1 .LVUS5
+     /tmp/ccuRJMy7.s:125    .text.chSemWaitTimeout:00000036 .LVL9
+     /tmp/ccuRJMy7.s:80     .text.chSemWaitTimeout:00000012 .LBI29
+     /tmp/ccuRJMy7.s:167    .text.chSemWaitTimeoutS:00000000 .LFB99
+     /tmp/ccuRJMy7.s:238    .text.chSemWaitTimeoutS:00000038 .LFE99
+     /tmp/ccuRJMy7.s:3383   .debug_loc:00000449 .LLST6
+     /tmp/ccuRJMy7.s:3374   .debug_loc:00000441 .LVUS6
+     /tmp/ccuRJMy7.s:3433   .debug_loc:0000049b .LLST7
+     /tmp/ccuRJMy7.s:3426   .debug_loc:00000495 .LVUS7
+     /tmp/ccuRJMy7.s:3480   .debug_loc:000004e3 .LLST8
+     /tmp/ccuRJMy7.s:3467   .debug_loc:000004d7 .LVUS8
+     /tmp/ccuRJMy7.s:228    .text.chSemWaitTimeoutS:00000032 .LVL19
+     /tmp/ccuRJMy7.s:372    .text.chSemSignalI:00000000 .LFB101
+     /tmp/ccuRJMy7.s:425    .text.chSemSignalI:0000001e .LFE101
+     /tmp/ccuRJMy7.s:3524   .debug_loc:0000053d .LLST13
+     /tmp/ccuRJMy7.s:3517   .debug_loc:00000537 .LVUS13
+     /tmp/ccuRJMy7.s:401    .text.chSemSignalI:0000000e .LBI60
+     /tmp/ccuRJMy7.s:400    .text.chSemSignalI:0000000e .LBB60
+     /tmp/ccuRJMy7.s:423    .text.chSemSignalI:0000001e .LBE60
+     /tmp/ccuRJMy7.s:3563   .debug_loc:0000057d .LLST14
+     /tmp/ccuRJMy7.s:3558   .debug_loc:00000579 .LVUS14
+     /tmp/ccuRJMy7.s:404    .text.chSemSignalI:0000000e .LBB62
+     /tmp/ccuRJMy7.s:421    .text.chSemSignalI:0000001e .LBE62
+     /tmp/ccuRJMy7.s:3591   .debug_loc:000005ab .LLST15
+     /tmp/ccuRJMy7.s:3588   .debug_loc:000005a9 .LVUS15
+     /tmp/ccuRJMy7.s:410    .text.chSemSignalI:00000016 .LVL33
+     /tmp/ccuRJMy7.s:419    .text.chSemSignalI:0000001e .LVL34
+     /tmp/ccuRJMy7.s:515    .text.chSemResetWithMessageI:00000000 .LFB103
+     /tmp/ccuRJMy7.s:547    .text.chSemResetWithMessageI:0000000e .LFE103
+     /tmp/ccuRJMy7.s:3610   .debug_loc:000005c9 .LLST23
+     /tmp/ccuRJMy7.s:3603   .debug_loc:000005c3 .LVUS23
+     /tmp/ccuRJMy7.s:3653   .debug_loc:0000060d .LLST24
+     /tmp/ccuRJMy7.s:3644   .debug_loc:00000605 .LVUS24
+     /tmp/ccuRJMy7.s:3687   .debug_loc:0000064f .LLST25
+     /tmp/ccuRJMy7.s:3682   .debug_loc:0000064b .LVUS25
+     /tmp/ccuRJMy7.s:3715   .debug_loc:0000067d .LLST26
+     /tmp/ccuRJMy7.s:3712   .debug_loc:0000067b .LVUS26
+     /tmp/ccuRJMy7.s:544    .text.chSemResetWithMessageI:0000000e .LVL46
+     /tmp/ccuRJMy7.s:431    .text.chSemResetWithMessage:00000000 .LVL35
+     /tmp/ccuRJMy7.s:442    .text.chSemResetWithMessage:00000004 .LVL36
+     /tmp/ccuRJMy7.s:472    .text.chSemResetWithMessage:00000008 .LVL38
+     /tmp/ccuRJMy7.s:479    .text.chSemResetWithMessage:0000000c .LVL39
+     /tmp/ccuRJMy7.s:459    .text.chSemResetWithMessage:00000006 .LVL37
+     /tmp/ccuRJMy7.s:244    .text.chSemSignal:00000000 .LVL21
+     /tmp/ccuRJMy7.s:282    .text.chSemSignal:00000006 .LVL23
+     /tmp/ccuRJMy7.s:314    .text.chSemSignal:00000016 .LVL26
+     /tmp/ccuRJMy7.s:270    .text.chSemSignal:00000004 .LVL22
+     /tmp/ccuRJMy7.s:289    .text.chSemSignal:0000000e .LVL24
+     /tmp/ccuRJMy7.s:15     .text.chSemWaitTimeout:00000000 .LVL0
+     /tmp/ccuRJMy7.s:55     .text.chSemWaitTimeout:00000006 .LVL2
+     /tmp/ccuRJMy7.s:147    .text.chSemWaitTimeout:0000003a .LVL10
+     /tmp/ccuRJMy7.s:72     .text.chSemWaitTimeout:00000012 .LVL5
+     /tmp/ccuRJMy7.s:96     .text.chSemWaitTimeout:00000016 .LVL6
+     /tmp/ccuRJMy7.s:43     .text.chSemWaitTimeout:00000004 .LVL1
+     /tmp/ccuRJMy7.s:63     .text.chSemWaitTimeout:0000000c .LVL3
+     /tmp/ccuRJMy7.s:69     .text.chSemWaitTimeout:00000010 .LVL4
+     /tmp/ccuRJMy7.s:108    .text.chSemWaitTimeout:0000001e .LVL7
+     /tmp/ccuRJMy7.s:122    .text.chSemWaitTimeout:00000032 .LVL8
+     /tmp/ccuRJMy7.s:153    .text.chSemWaitTimeout:0000003c .LVL11
+     /tmp/ccuRJMy7.s:166    .text.chSemWaitTimeoutS:00000000 .LVL12
+     /tmp/ccuRJMy7.s:183    .text.chSemWaitTimeoutS:00000004 .LVL13
+     /tmp/ccuRJMy7.s:191    .text.chSemWaitTimeoutS:0000000a .LVL14
+     /tmp/ccuRJMy7.s:198    .text.chSemWaitTimeoutS:00000010 .LVL15
+     /tmp/ccuRJMy7.s:201    .text.chSemWaitTimeoutS:00000012 .LVL16
+     /tmp/ccuRJMy7.s:211    .text.chSemWaitTimeoutS:0000001a .LVL17
+     /tmp/ccuRJMy7.s:225    .text.chSemWaitTimeoutS:0000002e .LVL18
+     /tmp/ccuRJMy7.s:233    .text.chSemWaitTimeoutS:00000036 .LVL20
+     /tmp/ccuRJMy7.s:371    .text.chSemSignalI:00000000 .LVL30
+     /tmp/ccuRJMy7.s:388    .text.chSemSignalI:00000004 .LVL31
+     /tmp/ccuRJMy7.s:399    .text.chSemSignalI:0000000e .LVL32
+     /tmp/ccuRJMy7.s:514    .text.chSemResetWithMessageI:00000000 .LVL42
+     /tmp/ccuRJMy7.s:525    .text.chSemResetWithMessageI:00000004 .LVL43
+     /tmp/ccuRJMy7.s:534    .text.chSemResetWithMessageI:00000006 .LVL44
+     /tmp/ccuRJMy7.s:541    .text.chSemResetWithMessageI:0000000a .LVL45
+     /tmp/ccuRJMy7.s:555    .debug_info:00000000 .Ldebug_info0
+     /tmp/ccuRJMy7.s:44     .text.chSemWaitTimeout:00000004 .LBB25
+     /tmp/ccuRJMy7.s:76     .text.chSemWaitTimeout:00000012 .LBE25
+     /tmp/ccuRJMy7.s:98     .text.chSemWaitTimeout:00000016 .LBB32
+     /tmp/ccuRJMy7.s:128    .text.chSemWaitTimeout:00000036 .LBE32
+     /tmp/ccuRJMy7.s:149    .text.chSemWaitTimeout:0000003a .LBB34
+     /tmp/ccuRJMy7.s:158    .text.chSemWaitTimeout:00000040 .LBE34
+     /tmp/ccuRJMy7.s:79     .text.chSemWaitTimeout:00000012 .LBB29
+     /tmp/ccuRJMy7.s:90     .text.chSemWaitTimeout:00000014 .LBE29
+     /tmp/ccuRJMy7.s:131    .text.chSemWaitTimeout:00000036 .LBB33
+     /tmp/ccuRJMy7.s:141    .text.chSemWaitTimeout:00000038 .LBE33
+     /tmp/ccuRJMy7.s:271    .text.chSemSignal:00000004 .LBB46
+     /tmp/ccuRJMy7.s:292    .text.chSemSignal:0000000e .LBE46
+     /tmp/ccuRJMy7.s:316    .text.chSemSignal:00000016 .LBB55
+     /tmp/ccuRJMy7.s:343    .text.chSemSignal:00000026 .LBE55
+     /tmp/ccuRJMy7.s:298    .text.chSemSignal:00000012 .LBB52
+     /tmp/ccuRJMy7.s:309    .text.chSemSignal:00000014 .LBE52
+     /tmp/ccuRJMy7.s:349    .text.chSemSignal:0000002a .LBB56
+     /tmp/ccuRJMy7.s:359    .text.chSemSignal:0000002c .LBE56
+
+UNDEFINED SYMBOLS
+nil
+chSchGoSleepTimeoutS
+chSchRescheduleS
+nil_find_thread
+chSchReadyI
+nil_ready_all

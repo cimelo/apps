@@ -1,0 +1,2099 @@
+   1               		.file	"chpipes.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.section	.text.chPipeObjectInit,"ax",@progbits
+  11               	.global	chPipeObjectInit
+  13               	chPipeObjectInit:
+  14               	.LFB100:
+  15               		.file 1 "../../../os/oslib/src/chpipes.c"
+   1:../../../os/oslib/src/chpipes.c **** /*
+   2:../../../os/oslib/src/chpipes.c ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../../os/oslib/src/chpipes.c ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../../os/oslib/src/chpipes.c **** 
+   5:../../../os/oslib/src/chpipes.c ****     This file is part of ChibiOS.
+   6:../../../os/oslib/src/chpipes.c **** 
+   7:../../../os/oslib/src/chpipes.c ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../../os/oslib/src/chpipes.c ****     it under the terms of the GNU General Public License as published by
+   9:../../../os/oslib/src/chpipes.c ****     the Free Software Foundation version 3 of the License.
+  10:../../../os/oslib/src/chpipes.c **** 
+  11:../../../os/oslib/src/chpipes.c ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../../os/oslib/src/chpipes.c ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../../os/oslib/src/chpipes.c ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../../os/oslib/src/chpipes.c ****     GNU General Public License for more details.
+  15:../../../os/oslib/src/chpipes.c **** 
+  16:../../../os/oslib/src/chpipes.c ****     You should have received a copy of the GNU General Public License
+  17:../../../os/oslib/src/chpipes.c ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../../os/oslib/src/chpipes.c **** */
+  19:../../../os/oslib/src/chpipes.c **** 
+  20:../../../os/oslib/src/chpipes.c **** /**
+  21:../../../os/oslib/src/chpipes.c ****  * @file    oslib/src/chpipes.c
+  22:../../../os/oslib/src/chpipes.c ****  * @brief   Pipes code.
+  23:../../../os/oslib/src/chpipes.c ****  * @details Byte pipes.
+  24:../../../os/oslib/src/chpipes.c ****  *          <h2>Operation mode</h2>
+  25:../../../os/oslib/src/chpipes.c ****  *          A pipe is an asynchronous communication mechanism.<br>
+  26:../../../os/oslib/src/chpipes.c ****  *          Operations defined for mailboxes:
+  27:../../../os/oslib/src/chpipes.c ****  *          - <b>Write</b>: Writes a buffer of data in the pipe in FIFO order.
+  28:../../../os/oslib/src/chpipes.c ****  *          - <b>Read</b>: A buffer of data is read from the read and removed.
+  29:../../../os/oslib/src/chpipes.c ****  *          - <b>Reset</b>: The pipe is emptied and all the stored data
+  30:../../../os/oslib/src/chpipes.c ****  *            is lost.
+  31:../../../os/oslib/src/chpipes.c ****  *          .
+  32:../../../os/oslib/src/chpipes.c ****  * @pre     In order to use the pipes APIs the @p CH_CFG_USE_PIPES
+  33:../../../os/oslib/src/chpipes.c ****  *          option must be enabled in @p chconf.h.
+  34:../../../os/oslib/src/chpipes.c ****  * @note    Compatible with RT and NIL.
+  35:../../../os/oslib/src/chpipes.c ****  *
+  36:../../../os/oslib/src/chpipes.c ****  * @addtogroup oslib_pipes
+  37:../../../os/oslib/src/chpipes.c ****  * @{
+  38:../../../os/oslib/src/chpipes.c ****  */
+  39:../../../os/oslib/src/chpipes.c **** 
+  40:../../../os/oslib/src/chpipes.c **** #include <string.h>
+  41:../../../os/oslib/src/chpipes.c **** 
+  42:../../../os/oslib/src/chpipes.c **** #include "ch.h"
+  43:../../../os/oslib/src/chpipes.c **** 
+  44:../../../os/oslib/src/chpipes.c **** #if (CH_CFG_USE_PIPES == TRUE) || defined(__DOXYGEN__)
+  45:../../../os/oslib/src/chpipes.c **** 
+  46:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+  47:../../../os/oslib/src/chpipes.c **** /* Module local definitions.                                                 */
+  48:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+  49:../../../os/oslib/src/chpipes.c **** 
+  50:../../../os/oslib/src/chpipes.c **** /*
+  51:../../../os/oslib/src/chpipes.c ****  * Defaults on the best synchronization mechanism available.
+  52:../../../os/oslib/src/chpipes.c ****  */
+  53:../../../os/oslib/src/chpipes.c **** #if (CH_CFG_USE_MUTEXES == TRUE) || defined(__DOXYGEN__)
+  54:../../../os/oslib/src/chpipes.c **** #define PC_INIT(p)       chMtxObjectInit(&(p)->cmtx)
+  55:../../../os/oslib/src/chpipes.c **** #define PC_LOCK(p)       chMtxLock(&(p)->cmtx)
+  56:../../../os/oslib/src/chpipes.c **** #define PC_UNLOCK(p)     chMtxUnlock(&(p)->cmtx)
+  57:../../../os/oslib/src/chpipes.c **** #define PW_INIT(p)       chMtxObjectInit(&(p)->wmtx)
+  58:../../../os/oslib/src/chpipes.c **** #define PW_LOCK(p)       chMtxLock(&(p)->wmtx)
+  59:../../../os/oslib/src/chpipes.c **** #define PW_UNLOCK(p)     chMtxUnlock(&(p)->wmtx)
+  60:../../../os/oslib/src/chpipes.c **** #define PR_INIT(p)       chMtxObjectInit(&(p)->rmtx)
+  61:../../../os/oslib/src/chpipes.c **** #define PR_LOCK(p)       chMtxLock(&(p)->rmtx)
+  62:../../../os/oslib/src/chpipes.c **** #define PR_UNLOCK(p)     chMtxUnlock(&(p)->rmtx)
+  63:../../../os/oslib/src/chpipes.c **** #else
+  64:../../../os/oslib/src/chpipes.c **** #define PC_INIT(p)       chSemObjectInit(&(p)->csem, (cnt_t)1)
+  65:../../../os/oslib/src/chpipes.c **** #define PC_LOCK(p)       (void) chSemWait(&(p)->csem)
+  66:../../../os/oslib/src/chpipes.c **** #define PC_UNLOCK(p)     chSemSignal(&(p)->csem)
+  67:../../../os/oslib/src/chpipes.c **** #define PW_INIT(p)       chSemObjectInit(&(p)->wsem, (cnt_t)1)
+  68:../../../os/oslib/src/chpipes.c **** #define PW_LOCK(p)       (void) chSemWait(&(p)->wsem)
+  69:../../../os/oslib/src/chpipes.c **** #define PW_UNLOCK(p)     chSemSignal(&(p)->wsem)
+  70:../../../os/oslib/src/chpipes.c **** #define PR_INIT(p)       chSemObjectInit(&(p)->rsem, (cnt_t)1)
+  71:../../../os/oslib/src/chpipes.c **** #define PR_LOCK(p)       (void) chSemWait(&(p)->rsem)
+  72:../../../os/oslib/src/chpipes.c **** #define PR_UNLOCK(p)     chSemSignal(&(p)->rsem)
+  73:../../../os/oslib/src/chpipes.c **** #endif
+  74:../../../os/oslib/src/chpipes.c **** 
+  75:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+  76:../../../os/oslib/src/chpipes.c **** /* Module exported variables.                                                */
+  77:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+  78:../../../os/oslib/src/chpipes.c **** 
+  79:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+  80:../../../os/oslib/src/chpipes.c **** /* Module local types.                                                       */
+  81:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+  82:../../../os/oslib/src/chpipes.c **** 
+  83:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+  84:../../../os/oslib/src/chpipes.c **** /* Module local variables.                                                   */
+  85:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+  86:../../../os/oslib/src/chpipes.c **** 
+  87:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+  88:../../../os/oslib/src/chpipes.c **** /* Module local functions.                                                   */
+  89:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+  90:../../../os/oslib/src/chpipes.c **** 
+  91:../../../os/oslib/src/chpipes.c **** /**
+  92:../../../os/oslib/src/chpipes.c ****  * @brief   Non-blocking pipe write.
+  93:../../../os/oslib/src/chpipes.c ****  * @details The function writes data from a buffer to a pipe. The
+  94:../../../os/oslib/src/chpipes.c ****  *          operation completes when the specified amount of data has been
+  95:../../../os/oslib/src/chpipes.c ****  *          transferred or when the pipe buffer has been filled.
+  96:../../../os/oslib/src/chpipes.c ****  *
+  97:../../../os/oslib/src/chpipes.c ****  * @param[in] pp        the pointer to an initialized @p pipe_t object
+  98:../../../os/oslib/src/chpipes.c ****  * @param[in] bp        pointer to the data buffer
+  99:../../../os/oslib/src/chpipes.c ****  * @param[in] n         the maximum amount of data to be transferred, the
+ 100:../../../os/oslib/src/chpipes.c ****  *                      value 0 is reserved
+ 101:../../../os/oslib/src/chpipes.c ****  * @return              The number of bytes effectively transferred.
+ 102:../../../os/oslib/src/chpipes.c ****  *
+ 103:../../../os/oslib/src/chpipes.c ****  * @notapi
+ 104:../../../os/oslib/src/chpipes.c ****  */
+ 105:../../../os/oslib/src/chpipes.c **** static size_t pipe_write(pipe_t *pp, const uint8_t *bp, size_t n) {
+ 106:../../../os/oslib/src/chpipes.c ****   size_t s1, s2;
+ 107:../../../os/oslib/src/chpipes.c **** 
+ 108:../../../os/oslib/src/chpipes.c ****   PC_LOCK(pp);
+ 109:../../../os/oslib/src/chpipes.c **** 
+ 110:../../../os/oslib/src/chpipes.c ****   /* Number of bytes that can be written in a single atomic operation.*/
+ 111:../../../os/oslib/src/chpipes.c ****   if (n > chPipeGetFreeCount(pp)) {
+ 112:../../../os/oslib/src/chpipes.c ****     n = chPipeGetFreeCount(pp);
+ 113:../../../os/oslib/src/chpipes.c ****   }
+ 114:../../../os/oslib/src/chpipes.c ****   pp->cnt += n;
+ 115:../../../os/oslib/src/chpipes.c **** 
+ 116:../../../os/oslib/src/chpipes.c ****   /* Number of bytes before buffer limit.*/
+ 117:../../../os/oslib/src/chpipes.c ****   /*lint -save -e9033 [10.8] Checked to be safe.*/
+ 118:../../../os/oslib/src/chpipes.c ****   s1 = (size_t)(pp->top - pp->wrptr);
+ 119:../../../os/oslib/src/chpipes.c ****   /*lint -restore*/
+ 120:../../../os/oslib/src/chpipes.c **** 
+ 121:../../../os/oslib/src/chpipes.c ****   if (n < s1) {
+ 122:../../../os/oslib/src/chpipes.c ****     memcpy((void *)pp->wrptr, (const void *)bp, n);
+ 123:../../../os/oslib/src/chpipes.c ****     pp->wrptr += n;
+ 124:../../../os/oslib/src/chpipes.c ****   }
+ 125:../../../os/oslib/src/chpipes.c ****   else if (n > s1) {
+ 126:../../../os/oslib/src/chpipes.c ****     memcpy((void *)pp->wrptr, (const void *)bp, s1);
+ 127:../../../os/oslib/src/chpipes.c ****     bp += s1;
+ 128:../../../os/oslib/src/chpipes.c ****     s2 = n - s1;
+ 129:../../../os/oslib/src/chpipes.c ****     memcpy((void *)pp->buffer, (const void *)bp, s2);
+ 130:../../../os/oslib/src/chpipes.c ****     pp->wrptr = pp->buffer + s2;
+ 131:../../../os/oslib/src/chpipes.c ****   }
+ 132:../../../os/oslib/src/chpipes.c ****   else {
+ 133:../../../os/oslib/src/chpipes.c ****     memcpy((void *)pp->wrptr, (const void *)bp, n);
+ 134:../../../os/oslib/src/chpipes.c ****     pp->wrptr = pp->buffer;
+ 135:../../../os/oslib/src/chpipes.c ****   }
+ 136:../../../os/oslib/src/chpipes.c **** 
+ 137:../../../os/oslib/src/chpipes.c ****   PC_UNLOCK(pp);
+ 138:../../../os/oslib/src/chpipes.c **** 
+ 139:../../../os/oslib/src/chpipes.c ****   return n;
+ 140:../../../os/oslib/src/chpipes.c **** }
+ 141:../../../os/oslib/src/chpipes.c **** 
+ 142:../../../os/oslib/src/chpipes.c **** /**
+ 143:../../../os/oslib/src/chpipes.c ****  * @brief   Non-blocking pipe read.
+ 144:../../../os/oslib/src/chpipes.c ****  * @details The function reads data from a pipe into a buffer. The
+ 145:../../../os/oslib/src/chpipes.c ****  *          operation completes when the specified amount of data has been
+ 146:../../../os/oslib/src/chpipes.c ****  *          transferred or when the pipe buffer has been emptied.
+ 147:../../../os/oslib/src/chpipes.c ****  *
+ 148:../../../os/oslib/src/chpipes.c ****  * @param[in] pp        the pointer to an initialized @p pipe_t object
+ 149:../../../os/oslib/src/chpipes.c ****  * @param[out] bp       pointer to the data buffer
+ 150:../../../os/oslib/src/chpipes.c ****  * @param[in] n         the maximum amount of data to be transferred, the
+ 151:../../../os/oslib/src/chpipes.c ****  *                      value 0 is reserved
+ 152:../../../os/oslib/src/chpipes.c ****  * @return              The number of bytes effectively transferred.
+ 153:../../../os/oslib/src/chpipes.c ****  *
+ 154:../../../os/oslib/src/chpipes.c ****  * @notapi
+ 155:../../../os/oslib/src/chpipes.c ****  */
+ 156:../../../os/oslib/src/chpipes.c **** static size_t pipe_read(pipe_t *pp, uint8_t *bp, size_t n) {
+ 157:../../../os/oslib/src/chpipes.c ****   size_t s1, s2;
+ 158:../../../os/oslib/src/chpipes.c **** 
+ 159:../../../os/oslib/src/chpipes.c ****   PC_LOCK(pp);
+ 160:../../../os/oslib/src/chpipes.c **** 
+ 161:../../../os/oslib/src/chpipes.c ****   /* Number of bytes that can be read in a single atomic operation.*/
+ 162:../../../os/oslib/src/chpipes.c ****   if (n > chPipeGetUsedCount(pp)) {
+ 163:../../../os/oslib/src/chpipes.c ****     n = chPipeGetUsedCount(pp);
+ 164:../../../os/oslib/src/chpipes.c ****   }
+ 165:../../../os/oslib/src/chpipes.c ****   pp->cnt -= n;
+ 166:../../../os/oslib/src/chpipes.c **** 
+ 167:../../../os/oslib/src/chpipes.c ****   /* Number of bytes before buffer limit.*/
+ 168:../../../os/oslib/src/chpipes.c ****   /*lint -save -e9033 [10.8] Checked to be safe.*/
+ 169:../../../os/oslib/src/chpipes.c ****   s1 = (size_t)(pp->top - pp->rdptr);
+ 170:../../../os/oslib/src/chpipes.c ****   /*lint -restore*/
+ 171:../../../os/oslib/src/chpipes.c **** 
+ 172:../../../os/oslib/src/chpipes.c ****   if (n < s1) {
+ 173:../../../os/oslib/src/chpipes.c ****     memcpy((void *)bp, (void *)pp->rdptr, n);
+ 174:../../../os/oslib/src/chpipes.c ****     pp->rdptr += n;
+ 175:../../../os/oslib/src/chpipes.c ****   }
+ 176:../../../os/oslib/src/chpipes.c ****   else if (n > s1) {
+ 177:../../../os/oslib/src/chpipes.c ****     memcpy((void *)bp, (void *)pp->rdptr, s1);
+ 178:../../../os/oslib/src/chpipes.c ****     bp += s1;
+ 179:../../../os/oslib/src/chpipes.c ****     s2 = n - s1;
+ 180:../../../os/oslib/src/chpipes.c ****     memcpy((void *)bp, (void *)pp->buffer, s2);
+ 181:../../../os/oslib/src/chpipes.c ****     pp->rdptr = pp->buffer + s2;
+ 182:../../../os/oslib/src/chpipes.c ****   }
+ 183:../../../os/oslib/src/chpipes.c ****   else {
+ 184:../../../os/oslib/src/chpipes.c ****     memcpy((void *)bp, (void *)pp->rdptr, n);
+ 185:../../../os/oslib/src/chpipes.c ****     pp->rdptr = pp->buffer;
+ 186:../../../os/oslib/src/chpipes.c ****   }
+ 187:../../../os/oslib/src/chpipes.c **** 
+ 188:../../../os/oslib/src/chpipes.c ****   PC_UNLOCK(pp);
+ 189:../../../os/oslib/src/chpipes.c **** 
+ 190:../../../os/oslib/src/chpipes.c ****   return n;
+ 191:../../../os/oslib/src/chpipes.c **** }
+ 192:../../../os/oslib/src/chpipes.c **** 
+ 193:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+ 194:../../../os/oslib/src/chpipes.c **** /* Module exported functions.                                                */
+ 195:../../../os/oslib/src/chpipes.c **** /*===========================================================================*/
+ 196:../../../os/oslib/src/chpipes.c **** 
+ 197:../../../os/oslib/src/chpipes.c **** /**
+ 198:../../../os/oslib/src/chpipes.c ****  * @brief   Initializes a @p mailbox_t object.
+ 199:../../../os/oslib/src/chpipes.c ****  *
+ 200:../../../os/oslib/src/chpipes.c ****  * @param[out] pp       the pointer to the @p pipe_t structure to be
+ 201:../../../os/oslib/src/chpipes.c ****  *                      initialized
+ 202:../../../os/oslib/src/chpipes.c ****  * @param[in] buf       pointer to the pipe buffer as an array of @p uint8_t
+ 203:../../../os/oslib/src/chpipes.c ****  * @param[in] n         number of elements in the buffer array
+ 204:../../../os/oslib/src/chpipes.c ****  *
+ 205:../../../os/oslib/src/chpipes.c ****  * @init
+ 206:../../../os/oslib/src/chpipes.c ****  */
+ 207:../../../os/oslib/src/chpipes.c **** void chPipeObjectInit(pipe_t *pp, uint8_t *buf, size_t n) {
+  16               		.loc 1 207 0
+  17               		.cfi_startproc
+  18               	.LVL0:
+  19               	/* prologue: function */
+  20               	/* frame size = 0 */
+  21               	/* stack size = 0 */
+  22               	.L__stack_usage = 0
+  23 0000 FC01      		movw r30,r24
+ 208:../../../os/oslib/src/chpipes.c **** 
+ 209:../../../os/oslib/src/chpipes.c ****   chDbgCheck((pp != NULL) && (buf != NULL) && (n > (size_t)0));
+ 210:../../../os/oslib/src/chpipes.c **** 
+ 211:../../../os/oslib/src/chpipes.c ****   pp->buffer = buf;
+  24               		.loc 1 211 0
+  25 0002 7183      		std Z+1,r23
+  26 0004 6083      		st Z,r22
+ 212:../../../os/oslib/src/chpipes.c ****   pp->rdptr  = buf;
+  27               		.loc 1 212 0
+  28 0006 7783      		std Z+7,r23
+  29 0008 6683      		std Z+6,r22
+ 213:../../../os/oslib/src/chpipes.c ****   pp->wrptr  = buf;
+  30               		.loc 1 213 0
+  31 000a 7583      		std Z+5,r23
+  32 000c 6483      		std Z+4,r22
+ 214:../../../os/oslib/src/chpipes.c ****   pp->top    = &buf[n];
+  33               		.loc 1 214 0
+  34 000e 640F      		add r22,r20
+  35 0010 751F      		adc r23,r21
+  36               	.LVL1:
+  37 0012 7383      		std Z+3,r23
+  38 0014 6283      		std Z+2,r22
+ 215:../../../os/oslib/src/chpipes.c ****   pp->cnt    = (size_t)0;
+  39               		.loc 1 215 0
+  40 0016 1186      		std Z+9,__zero_reg__
+  41 0018 1086      		std Z+8,__zero_reg__
+ 216:../../../os/oslib/src/chpipes.c ****   pp->reset  = false;
+  42               		.loc 1 216 0
+  43 001a 1286      		std Z+10,__zero_reg__
+ 217:../../../os/oslib/src/chpipes.c ****   pp->wtr    = NULL;
+  44               		.loc 1 217 0
+  45 001c 1486      		std Z+12,__zero_reg__
+  46 001e 1386      		std Z+11,__zero_reg__
+ 218:../../../os/oslib/src/chpipes.c ****   pp->rtr    = NULL;
+  47               		.loc 1 218 0
+  48 0020 1686      		std Z+14,__zero_reg__
+  49 0022 1586      		std Z+13,__zero_reg__
+ 219:../../../os/oslib/src/chpipes.c ****   PC_INIT(pp);
+  50               		.loc 1 219 0
+  51 0024 81E0      		ldi r24,lo8(1)
+  52               	.LVL2:
+  53 0026 8787      		std Z+15,r24
+ 220:../../../os/oslib/src/chpipes.c ****   PW_INIT(pp);
+  54               		.loc 1 220 0
+  55 0028 808B      		std Z+16,r24
+ 221:../../../os/oslib/src/chpipes.c ****   PR_INIT(pp);
+  56               		.loc 1 221 0
+  57 002a 818B      		std Z+17,r24
+  58 002c 0895      		ret
+  59               		.cfi_endproc
+  60               	.LFE100:
+  62               		.section	.text.chPipeReset,"ax",@progbits
+  63               	.global	chPipeReset
+  65               	chPipeReset:
+  66               	.LFB101:
+ 222:../../../os/oslib/src/chpipes.c **** }
+ 223:../../../os/oslib/src/chpipes.c **** 
+ 224:../../../os/oslib/src/chpipes.c **** /**
+ 225:../../../os/oslib/src/chpipes.c ****  * @brief   Resets a @p pipe_t object.
+ 226:../../../os/oslib/src/chpipes.c ****  * @details All the waiting threads are resumed with status @p MSG_RESET and
+ 227:../../../os/oslib/src/chpipes.c ****  *          the queued data is lost.
+ 228:../../../os/oslib/src/chpipes.c ****  * @post    The pipe is in reset state, all operations will fail and
+ 229:../../../os/oslib/src/chpipes.c ****  *          return @p MSG_RESET until the mailbox is enabled again using
+ 230:../../../os/oslib/src/chpipes.c ****  *          @p chPipeResumeX().
+ 231:../../../os/oslib/src/chpipes.c ****  *
+ 232:../../../os/oslib/src/chpipes.c ****  * @param[in] pp        the pointer to an initialized @p pipe_t object
+ 233:../../../os/oslib/src/chpipes.c ****  *
+ 234:../../../os/oslib/src/chpipes.c ****  * @api
+ 235:../../../os/oslib/src/chpipes.c ****  */
+ 236:../../../os/oslib/src/chpipes.c **** void chPipeReset(pipe_t *pp) {
+  67               		.loc 1 236 0
+  68               		.cfi_startproc
+  69               	.LVL3:
+  70 0000 0F93      		push r16
+  71               	.LCFI0:
+  72               		.cfi_def_cfa_offset 3
+  73               		.cfi_offset 16, -2
+  74 0002 1F93      		push r17
+  75               	.LCFI1:
+  76               		.cfi_def_cfa_offset 4
+  77               		.cfi_offset 17, -3
+  78 0004 CF93      		push r28
+  79               	.LCFI2:
+  80               		.cfi_def_cfa_offset 5
+  81               		.cfi_offset 28, -4
+  82 0006 DF93      		push r29
+  83               	.LCFI3:
+  84               		.cfi_def_cfa_offset 6
+  85               		.cfi_offset 29, -5
+  86               	/* prologue: function */
+  87               	/* frame size = 0 */
+  88               	/* stack size = 4 */
+  89               	.L__stack_usage = 4
+  90 0008 EC01      		movw r28,r24
+ 237:../../../os/oslib/src/chpipes.c **** 
+ 238:../../../os/oslib/src/chpipes.c ****   chDbgCheck(pp != NULL);
+ 239:../../../os/oslib/src/chpipes.c **** 
+ 240:../../../os/oslib/src/chpipes.c ****   PC_LOCK(pp);
+  91               		.loc 1 240 0
+  92 000a 8C01      		movw r16,r24
+  93 000c 015F      		subi r16,-15
+  94 000e 1F4F      		sbci r17,-1
+  95 0010 60E0      		ldi r22,0
+  96 0012 70E0      		ldi r23,0
+  97 0014 C801      		movw r24,r16
+  98               	.LVL4:
+  99 0016 0E94 0000 		call chSemWaitTimeout
+ 100               	.LVL5:
+ 241:../../../os/oslib/src/chpipes.c **** 
+ 242:../../../os/oslib/src/chpipes.c ****   pp->wrptr = pp->buffer;
+ 101               		.loc 1 242 0
+ 102 001a 8881      		ld r24,Y
+ 103 001c 9981      		ldd r25,Y+1
+ 104 001e 9D83      		std Y+5,r25
+ 105 0020 8C83      		std Y+4,r24
+ 243:../../../os/oslib/src/chpipes.c ****   pp->rdptr = pp->buffer;
+ 106               		.loc 1 243 0
+ 107 0022 9F83      		std Y+7,r25
+ 108 0024 8E83      		std Y+6,r24
+ 244:../../../os/oslib/src/chpipes.c ****   pp->cnt   = (size_t)0;
+ 109               		.loc 1 244 0
+ 110 0026 1986      		std Y+9,__zero_reg__
+ 111 0028 1886      		std Y+8,__zero_reg__
+ 245:../../../os/oslib/src/chpipes.c ****   pp->reset = true;
+ 112               		.loc 1 245 0
+ 113 002a 81E0      		ldi r24,lo8(1)
+ 114 002c 8A87      		std Y+10,r24
+ 115               	.LBB38:
+ 116               	.LBB39:
+ 117               		.file 2 "../../../os/common/ports/AVR/chcore.h"
+   1:../../../os/common/ports/AVR/chcore.h **** /*
+   2:../../../os/common/ports/AVR/chcore.h ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../../os/common/ports/AVR/chcore.h ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../../os/common/ports/AVR/chcore.h **** 
+   5:../../../os/common/ports/AVR/chcore.h ****     This file is part of ChibiOS.
+   6:../../../os/common/ports/AVR/chcore.h **** 
+   7:../../../os/common/ports/AVR/chcore.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../../os/common/ports/AVR/chcore.h ****     it under the terms of the GNU General Public License as published by
+   9:../../../os/common/ports/AVR/chcore.h ****     the Free Software Foundation version 3 of the License.
+  10:../../../os/common/ports/AVR/chcore.h **** 
+  11:../../../os/common/ports/AVR/chcore.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../../os/common/ports/AVR/chcore.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../../os/common/ports/AVR/chcore.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../../os/common/ports/AVR/chcore.h ****     GNU General Public License for more details.
+  15:../../../os/common/ports/AVR/chcore.h **** 
+  16:../../../os/common/ports/AVR/chcore.h ****     You should have received a copy of the GNU General Public License
+  17:../../../os/common/ports/AVR/chcore.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../../os/common/ports/AVR/chcore.h **** */
+  19:../../../os/common/ports/AVR/chcore.h **** 
+  20:../../../os/common/ports/AVR/chcore.h **** /**
+  21:../../../os/common/ports/AVR/chcore.h ****  * @file    chcore.h
+  22:../../../os/common/ports/AVR/chcore.h ****  * @brief   AVR port macros and structures.
+  23:../../../os/common/ports/AVR/chcore.h ****  *
+  24:../../../os/common/ports/AVR/chcore.h ****  * @addtogroup AVR_CORE
+  25:../../../os/common/ports/AVR/chcore.h ****  * @{
+  26:../../../os/common/ports/AVR/chcore.h ****  */
+  27:../../../os/common/ports/AVR/chcore.h **** 
+  28:../../../os/common/ports/AVR/chcore.h **** #ifndef CHCORE_H
+  29:../../../os/common/ports/AVR/chcore.h **** #define CHCORE_H
+  30:../../../os/common/ports/AVR/chcore.h **** 
+  31:../../../os/common/ports/AVR/chcore.h **** #include <avr/io.h>
+  32:../../../os/common/ports/AVR/chcore.h **** #include <avr/interrupt.h>
+  33:../../../os/common/ports/AVR/chcore.h **** 
+  34:../../../os/common/ports/AVR/chcore.h **** extern bool __avr_in_isr;
+  35:../../../os/common/ports/AVR/chcore.h **** 
+  36:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+  37:../../../os/common/ports/AVR/chcore.h **** /* Module constants.                                                         */
+  38:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+  39:../../../os/common/ports/AVR/chcore.h **** 
+  40:../../../os/common/ports/AVR/chcore.h **** /**
+  41:../../../os/common/ports/AVR/chcore.h ****  * @name    Port Capabilities and Constants
+  42:../../../os/common/ports/AVR/chcore.h ****  * @{
+  43:../../../os/common/ports/AVR/chcore.h ****  */
+  44:../../../os/common/ports/AVR/chcore.h **** /**
+  45:../../../os/common/ports/AVR/chcore.h ****  * @brief   This port supports a realtime counter.
+  46:../../../os/common/ports/AVR/chcore.h ****  */
+  47:../../../os/common/ports/AVR/chcore.h **** #define PORT_SUPPORTS_RT                FALSE
+  48:../../../os/common/ports/AVR/chcore.h **** 
+  49:../../../os/common/ports/AVR/chcore.h **** /**
+  50:../../../os/common/ports/AVR/chcore.h ****  * @brief   Natural alignment constant.
+  51:../../../os/common/ports/AVR/chcore.h ****  * @note    It is the minimum alignment for pointer-size variables.
+  52:../../../os/common/ports/AVR/chcore.h ****  */
+  53:../../../os/common/ports/AVR/chcore.h **** #define PORT_NATURAL_ALIGN              1U
+  54:../../../os/common/ports/AVR/chcore.h **** 
+  55:../../../os/common/ports/AVR/chcore.h **** /**
+  56:../../../os/common/ports/AVR/chcore.h ****  * @brief   Stack alignment constant.
+  57:../../../os/common/ports/AVR/chcore.h ****  * @note    It is the alignment required for the stack pointer.
+  58:../../../os/common/ports/AVR/chcore.h ****  */
+  59:../../../os/common/ports/AVR/chcore.h **** #define PORT_STACK_ALIGN                1U
+  60:../../../os/common/ports/AVR/chcore.h **** 
+  61:../../../os/common/ports/AVR/chcore.h **** /**
+  62:../../../os/common/ports/AVR/chcore.h ****  * @brief   Working Areas alignment constant.
+  63:../../../os/common/ports/AVR/chcore.h ****  * @note    It is the alignment to be enforced for thread working areas.
+  64:../../../os/common/ports/AVR/chcore.h ****  */
+  65:../../../os/common/ports/AVR/chcore.h **** #define PORT_WORKING_AREA_ALIGN         1U
+  66:../../../os/common/ports/AVR/chcore.h **** /** @} */
+  67:../../../os/common/ports/AVR/chcore.h **** 
+  68:../../../os/common/ports/AVR/chcore.h **** /**
+  69:../../../os/common/ports/AVR/chcore.h ****  * @name    Architecture and Compiler
+  70:../../../os/common/ports/AVR/chcore.h ****  * @{
+  71:../../../os/common/ports/AVR/chcore.h ****  */
+  72:../../../os/common/ports/AVR/chcore.h **** /**
+  73:../../../os/common/ports/AVR/chcore.h ****  * @brief   Macro defining an AVR architecture.
+  74:../../../os/common/ports/AVR/chcore.h ****  */
+  75:../../../os/common/ports/AVR/chcore.h **** #define PORT_ARCHITECTURE_AVR
+  76:../../../os/common/ports/AVR/chcore.h **** 
+  77:../../../os/common/ports/AVR/chcore.h **** /**
+  78:../../../os/common/ports/AVR/chcore.h ****  * @brief   Macro defining the specific AVR architecture.
+  79:../../../os/common/ports/AVR/chcore.h ****  */
+  80:../../../os/common/ports/AVR/chcore.h **** #define PORT_ARCHITECTURE_AVR_MEGAAVR
+  81:../../../os/common/ports/AVR/chcore.h **** 
+  82:../../../os/common/ports/AVR/chcore.h **** /**
+  83:../../../os/common/ports/AVR/chcore.h ****  * @brief   Name of the implemented architecture.
+  84:../../../os/common/ports/AVR/chcore.h ****  */
+  85:../../../os/common/ports/AVR/chcore.h **** #define PORT_ARCHITECTURE_NAME          "AVR"
+  86:../../../os/common/ports/AVR/chcore.h **** 
+  87:../../../os/common/ports/AVR/chcore.h **** /**
+  88:../../../os/common/ports/AVR/chcore.h ****  * @brief   Name of the architecture variant.
+  89:../../../os/common/ports/AVR/chcore.h ****  */
+  90:../../../os/common/ports/AVR/chcore.h **** #define PORT_CORE_VARIANT_NAME          "MegaAVR"
+  91:../../../os/common/ports/AVR/chcore.h **** 
+  92:../../../os/common/ports/AVR/chcore.h **** /**
+  93:../../../os/common/ports/AVR/chcore.h ****  * @brief   Compiler name and version.
+  94:../../../os/common/ports/AVR/chcore.h ****  */
+  95:../../../os/common/ports/AVR/chcore.h **** #if defined(__GNUC__) || defined(__DOXYGEN__)
+  96:../../../os/common/ports/AVR/chcore.h **** #define PORT_COMPILER_NAME              "GCC " __VERSION__
+  97:../../../os/common/ports/AVR/chcore.h **** 
+  98:../../../os/common/ports/AVR/chcore.h **** #else
+  99:../../../os/common/ports/AVR/chcore.h **** #error "unsupported compiler"
+ 100:../../../os/common/ports/AVR/chcore.h **** #endif
+ 101:../../../os/common/ports/AVR/chcore.h **** 
+ 102:../../../os/common/ports/AVR/chcore.h **** /**
+ 103:../../../os/common/ports/AVR/chcore.h ****  * @brief   Port-specific information string.
+ 104:../../../os/common/ports/AVR/chcore.h ****  */
+ 105:../../../os/common/ports/AVR/chcore.h **** #define PORT_INFO                       "None"
+ 106:../../../os/common/ports/AVR/chcore.h **** /** @} */
+ 107:../../../os/common/ports/AVR/chcore.h **** 
+ 108:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 109:../../../os/common/ports/AVR/chcore.h **** /* Module pre-compile time settings.                                         */
+ 110:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 111:../../../os/common/ports/AVR/chcore.h **** 
+ 112:../../../os/common/ports/AVR/chcore.h **** /**
+ 113:../../../os/common/ports/AVR/chcore.h ****  * @brief   Stack size for the system idle thread.
+ 114:../../../os/common/ports/AVR/chcore.h ****  * @details This size depends on the idle thread implementation, usually
+ 115:../../../os/common/ports/AVR/chcore.h ****  *          the idle thread should take no more space than those reserved
+ 116:../../../os/common/ports/AVR/chcore.h ****  *          by @p PORT_INT_REQUIRED_STACK.
+ 117:../../../os/common/ports/AVR/chcore.h ****  */
+ 118:../../../os/common/ports/AVR/chcore.h **** #if !defined(PORT_IDLE_THREAD_STACK_SIZE) || defined(__DOXYGEN__)
+ 119:../../../os/common/ports/AVR/chcore.h **** #define PORT_IDLE_THREAD_STACK_SIZE     8
+ 120:../../../os/common/ports/AVR/chcore.h **** #endif
+ 121:../../../os/common/ports/AVR/chcore.h **** 
+ 122:../../../os/common/ports/AVR/chcore.h **** /**
+ 123:../../../os/common/ports/AVR/chcore.h ****  * @brief   Per-thread stack overhead for interrupts servicing.
+ 124:../../../os/common/ports/AVR/chcore.h ****  * @details This constant is used in the calculation of the correct working
+ 125:../../../os/common/ports/AVR/chcore.h ****  *          area size.
+ 126:../../../os/common/ports/AVR/chcore.h ****  */
+ 127:../../../os/common/ports/AVR/chcore.h **** #if !defined(PORT_INT_REQUIRED_STACK) || defined(__DOXYGEN__)
+ 128:../../../os/common/ports/AVR/chcore.h **** #define PORT_INT_REQUIRED_STACK         32
+ 129:../../../os/common/ports/AVR/chcore.h **** #endif
+ 130:../../../os/common/ports/AVR/chcore.h **** 
+ 131:../../../os/common/ports/AVR/chcore.h **** /**
+ 132:../../../os/common/ports/AVR/chcore.h ****  * @brief   Enables a "wait for interrupt" instruction in the idle loop.
+ 133:../../../os/common/ports/AVR/chcore.h ****  */
+ 134:../../../os/common/ports/AVR/chcore.h **** #if !defined(PORT_AVR_WFI_SLEEP_IDLE) || defined(__DOXYGEN__)
+ 135:../../../os/common/ports/AVR/chcore.h **** #define PORT_AVR_WFI_SLEEP_IDLE      FALSE
+ 136:../../../os/common/ports/AVR/chcore.h **** #endif
+ 137:../../../os/common/ports/AVR/chcore.h **** 
+ 138:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 139:../../../os/common/ports/AVR/chcore.h **** /* Derived constants and error checks.                                       */
+ 140:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 141:../../../os/common/ports/AVR/chcore.h **** 
+ 142:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 143:../../../os/common/ports/AVR/chcore.h **** /* Module data structures and types.                                         */
+ 144:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 145:../../../os/common/ports/AVR/chcore.h **** 
+ 146:../../../os/common/ports/AVR/chcore.h **** /* The following code is not processed when the file is included from an
+ 147:../../../os/common/ports/AVR/chcore.h ****    asm module.*/
+ 148:../../../os/common/ports/AVR/chcore.h **** #if !defined(_FROM_ASM_)
+ 149:../../../os/common/ports/AVR/chcore.h **** 
+ 150:../../../os/common/ports/AVR/chcore.h **** /**
+ 151:../../../os/common/ports/AVR/chcore.h ****  * @brief   Type of stack and memory alignment enforcement.
+ 152:../../../os/common/ports/AVR/chcore.h ****  * @note    In this architecture the stack alignment is enforced to 8 bits.
+ 153:../../../os/common/ports/AVR/chcore.h ****  */
+ 154:../../../os/common/ports/AVR/chcore.h **** typedef uint8_t stkalign_t;
+ 155:../../../os/common/ports/AVR/chcore.h **** 
+ 156:../../../os/common/ports/AVR/chcore.h **** /**
+ 157:../../../os/common/ports/AVR/chcore.h ****  * @brief   Interrupt saved context.
+ 158:../../../os/common/ports/AVR/chcore.h ****  * @details This structure represents the stack frame saved during a
+ 159:../../../os/common/ports/AVR/chcore.h ****  *          preemption-capable interrupt handler.
+ 160:../../../os/common/ports/AVR/chcore.h ****  * @note    R2 and R13 are not saved because those are assumed to be immutable
+ 161:../../../os/common/ports/AVR/chcore.h ****  *          during the system life cycle.
+ 162:../../../os/common/ports/AVR/chcore.h ****  */
+ 163:../../../os/common/ports/AVR/chcore.h **** struct port_extctx {
+ 164:../../../os/common/ports/AVR/chcore.h ****   uint8_t       _next;
+ 165:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r31;
+ 166:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r30;
+ 167:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r27;
+ 168:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r26;
+ 169:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r25;
+ 170:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r24;
+ 171:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r23;
+ 172:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r22;
+ 173:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r21;
+ 174:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r20;
+ 175:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r19;
+ 176:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r18;
+ 177:../../../os/common/ports/AVR/chcore.h ****   uint8_t       sr;
+ 178:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r1;
+ 179:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r0;
+ 180:../../../os/common/ports/AVR/chcore.h **** #if defined(__AVR_3_BYTE_PC__)
+ 181:../../../os/common/ports/AVR/chcore.h ****   uint8_t       pcx;
+ 182:../../../os/common/ports/AVR/chcore.h **** #endif
+ 183:../../../os/common/ports/AVR/chcore.h ****   uint16_t      pc;
+ 184:../../../os/common/ports/AVR/chcore.h **** };
+ 185:../../../os/common/ports/AVR/chcore.h **** 
+ 186:../../../os/common/ports/AVR/chcore.h **** /**
+ 187:../../../os/common/ports/AVR/chcore.h ****  * @brief   System saved context.
+ 188:../../../os/common/ports/AVR/chcore.h ****  * @details This structure represents the inner stack frame during a context
+ 189:../../../os/common/ports/AVR/chcore.h ****  *          switching.
+ 190:../../../os/common/ports/AVR/chcore.h ****  * @note    R2 and R13 are not saved because those are assumed to be immutable
+ 191:../../../os/common/ports/AVR/chcore.h ****  *          during the system life cycle.
+ 192:../../../os/common/ports/AVR/chcore.h ****  * @note    LR is stored in the caller context so it is not present in this
+ 193:../../../os/common/ports/AVR/chcore.h ****  *          structure.
+ 194:../../../os/common/ports/AVR/chcore.h ****  */
+ 195:../../../os/common/ports/AVR/chcore.h **** struct port_intctx {
+ 196:../../../os/common/ports/AVR/chcore.h ****   uint8_t       _next;
+ 197:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r29;
+ 198:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r28;
+ 199:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r17;
+ 200:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r16;
+ 201:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r15;
+ 202:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r14;
+ 203:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r13;
+ 204:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r12;
+ 205:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r11;
+ 206:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r10;
+ 207:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r9;
+ 208:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r8;
+ 209:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r7;
+ 210:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r6;
+ 211:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r5;
+ 212:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r4;
+ 213:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r3;
+ 214:../../../os/common/ports/AVR/chcore.h ****   uint8_t       r2;
+ 215:../../../os/common/ports/AVR/chcore.h **** #if defined(__AVR_3_BYTE_PC__)
+ 216:../../../os/common/ports/AVR/chcore.h ****   uint8_t       pcx;
+ 217:../../../os/common/ports/AVR/chcore.h **** #endif
+ 218:../../../os/common/ports/AVR/chcore.h ****   uint8_t       pcl;
+ 219:../../../os/common/ports/AVR/chcore.h ****   uint8_t       pch;
+ 220:../../../os/common/ports/AVR/chcore.h **** };
+ 221:../../../os/common/ports/AVR/chcore.h **** 
+ 222:../../../os/common/ports/AVR/chcore.h **** /**
+ 223:../../../os/common/ports/AVR/chcore.h ****  * @brief   Platform dependent part of the @p thread_t structure.
+ 224:../../../os/common/ports/AVR/chcore.h ****  * @details This structure usually contains just the saved stack pointer
+ 225:../../../os/common/ports/AVR/chcore.h ****  *          defined as a pointer to a @p port_intctx structure.
+ 226:../../../os/common/ports/AVR/chcore.h ****  */
+ 227:../../../os/common/ports/AVR/chcore.h **** struct port_context {
+ 228:../../../os/common/ports/AVR/chcore.h ****   struct port_intctx *sp;
+ 229:../../../os/common/ports/AVR/chcore.h **** };
+ 230:../../../os/common/ports/AVR/chcore.h **** 
+ 231:../../../os/common/ports/AVR/chcore.h **** #endif /* !defined(_FROM_ASM_) */
+ 232:../../../os/common/ports/AVR/chcore.h **** 
+ 233:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 234:../../../os/common/ports/AVR/chcore.h **** /* Module macros.                                                            */
+ 235:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 236:../../../os/common/ports/AVR/chcore.h **** 
+ 237:../../../os/common/ports/AVR/chcore.h **** /**
+ 238:../../../os/common/ports/AVR/chcore.h ****  * @brief   Platform dependent part of the @p chThdCreateI() API.
+ 239:../../../os/common/ports/AVR/chcore.h ****  * @details This code usually setup the context switching frame represented
+ 240:../../../os/common/ports/AVR/chcore.h ****  *          by an @p port_intctx structure.
+ 241:../../../os/common/ports/AVR/chcore.h ****  */
+ 242:../../../os/common/ports/AVR/chcore.h **** #if defined(__AVR_3_BYTE_PC__) || defined(__DOXYGEN__)
+ 243:../../../os/common/ports/AVR/chcore.h **** #define PORT_SETUP_CONTEXT(tp, wbase, wtop, pf, arg) {                      \
+ 244:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp = (struct port_intctx *)((uint8_t *)(wtop) -                   \
+ 245:../../../os/common/ports/AVR/chcore.h ****                                       sizeof(struct port_intctx));          \
+ 246:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r2  = (uint8_t)(0xff & (uint16_t)pf);                         \
+ 247:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r3  = (uint8_t)((uint16_t)(pf) >> 8);                         \
+ 248:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r4  = (uint8_t)(0xff & (uint16_t)arg);                        \
+ 249:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r5  = (uint8_t)((uint16_t)(arg) >> 8);                        \
+ 250:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pcx = (uint8_t)0;                                             \
+ 251:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pcl = (uint16_t)_port_thread_start >> 8;                      \
+ 252:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pch = (uint8_t)(0xff & (uint16_t)_port_thread_start);         \
+ 253:../../../os/common/ports/AVR/chcore.h **** }
+ 254:../../../os/common/ports/AVR/chcore.h **** #else /* !__AVR_3_BYTE_PC__ */
+ 255:../../../os/common/ports/AVR/chcore.h **** #define PORT_SETUP_CONTEXT(tp, wbase, wtop, pf, arg) {                      \
+ 256:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp = (struct port_intctx *)((uint8_t *)(wtop) -                   \
+ 257:../../../os/common/ports/AVR/chcore.h ****                                       sizeof(struct port_intctx));          \
+ 258:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r2  = (uint8_t)(0xff & (uint16_t)pf);                         \
+ 259:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r3  = (uint8_t)((uint16_t)(pf) >> 8);                         \
+ 260:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r4  = (uint8_t)(0xff & (uint16_t)arg);                        \
+ 261:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r5  = (uint8_t)((uint16_t)(arg) >> 8);                        \
+ 262:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pcl = (uint16_t)_port_thread_start >> 8;                      \
+ 263:../../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pch = (uint8_t)(0xff & (uint16_t)_port_thread_start);         \
+ 264:../../../os/common/ports/AVR/chcore.h **** }
+ 265:../../../os/common/ports/AVR/chcore.h **** #endif /* !__AVR_3_BYTE_PC__ */
+ 266:../../../os/common/ports/AVR/chcore.h **** 
+ 267:../../../os/common/ports/AVR/chcore.h **** /**
+ 268:../../../os/common/ports/AVR/chcore.h ****  * @brief   Computes the thread working area global size.
+ 269:../../../os/common/ports/AVR/chcore.h ****  * @note    There is no need to perform alignments in this macro.
+ 270:../../../os/common/ports/AVR/chcore.h ****  */
+ 271:../../../os/common/ports/AVR/chcore.h **** #define PORT_WA_SIZE(n) ((sizeof(struct port_intctx) - 1) +                \
+ 272:../../../os/common/ports/AVR/chcore.h ****                          (sizeof(struct port_extctx) - 1) +                \
+ 273:../../../os/common/ports/AVR/chcore.h ****                          ((size_t)(n)) + ((size_t)(PORT_INT_REQUIRED_STACK)))
+ 274:../../../os/common/ports/AVR/chcore.h **** 
+ 275:../../../os/common/ports/AVR/chcore.h **** /**
+ 276:../../../os/common/ports/AVR/chcore.h ****  * @brief   Static working area allocation.
+ 277:../../../os/common/ports/AVR/chcore.h ****  * @details This macro is used to allocate a static thread working area
+ 278:../../../os/common/ports/AVR/chcore.h ****  *          aligned as both position and size.
+ 279:../../../os/common/ports/AVR/chcore.h ****  *
+ 280:../../../os/common/ports/AVR/chcore.h ****  * @param[in] s         the name to be assigned to the stack array
+ 281:../../../os/common/ports/AVR/chcore.h ****  * @param[in] n         the stack size to be assigned to the thread
+ 282:../../../os/common/ports/AVR/chcore.h ****  */
+ 283:../../../os/common/ports/AVR/chcore.h **** #define PORT_WORKING_AREA(s, n)                                             \
+ 284:../../../os/common/ports/AVR/chcore.h ****   stkalign_t s[THD_WORKING_AREA_SIZE(n) / sizeof (stkalign_t)]
+ 285:../../../os/common/ports/AVR/chcore.h **** 
+ 286:../../../os/common/ports/AVR/chcore.h **** /**
+ 287:../../../os/common/ports/AVR/chcore.h ****  * @brief   Priority level verification macro.
+ 288:../../../os/common/ports/AVR/chcore.h ****  */
+ 289:../../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_IS_VALID_PRIORITY(n) false
+ 290:../../../os/common/ports/AVR/chcore.h **** 
+ 291:../../../os/common/ports/AVR/chcore.h **** /**
+ 292:../../../os/common/ports/AVR/chcore.h ****  * @brief   Priority level verification macro.
+ 293:../../../os/common/ports/AVR/chcore.h ****  */
+ 294:../../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_IS_VALID_KERNEL_PRIORITY(n) false
+ 295:../../../os/common/ports/AVR/chcore.h **** 
+ 296:../../../os/common/ports/AVR/chcore.h **** /**
+ 297:../../../os/common/ports/AVR/chcore.h ****  * @brief   IRQ prologue code.
+ 298:../../../os/common/ports/AVR/chcore.h ****  * @details This macro must be inserted at the start of all IRQ handlers
+ 299:../../../os/common/ports/AVR/chcore.h ****  *          enabled to invoke system APIs.
+ 300:../../../os/common/ports/AVR/chcore.h ****  * @note    This code tricks the compiler to save all the specified registers
+ 301:../../../os/common/ports/AVR/chcore.h ****  *          by "touching" them.
+ 302:../../../os/common/ports/AVR/chcore.h ****  */
+ 303:../../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_PROLOGUE() {                                               \
+ 304:../../../os/common/ports/AVR/chcore.h ****   asm ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24",            \
+ 305:../../../os/common/ports/AVR/chcore.h ****                 "r25", "r26", "r27", "r30", "r31");                         \
+ 306:../../../os/common/ports/AVR/chcore.h ****   __avr_in_isr = true;                                                      \
+ 307:../../../os/common/ports/AVR/chcore.h **** }
+ 308:../../../os/common/ports/AVR/chcore.h **** 
+ 309:../../../os/common/ports/AVR/chcore.h **** /**
+ 310:../../../os/common/ports/AVR/chcore.h ****  * @brief   IRQ epilogue code.
+ 311:../../../os/common/ports/AVR/chcore.h ****  * @details This macro must be inserted at the end of all IRQ handlers
+ 312:../../../os/common/ports/AVR/chcore.h ****  *          enabled to invoke system APIs.
+ 313:../../../os/common/ports/AVR/chcore.h ****  */
+ 314:../../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_EPILOGUE() {                                               \
+ 315:../../../os/common/ports/AVR/chcore.h ****   __avr_in_isr = false;                                                     \
+ 316:../../../os/common/ports/AVR/chcore.h ****   __dbg_check_lock();                                                       \
+ 317:../../../os/common/ports/AVR/chcore.h ****   if (chSchIsPreemptionRequired())                                          \
+ 318:../../../os/common/ports/AVR/chcore.h ****     chSchDoPreemption();                                                    \
+ 319:../../../os/common/ports/AVR/chcore.h ****   __dbg_check_unlock();                                                     \
+ 320:../../../os/common/ports/AVR/chcore.h **** }
+ 321:../../../os/common/ports/AVR/chcore.h **** 
+ 322:../../../os/common/ports/AVR/chcore.h **** /**
+ 323:../../../os/common/ports/AVR/chcore.h ****  * @brief   IRQ handler function declaration.
+ 324:../../../os/common/ports/AVR/chcore.h ****  * @note    @p id can be a function name or a vector number depending on the
+ 325:../../../os/common/ports/AVR/chcore.h ****  *          port implementation.
+ 326:../../../os/common/ports/AVR/chcore.h ****  */
+ 327:../../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_HANDLER(id) ISR(id)
+ 328:../../../os/common/ports/AVR/chcore.h **** 
+ 329:../../../os/common/ports/AVR/chcore.h **** /**
+ 330:../../../os/common/ports/AVR/chcore.h ****  * @brief   Fast IRQ handler function declaration.
+ 331:../../../os/common/ports/AVR/chcore.h ****  * @note    @p id can be a function name or a vector number depending on the
+ 332:../../../os/common/ports/AVR/chcore.h ****  *          port implementation.
+ 333:../../../os/common/ports/AVR/chcore.h ****  */
+ 334:../../../os/common/ports/AVR/chcore.h **** #define PORT_FAST_IRQ_HANDLER(id) ISR(id)
+ 335:../../../os/common/ports/AVR/chcore.h **** 
+ 336:../../../os/common/ports/AVR/chcore.h **** /**
+ 337:../../../os/common/ports/AVR/chcore.h ****  * @brief   Performs a context switch between two threads.
+ 338:../../../os/common/ports/AVR/chcore.h ****  * @details This is the most critical code in any port, this function
+ 339:../../../os/common/ports/AVR/chcore.h ****  *          is responsible for the context switch between 2 threads.
+ 340:../../../os/common/ports/AVR/chcore.h ****  * @note    The implementation of this code affects <b>directly</b> the context
+ 341:../../../os/common/ports/AVR/chcore.h ****  *          switch performance so optimize here as much as you can.
+ 342:../../../os/common/ports/AVR/chcore.h ****  *
+ 343:../../../os/common/ports/AVR/chcore.h ****  * @param[in] ntp       the thread to be switched in
+ 344:../../../os/common/ports/AVR/chcore.h ****  * @param[in] otp       the thread to be switched out
+ 345:../../../os/common/ports/AVR/chcore.h ****  */
+ 346:../../../os/common/ports/AVR/chcore.h **** #define port_switch(ntp, otp) {                                             \
+ 347:../../../os/common/ports/AVR/chcore.h ****   _port_switch(ntp, otp);                                                   \
+ 348:../../../os/common/ports/AVR/chcore.h ****   asm volatile ("" : : : "memory");                                         \
+ 349:../../../os/common/ports/AVR/chcore.h **** }
+ 350:../../../os/common/ports/AVR/chcore.h **** 
+ 351:../../../os/common/ports/AVR/chcore.h **** 
+ 352:../../../os/common/ports/AVR/chcore.h **** /**
+ 353:../../../os/common/ports/AVR/chcore.h ****  * @brief   Port-related initialization code.
+ 354:../../../os/common/ports/AVR/chcore.h ****  * @note    This function is empty in this port.
+ 355:../../../os/common/ports/AVR/chcore.h ****  */
+ 356:../../../os/common/ports/AVR/chcore.h **** #define port_init(oip) {                                                    \
+ 357:../../../os/common/ports/AVR/chcore.h ****   __avr_in_isr = true;                                                      \
+ 358:../../../os/common/ports/AVR/chcore.h **** }
+ 359:../../../os/common/ports/AVR/chcore.h **** 
+ 360:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 361:../../../os/common/ports/AVR/chcore.h **** /* External declarations.                                                    */
+ 362:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 363:../../../os/common/ports/AVR/chcore.h **** 
+ 364:../../../os/common/ports/AVR/chcore.h **** /* The following code is not processed when the file is included from an
+ 365:../../../os/common/ports/AVR/chcore.h ****    asm module.*/
+ 366:../../../os/common/ports/AVR/chcore.h **** #if !defined(_FROM_ASM_)
+ 367:../../../os/common/ports/AVR/chcore.h **** 
+ 368:../../../os/common/ports/AVR/chcore.h **** #ifdef __cplusplus
+ 369:../../../os/common/ports/AVR/chcore.h **** extern "C" {
+ 370:../../../os/common/ports/AVR/chcore.h **** #endif
+ 371:../../../os/common/ports/AVR/chcore.h ****   void _port_switch(thread_t *ntp, thread_t *otp);
+ 372:../../../os/common/ports/AVR/chcore.h ****   void _port_thread_start(void);
+ 373:../../../os/common/ports/AVR/chcore.h **** #ifdef __cplusplus
+ 374:../../../os/common/ports/AVR/chcore.h **** }
+ 375:../../../os/common/ports/AVR/chcore.h **** #endif
+ 376:../../../os/common/ports/AVR/chcore.h **** 
+ 377:../../../os/common/ports/AVR/chcore.h **** #endif /* !defined(_FROM_ASM_) */
+ 378:../../../os/common/ports/AVR/chcore.h **** 
+ 379:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 380:../../../os/common/ports/AVR/chcore.h **** /* Module inline functions.                                                  */
+ 381:../../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 382:../../../os/common/ports/AVR/chcore.h **** 
+ 383:../../../os/common/ports/AVR/chcore.h **** /* The following code is not processed when the file is included from an
+ 384:../../../os/common/ports/AVR/chcore.h ****    asm module.*/
+ 385:../../../os/common/ports/AVR/chcore.h **** #if !defined(_FROM_ASM_)
+ 386:../../../os/common/ports/AVR/chcore.h **** 
+ 387:../../../os/common/ports/AVR/chcore.h **** /**
+ 388:../../../os/common/ports/AVR/chcore.h ****  * @brief   Returns a word encoding the current interrupts status.
+ 389:../../../os/common/ports/AVR/chcore.h ****  *
+ 390:../../../os/common/ports/AVR/chcore.h ****  * @return              The interrupts status.
+ 391:../../../os/common/ports/AVR/chcore.h ****  */
+ 392:../../../os/common/ports/AVR/chcore.h **** static inline syssts_t port_get_irq_status(void) {
+ 393:../../../os/common/ports/AVR/chcore.h **** 
+ 394:../../../os/common/ports/AVR/chcore.h ****   return SREG;
+ 395:../../../os/common/ports/AVR/chcore.h **** }
+ 396:../../../os/common/ports/AVR/chcore.h **** 
+ 397:../../../os/common/ports/AVR/chcore.h **** /**
+ 398:../../../os/common/ports/AVR/chcore.h ****  * @brief   Checks the interrupt status.
+ 399:../../../os/common/ports/AVR/chcore.h ****  *
+ 400:../../../os/common/ports/AVR/chcore.h ****  * @param[in] sts       the interrupt status word
+ 401:../../../os/common/ports/AVR/chcore.h ****  *
+ 402:../../../os/common/ports/AVR/chcore.h ****  * @return              The interrupt status.
+ 403:../../../os/common/ports/AVR/chcore.h ****  * @retval false        the word specified a disabled interrupts status.
+ 404:../../../os/common/ports/AVR/chcore.h ****  * @retval true         the word specified an enabled interrupts status.
+ 405:../../../os/common/ports/AVR/chcore.h ****  */
+ 406:../../../os/common/ports/AVR/chcore.h **** static inline bool port_irq_enabled(syssts_t sts) {
+ 407:../../../os/common/ports/AVR/chcore.h **** 
+ 408:../../../os/common/ports/AVR/chcore.h ****   return (bool)((sts & 0x80) != 0);
+ 409:../../../os/common/ports/AVR/chcore.h **** }
+ 410:../../../os/common/ports/AVR/chcore.h **** 
+ 411:../../../os/common/ports/AVR/chcore.h **** /**
+ 412:../../../os/common/ports/AVR/chcore.h ****  * @brief   Determines the current execution context.
+ 413:../../../os/common/ports/AVR/chcore.h ****  *
+ 414:../../../os/common/ports/AVR/chcore.h ****  * @return              The execution context.
+ 415:../../../os/common/ports/AVR/chcore.h ****  * @retval false        not running in ISR mode.
+ 416:../../../os/common/ports/AVR/chcore.h ****  * @retval true         running in ISR mode.
+ 417:../../../os/common/ports/AVR/chcore.h ****  */
+ 418:../../../os/common/ports/AVR/chcore.h **** static inline bool port_is_isr_context(void) {
+ 419:../../../os/common/ports/AVR/chcore.h **** 
+ 420:../../../os/common/ports/AVR/chcore.h ****   return __avr_in_isr;
+ 421:../../../os/common/ports/AVR/chcore.h **** }
+ 422:../../../os/common/ports/AVR/chcore.h **** 
+ 423:../../../os/common/ports/AVR/chcore.h **** /**
+ 424:../../../os/common/ports/AVR/chcore.h ****  * @brief   Kernel-lock action.
+ 425:../../../os/common/ports/AVR/chcore.h ****  * @details Usually this function just disables interrupts but may perform more
+ 426:../../../os/common/ports/AVR/chcore.h ****  *          actions.
+ 427:../../../os/common/ports/AVR/chcore.h ****  */
+ 428:../../../os/common/ports/AVR/chcore.h **** static inline void port_lock(void) {
+ 429:../../../os/common/ports/AVR/chcore.h **** 
+ 430:../../../os/common/ports/AVR/chcore.h ****   asm volatile ("cli" : : : "memory");
+ 118               		.loc 2 430 0
+ 119               	/* #APP */
+ 120               	 ;  430 "../../../os/common/ports/AVR/chcore.h" 1
+ 121 002e F894      		cli
+ 122               	 ;  0 "" 2
+ 123               	/* #NOAPP */
+ 124               	.LBE39:
+ 125               	.LBE38:
+ 246:../../../os/oslib/src/chpipes.c **** 
+ 247:../../../os/oslib/src/chpipes.c ****   chSysLock();
+ 248:../../../os/oslib/src/chpipes.c ****   chThdResumeI(&pp->wtr, MSG_RESET);
+ 126               		.loc 1 248 0
+ 127 0030 6EEF      		ldi r22,lo8(-2)
+ 128 0032 7FEF      		ldi r23,lo8(-1)
+ 129 0034 CE01      		movw r24,r28
+ 130 0036 0B96      		adiw r24,11
+ 131 0038 0E94 0000 		call chThdResumeI
+ 132               	.LVL6:
+ 249:../../../os/oslib/src/chpipes.c ****   chThdResumeI(&pp->rtr, MSG_RESET);
+ 133               		.loc 1 249 0
+ 134 003c 6EEF      		ldi r22,lo8(-2)
+ 135 003e 7FEF      		ldi r23,lo8(-1)
+ 136 0040 CE01      		movw r24,r28
+ 137 0042 0D96      		adiw r24,13
+ 138 0044 0E94 0000 		call chThdResumeI
+ 139               	.LVL7:
+ 250:../../../os/oslib/src/chpipes.c ****   chSchRescheduleS();
+ 140               		.loc 1 250 0
+ 141 0048 0E94 0000 		call chSchRescheduleS
+ 142               	.LVL8:
+ 143               	.LBB40:
+ 144               	.LBB41:
+ 431:../../../os/common/ports/AVR/chcore.h **** }
+ 432:../../../os/common/ports/AVR/chcore.h **** 
+ 433:../../../os/common/ports/AVR/chcore.h **** /**
+ 434:../../../os/common/ports/AVR/chcore.h ****  * @brief   Kernel-unlock action.
+ 435:../../../os/common/ports/AVR/chcore.h ****  * @details Usually this function just enables interrupts but may perform more
+ 436:../../../os/common/ports/AVR/chcore.h ****  *          actions.
+ 437:../../../os/common/ports/AVR/chcore.h ****  */
+ 438:../../../os/common/ports/AVR/chcore.h **** static inline void port_unlock(void) {
+ 439:../../../os/common/ports/AVR/chcore.h **** 
+ 440:../../../os/common/ports/AVR/chcore.h ****   asm volatile ("sei" : : : "memory");
+ 145               		.loc 2 440 0
+ 146               	/* #APP */
+ 147               	 ;  440 "../../../os/common/ports/AVR/chcore.h" 1
+ 148 004c 7894      		sei
+ 149               	 ;  0 "" 2
+ 150               	/* #NOAPP */
+ 151               	.LBE41:
+ 152               	.LBE40:
+ 251:../../../os/oslib/src/chpipes.c ****   chSysUnlock();
+ 252:../../../os/oslib/src/chpipes.c **** 
+ 253:../../../os/oslib/src/chpipes.c ****   PC_UNLOCK(pp);
+ 153               		.loc 1 253 0
+ 154 004e C801      		movw r24,r16
+ 155               	/* epilogue start */
+ 254:../../../os/oslib/src/chpipes.c **** }
+ 156               		.loc 1 254 0
+ 157 0050 DF91      		pop r29
+ 158 0052 CF91      		pop r28
+ 159               	.LVL9:
+ 160 0054 1F91      		pop r17
+ 161 0056 0F91      		pop r16
+ 162               	.LVL10:
+ 253:../../../os/oslib/src/chpipes.c **** }
+ 163               		.loc 1 253 0
+ 164 0058 0C94 0000 		jmp chSemSignal
+ 165               	.LVL11:
+ 166               		.cfi_endproc
+ 167               	.LFE101:
+ 169               		.section	.text.chPipeWriteTimeout,"ax",@progbits
+ 170               	.global	chPipeWriteTimeout
+ 172               	chPipeWriteTimeout:
+ 173               	.LFB102:
+ 255:../../../os/oslib/src/chpipes.c **** 
+ 256:../../../os/oslib/src/chpipes.c **** /**
+ 257:../../../os/oslib/src/chpipes.c ****  * @brief   Pipe write with timeout.
+ 258:../../../os/oslib/src/chpipes.c ****  * @details The function writes data from a buffer to a pipe. The
+ 259:../../../os/oslib/src/chpipes.c ****  *          operation completes when the specified amount of data has been
+ 260:../../../os/oslib/src/chpipes.c ****  *          transferred or after the specified timeout or if the pipe has
+ 261:../../../os/oslib/src/chpipes.c ****  *          been reset.
+ 262:../../../os/oslib/src/chpipes.c ****  *
+ 263:../../../os/oslib/src/chpipes.c ****  * @param[in] pp        the pointer to an initialized @p pipe_t object
+ 264:../../../os/oslib/src/chpipes.c ****  * @param[in] bp        pointer to the data buffer
+ 265:../../../os/oslib/src/chpipes.c ****  * @param[in] n         the number of bytes to be written, the value 0 is
+ 266:../../../os/oslib/src/chpipes.c ****  *                      reserved
+ 267:../../../os/oslib/src/chpipes.c ****  * @param[in] timeout   the number of ticks before the operation timeouts,
+ 268:../../../os/oslib/src/chpipes.c ****  *                      the following special values are allowed:
+ 269:../../../os/oslib/src/chpipes.c ****  *                      - @a TIME_IMMEDIATE immediate timeout.
+ 270:../../../os/oslib/src/chpipes.c ****  *                      - @a TIME_INFINITE no timeout.
+ 271:../../../os/oslib/src/chpipes.c ****  *                      .
+ 272:../../../os/oslib/src/chpipes.c ****  * @return              The number of bytes effectively transferred. A number
+ 273:../../../os/oslib/src/chpipes.c ****  *                      lower than @p n means that a timeout occurred or the
+ 274:../../../os/oslib/src/chpipes.c ****  *                      pipe went in reset state.
+ 275:../../../os/oslib/src/chpipes.c ****  *
+ 276:../../../os/oslib/src/chpipes.c ****  * @api
+ 277:../../../os/oslib/src/chpipes.c ****  */
+ 278:../../../os/oslib/src/chpipes.c **** size_t chPipeWriteTimeout(pipe_t *pp, const uint8_t *bp,
+ 279:../../../os/oslib/src/chpipes.c ****                           size_t n, sysinterval_t timeout) {
+ 174               		.loc 1 279 0
+ 175               		.cfi_startproc
+ 176               	.LVL12:
+ 177 0000 2F92      		push r2
+ 178               	.LCFI4:
+ 179               		.cfi_def_cfa_offset 3
+ 180               		.cfi_offset 2, -2
+ 181 0002 3F92      		push r3
+ 182               	.LCFI5:
+ 183               		.cfi_def_cfa_offset 4
+ 184               		.cfi_offset 3, -3
+ 185 0004 4F92      		push r4
+ 186               	.LCFI6:
+ 187               		.cfi_def_cfa_offset 5
+ 188               		.cfi_offset 4, -4
+ 189 0006 5F92      		push r5
+ 190               	.LCFI7:
+ 191               		.cfi_def_cfa_offset 6
+ 192               		.cfi_offset 5, -5
+ 193 0008 6F92      		push r6
+ 194               	.LCFI8:
+ 195               		.cfi_def_cfa_offset 7
+ 196               		.cfi_offset 6, -6
+ 197 000a 7F92      		push r7
+ 198               	.LCFI9:
+ 199               		.cfi_def_cfa_offset 8
+ 200               		.cfi_offset 7, -7
+ 201 000c 8F92      		push r8
+ 202               	.LCFI10:
+ 203               		.cfi_def_cfa_offset 9
+ 204               		.cfi_offset 8, -8
+ 205 000e 9F92      		push r9
+ 206               	.LCFI11:
+ 207               		.cfi_def_cfa_offset 10
+ 208               		.cfi_offset 9, -9
+ 209 0010 AF92      		push r10
+ 210               	.LCFI12:
+ 211               		.cfi_def_cfa_offset 11
+ 212               		.cfi_offset 10, -10
+ 213 0012 BF92      		push r11
+ 214               	.LCFI13:
+ 215               		.cfi_def_cfa_offset 12
+ 216               		.cfi_offset 11, -11
+ 217 0014 CF92      		push r12
+ 218               	.LCFI14:
+ 219               		.cfi_def_cfa_offset 13
+ 220               		.cfi_offset 12, -12
+ 221 0016 DF92      		push r13
+ 222               	.LCFI15:
+ 223               		.cfi_def_cfa_offset 14
+ 224               		.cfi_offset 13, -13
+ 225 0018 EF92      		push r14
+ 226               	.LCFI16:
+ 227               		.cfi_def_cfa_offset 15
+ 228               		.cfi_offset 14, -14
+ 229 001a FF92      		push r15
+ 230               	.LCFI17:
+ 231               		.cfi_def_cfa_offset 16
+ 232               		.cfi_offset 15, -15
+ 233 001c 0F93      		push r16
+ 234               	.LCFI18:
+ 235               		.cfi_def_cfa_offset 17
+ 236               		.cfi_offset 16, -16
+ 237 001e 1F93      		push r17
+ 238               	.LCFI19:
+ 239               		.cfi_def_cfa_offset 18
+ 240               		.cfi_offset 17, -17
+ 241 0020 CF93      		push r28
+ 242               	.LCFI20:
+ 243               		.cfi_def_cfa_offset 19
+ 244               		.cfi_offset 28, -18
+ 245 0022 DF93      		push r29
+ 246               	.LCFI21:
+ 247               		.cfi_def_cfa_offset 20
+ 248               		.cfi_offset 29, -19
+ 249 0024 CDB7      		in r28,__SP_L__
+ 250 0026 DEB7      		in r29,__SP_H__
+ 251               	.LCFI22:
+ 252               		.cfi_def_cfa_register 28
+ 253 0028 2897      		sbiw r28,8
+ 254               	.LCFI23:
+ 255               		.cfi_def_cfa_offset 28
+ 256 002a 0FB6      		in __tmp_reg__,__SREG__
+ 257 002c F894      		cli
+ 258 002e DEBF      		out __SP_H__,r29
+ 259 0030 0FBE      		out __SREG__,__tmp_reg__
+ 260 0032 CDBF      		out __SP_L__,r28
+ 261               	/* prologue: function */
+ 262               	/* frame size = 8 */
+ 263               	/* stack size = 26 */
+ 264               	.L__stack_usage = 26
+ 265 0034 8C01      		movw r16,r24
+ 266 0036 4B01      		movw r8,r22
+ 267 0038 5C83      		std Y+4,r21
+ 268 003a 4B83      		std Y+3,r20
+ 269 003c 2901      		movw r4,r18
+ 270               	.LVL13:
+ 280:../../../os/oslib/src/chpipes.c ****   size_t max = n;
+ 281:../../../os/oslib/src/chpipes.c **** 
+ 282:../../../os/oslib/src/chpipes.c ****   chDbgCheck(n > 0U);
+ 283:../../../os/oslib/src/chpipes.c **** 
+ 284:../../../os/oslib/src/chpipes.c ****   /* If the pipe is in reset state then returns immediately.*/
+ 285:../../../os/oslib/src/chpipes.c ****   if (pp->reset) {
+ 271               		.loc 1 285 0
+ 272 003e FC01      		movw r30,r24
+ 273 0040 8285      		ldd r24,Z+10
+ 274               	.LVL14:
+ 275 0042 8823      		tst r24
+ 276 0044 01F0      		breq .L18
+ 286:../../../os/oslib/src/chpipes.c ****     return (size_t)0;
+ 277               		.loc 1 286 0
+ 278 0046 80E0      		ldi r24,0
+ 279 0048 90E0      		ldi r25,0
+ 280               	.LVL15:
+ 281               	.L4:
+ 282               	/* epilogue start */
+ 287:../../../os/oslib/src/chpipes.c ****   }
+ 288:../../../os/oslib/src/chpipes.c **** 
+ 289:../../../os/oslib/src/chpipes.c ****   PW_LOCK(pp);
+ 290:../../../os/oslib/src/chpipes.c **** 
+ 291:../../../os/oslib/src/chpipes.c ****   while (n > 0U) {
+ 292:../../../os/oslib/src/chpipes.c ****     size_t done;
+ 293:../../../os/oslib/src/chpipes.c **** 
+ 294:../../../os/oslib/src/chpipes.c ****     done = pipe_write(pp, bp, n);
+ 295:../../../os/oslib/src/chpipes.c ****     if (done == (size_t)0) {
+ 296:../../../os/oslib/src/chpipes.c ****       msg_t msg;
+ 297:../../../os/oslib/src/chpipes.c **** 
+ 298:../../../os/oslib/src/chpipes.c ****       chSysLock();
+ 299:../../../os/oslib/src/chpipes.c ****       msg = chThdSuspendTimeoutS(&pp->wtr, timeout);
+ 300:../../../os/oslib/src/chpipes.c ****       chSysUnlock();
+ 301:../../../os/oslib/src/chpipes.c **** 
+ 302:../../../os/oslib/src/chpipes.c ****       /* Anything except MSG_OK causes the operation to stop.*/
+ 303:../../../os/oslib/src/chpipes.c ****       if (msg != MSG_OK) {
+ 304:../../../os/oslib/src/chpipes.c ****         break;
+ 305:../../../os/oslib/src/chpipes.c ****       }
+ 306:../../../os/oslib/src/chpipes.c ****     }
+ 307:../../../os/oslib/src/chpipes.c ****     else {
+ 308:../../../os/oslib/src/chpipes.c ****       n  -= done;
+ 309:../../../os/oslib/src/chpipes.c ****       bp += done;
+ 310:../../../os/oslib/src/chpipes.c **** 
+ 311:../../../os/oslib/src/chpipes.c ****       /* Resuming the reader, if present.*/
+ 312:../../../os/oslib/src/chpipes.c ****       chThdResume(&pp->rtr, MSG_OK);
+ 313:../../../os/oslib/src/chpipes.c ****     }
+ 314:../../../os/oslib/src/chpipes.c ****   }
+ 315:../../../os/oslib/src/chpipes.c **** 
+ 316:../../../os/oslib/src/chpipes.c ****   PW_UNLOCK(pp);
+ 317:../../../os/oslib/src/chpipes.c **** 
+ 318:../../../os/oslib/src/chpipes.c ****   return max - n;
+ 319:../../../os/oslib/src/chpipes.c **** }
+ 283               		.loc 1 319 0
+ 284 004a 2896      		adiw r28,8
+ 285 004c 0FB6      		in __tmp_reg__,__SREG__
+ 286 004e F894      		cli
+ 287 0050 DEBF      		out __SP_H__,r29
+ 288 0052 0FBE      		out __SREG__,__tmp_reg__
+ 289 0054 CDBF      		out __SP_L__,r28
+ 290 0056 DF91      		pop r29
+ 291 0058 CF91      		pop r28
+ 292 005a 1F91      		pop r17
+ 293 005c 0F91      		pop r16
+ 294               	.LVL16:
+ 295 005e FF90      		pop r15
+ 296 0060 EF90      		pop r14
+ 297 0062 DF90      		pop r13
+ 298 0064 CF90      		pop r12
+ 299 0066 BF90      		pop r11
+ 300 0068 AF90      		pop r10
+ 301 006a 9F90      		pop r9
+ 302 006c 8F90      		pop r8
+ 303               	.LVL17:
+ 304 006e 7F90      		pop r7
+ 305 0070 6F90      		pop r6
+ 306 0072 5F90      		pop r5
+ 307 0074 4F90      		pop r4
+ 308               	.LVL18:
+ 309 0076 3F90      		pop r3
+ 310 0078 2F90      		pop r2
+ 311 007a 0895      		ret
+ 312               	.LVL19:
+ 313               	.L18:
+ 289:../../../os/oslib/src/chpipes.c **** 
+ 314               		.loc 1 289 0
+ 315 007c 9801      		movw r18,r16
+ 316 007e 205F      		subi r18,-16
+ 317 0080 3F4F      		sbci r19,-1
+ 318 0082 3E83      		std Y+6,r19
+ 319 0084 2D83      		std Y+5,r18
+ 320 0086 60E0      		ldi r22,0
+ 321 0088 70E0      		ldi r23,0
+ 322 008a C901      		movw r24,r18
+ 323 008c 0E94 0000 		call chSemWaitTimeout
+ 324               	.LVL20:
+ 291:../../../os/oslib/src/chpipes.c ****     size_t done;
+ 325               		.loc 1 291 0
+ 326 0090 4B81      		ldd r20,Y+3
+ 327 0092 5C81      		ldd r21,Y+4
+ 328 0094 452B      		or r20,r21
+ 329 0096 01F4      		brne .+2
+ 330 0098 00C0      		rjmp .L15
+ 331 009a 5801      		movw r10,r16
+ 332 009c 5FE0      		ldi r21,15
+ 333 009e A50E      		add r10,r21
+ 334 00a0 B11C      		adc r11,__zero_reg__
+ 335 00a2 CB80      		ldd r12,Y+3
+ 336 00a4 DC80      		ldd r13,Y+4
+ 337               	.LBB56:
+ 312:../../../os/oslib/src/chpipes.c ****     }
+ 338               		.loc 1 312 0
+ 339 00a6 1801      		movw r2,r16
+ 340 00a8 8DE0      		ldi r24,13
+ 341 00aa 280E      		add r2,r24
+ 342 00ac 311C      		adc r3,__zero_reg__
+ 343               	.LBB57:
+ 299:../../../os/oslib/src/chpipes.c ****       chSysUnlock();
+ 344               		.loc 1 299 0
+ 345 00ae F801      		movw r30,r16
+ 346 00b0 3B96      		adiw r30,11
+ 347 00b2 FA83      		std Y+2,r31
+ 348 00b4 E983      		std Y+1,r30
+ 349               	.LVL21:
+ 350               	.L7:
+ 351               	.LBE57:
+ 352               	.LBB62:
+ 353               	.LBB63:
+ 108:../../../os/oslib/src/chpipes.c **** 
+ 354               		.loc 1 108 0
+ 355 00b6 60E0      		ldi r22,0
+ 356 00b8 70E0      		ldi r23,0
+ 357 00ba C501      		movw r24,r10
+ 358 00bc 0E94 0000 		call chSemWaitTimeout
+ 359               	.LVL22:
+ 360               	.LBB64:
+ 361               	.LBB65:
+ 362               	.LBB66:
+ 363               	.LBB67:
+ 364               		.file 3 "../../../os/oslib/include/chpipes.h"
+   1:../../../os/oslib/include/chpipes.h **** /*
+   2:../../../os/oslib/include/chpipes.h ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../../os/oslib/include/chpipes.h ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../../os/oslib/include/chpipes.h **** 
+   5:../../../os/oslib/include/chpipes.h ****     This file is part of ChibiOS.
+   6:../../../os/oslib/include/chpipes.h **** 
+   7:../../../os/oslib/include/chpipes.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../../os/oslib/include/chpipes.h ****     it under the terms of the GNU General Public License as published by
+   9:../../../os/oslib/include/chpipes.h ****     the Free Software Foundation version 3 of the License.
+  10:../../../os/oslib/include/chpipes.h **** 
+  11:../../../os/oslib/include/chpipes.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../../os/oslib/include/chpipes.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../../os/oslib/include/chpipes.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../../os/oslib/include/chpipes.h ****     GNU General Public License for more details.
+  15:../../../os/oslib/include/chpipes.h **** 
+  16:../../../os/oslib/include/chpipes.h ****     You should have received a copy of the GNU General Public License
+  17:../../../os/oslib/include/chpipes.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../../os/oslib/include/chpipes.h **** */
+  19:../../../os/oslib/include/chpipes.h **** 
+  20:../../../os/oslib/include/chpipes.h **** /**
+  21:../../../os/oslib/include/chpipes.h ****  * @file    oslib/include/chpipes.h
+  22:../../../os/oslib/include/chpipes.h ****  * @brief   Pipes macros and structures.
+  23:../../../os/oslib/include/chpipes.h ****  *
+  24:../../../os/oslib/include/chpipes.h ****  * @addtogroup oslib_pipes
+  25:../../../os/oslib/include/chpipes.h ****  * @{
+  26:../../../os/oslib/include/chpipes.h ****  */
+  27:../../../os/oslib/include/chpipes.h **** 
+  28:../../../os/oslib/include/chpipes.h **** #ifndef CHPIPES_H
+  29:../../../os/oslib/include/chpipes.h **** #define CHPIPES_H
+  30:../../../os/oslib/include/chpipes.h **** 
+  31:../../../os/oslib/include/chpipes.h **** #if (CH_CFG_USE_PIPES == TRUE) || defined(__DOXYGEN__)
+  32:../../../os/oslib/include/chpipes.h **** 
+  33:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+  34:../../../os/oslib/include/chpipes.h **** /* Module constants.                                                         */
+  35:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+  36:../../../os/oslib/include/chpipes.h **** 
+  37:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+  38:../../../os/oslib/include/chpipes.h **** /* Module pre-compile time settings.                                         */
+  39:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+  40:../../../os/oslib/include/chpipes.h **** 
+  41:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+  42:../../../os/oslib/include/chpipes.h **** /* Derived constants and error checks.                                       */
+  43:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+  44:../../../os/oslib/include/chpipes.h **** 
+  45:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+  46:../../../os/oslib/include/chpipes.h **** /* Module data structures and types.                                         */
+  47:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+  48:../../../os/oslib/include/chpipes.h **** 
+  49:../../../os/oslib/include/chpipes.h **** /**
+  50:../../../os/oslib/include/chpipes.h ****  * @brief   Structure representing a pipe object.
+  51:../../../os/oslib/include/chpipes.h ****  */
+  52:../../../os/oslib/include/chpipes.h **** typedef struct {
+  53:../../../os/oslib/include/chpipes.h ****   uint8_t               *buffer;        /**< @brief Pointer to the pipe
+  54:../../../os/oslib/include/chpipes.h ****                                                     buffer.                 */
+  55:../../../os/oslib/include/chpipes.h ****   uint8_t               *top;           /**< @brief Pointer to the location
+  56:../../../os/oslib/include/chpipes.h ****                                                     after the buffer.       */
+  57:../../../os/oslib/include/chpipes.h ****   uint8_t               *wrptr;         /**< @brief Write pointer.          */
+  58:../../../os/oslib/include/chpipes.h ****   uint8_t               *rdptr;         /**< @brief Read pointer.           */
+  59:../../../os/oslib/include/chpipes.h ****   size_t                cnt;            /**< @brief Bytes in the pipe.      */
+  60:../../../os/oslib/include/chpipes.h ****   bool                  reset;          /**< @brief True if in reset state. */
+  61:../../../os/oslib/include/chpipes.h ****   thread_reference_t    wtr;            /**< @brief Waiting writer.         */
+  62:../../../os/oslib/include/chpipes.h ****   thread_reference_t    rtr;            /**< @brief Waiting reader.         */
+  63:../../../os/oslib/include/chpipes.h **** #if (CH_CFG_USE_MUTEXES == TRUE) || defined(__DOXYGEN__)
+  64:../../../os/oslib/include/chpipes.h ****   mutex_t               cmtx;           /**< @brief Common access mutex.    */
+  65:../../../os/oslib/include/chpipes.h ****   mutex_t               wmtx;           /**< @brief Write access mutex.     */
+  66:../../../os/oslib/include/chpipes.h ****   mutex_t               rmtx;           /**< @brief Read access mutex.      */
+  67:../../../os/oslib/include/chpipes.h **** #else
+  68:../../../os/oslib/include/chpipes.h ****   semaphore_t           csem;           /**< @brief Common access semaphore.*/
+  69:../../../os/oslib/include/chpipes.h ****   semaphore_t           wsem;           /**< @brief Write access semaphore. */
+  70:../../../os/oslib/include/chpipes.h ****   semaphore_t           rsem;           /**< @brief Read access semaphore.  */
+  71:../../../os/oslib/include/chpipes.h **** #endif
+  72:../../../os/oslib/include/chpipes.h **** } pipe_t;
+  73:../../../os/oslib/include/chpipes.h **** 
+  74:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+  75:../../../os/oslib/include/chpipes.h **** /* Module macros.                                                            */
+  76:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+  77:../../../os/oslib/include/chpipes.h **** 
+  78:../../../os/oslib/include/chpipes.h **** /**
+  79:../../../os/oslib/include/chpipes.h ****  * @brief   Data part of a static pipe initializer.
+  80:../../../os/oslib/include/chpipes.h ****  * @details This macro should be used when statically initializing a
+  81:../../../os/oslib/include/chpipes.h ****  *          pipe that is part of a bigger structure.
+  82:../../../os/oslib/include/chpipes.h ****  *
+  83:../../../os/oslib/include/chpipes.h ****  * @param[in] name      the name of the pipe variable
+  84:../../../os/oslib/include/chpipes.h ****  * @param[in] buffer    pointer to the pipe buffer array of @p uint8_t
+  85:../../../os/oslib/include/chpipes.h ****  * @param[in] size      number of @p uint8_t elements in the buffer array
+  86:../../../os/oslib/include/chpipes.h ****  */
+  87:../../../os/oslib/include/chpipes.h **** #if (CH_CFG_USE_MUTEXES == TRUE) || defined(__DOXYGEN__)
+  88:../../../os/oslib/include/chpipes.h **** #define __PIPE_DATA(name, buffer, size) {                                   \
+  89:../../../os/oslib/include/chpipes.h ****   (uint8_t *)(buffer),                                                      \
+  90:../../../os/oslib/include/chpipes.h ****   (uint8_t *)(buffer) + size,                                               \
+  91:../../../os/oslib/include/chpipes.h ****   (uint8_t *)(buffer),                                                      \
+  92:../../../os/oslib/include/chpipes.h ****   (uint8_t *)(buffer),                                                      \
+  93:../../../os/oslib/include/chpipes.h ****   (size_t)0,                                                                \
+  94:../../../os/oslib/include/chpipes.h ****   false,                                                                    \
+  95:../../../os/oslib/include/chpipes.h ****   NULL,                                                                     \
+  96:../../../os/oslib/include/chpipes.h ****   NULL,                                                                     \
+  97:../../../os/oslib/include/chpipes.h ****   __MUTEX_DATA(name.cmtx),                                                  \
+  98:../../../os/oslib/include/chpipes.h ****   __MUTEX_DATA(name.wmtx),                                                  \
+  99:../../../os/oslib/include/chpipes.h ****   __MUTEX_DATA(name.rmtx),                                                  \
+ 100:../../../os/oslib/include/chpipes.h **** }
+ 101:../../../os/oslib/include/chpipes.h **** #else /* CH_CFG_USE_MUTEXES == FALSE */
+ 102:../../../os/oslib/include/chpipes.h **** #define __PIPE_DATA(name, buffer, size) {                                   \
+ 103:../../../os/oslib/include/chpipes.h ****   (uint8_t *)(buffer),                                                      \
+ 104:../../../os/oslib/include/chpipes.h ****   (uint8_t *)(buffer) + size,                                               \
+ 105:../../../os/oslib/include/chpipes.h ****   (uint8_t *)(buffer),                                                      \
+ 106:../../../os/oslib/include/chpipes.h ****   (uint8_t *)(buffer),                                                      \
+ 107:../../../os/oslib/include/chpipes.h ****   (size_t)0,                                                                \
+ 108:../../../os/oslib/include/chpipes.h ****   false,                                                                    \
+ 109:../../../os/oslib/include/chpipes.h ****   NULL,                                                                     \
+ 110:../../../os/oslib/include/chpipes.h ****   NULL,                                                                     \
+ 111:../../../os/oslib/include/chpipes.h ****   __SEMAPHORE_DATA(name.csem, (cnt_t)1),                                    \
+ 112:../../../os/oslib/include/chpipes.h ****   __SEMAPHORE_DATA(name.wsem, (cnt_t)1),                                    \
+ 113:../../../os/oslib/include/chpipes.h ****   __SEMAPHORE_DATA(name.rsem, (cnt_t)1),                                    \
+ 114:../../../os/oslib/include/chpipes.h **** }
+ 115:../../../os/oslib/include/chpipes.h **** #endif /* CH_CFG_USE_MUTEXES == FALSE */
+ 116:../../../os/oslib/include/chpipes.h **** 
+ 117:../../../os/oslib/include/chpipes.h **** /**
+ 118:../../../os/oslib/include/chpipes.h ****  * @brief   Static pipe initializer.
+ 119:../../../os/oslib/include/chpipes.h ****  * @details Statically initialized pipes require no explicit
+ 120:../../../os/oslib/include/chpipes.h ****  *          initialization using @p chPipeObjectInit().
+ 121:../../../os/oslib/include/chpipes.h ****  *
+ 122:../../../os/oslib/include/chpipes.h ****  * @param[in] name      the name of the pipe variable
+ 123:../../../os/oslib/include/chpipes.h ****  * @param[in] buffer    pointer to the pipe buffer array of @p uint8_t
+ 124:../../../os/oslib/include/chpipes.h ****  * @param[in] size      number of @p uint8_t elements in the buffer array
+ 125:../../../os/oslib/include/chpipes.h ****  */
+ 126:../../../os/oslib/include/chpipes.h **** #define PIPE_DECL(name, buffer, size)                                       \
+ 127:../../../os/oslib/include/chpipes.h ****   pipe_t name = __PIPE_DATA(name, buffer, size)
+ 128:../../../os/oslib/include/chpipes.h **** 
+ 129:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+ 130:../../../os/oslib/include/chpipes.h **** /* External declarations.                                                    */
+ 131:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+ 132:../../../os/oslib/include/chpipes.h **** 
+ 133:../../../os/oslib/include/chpipes.h **** #ifdef __cplusplus
+ 134:../../../os/oslib/include/chpipes.h **** extern "C" {
+ 135:../../../os/oslib/include/chpipes.h **** #endif
+ 136:../../../os/oslib/include/chpipes.h ****   void chPipeObjectInit(pipe_t *pp, uint8_t *buf, size_t n);
+ 137:../../../os/oslib/include/chpipes.h ****   void chPipeReset(pipe_t *pp);
+ 138:../../../os/oslib/include/chpipes.h ****   size_t chPipeWriteTimeout(pipe_t *pp, const uint8_t *bp,
+ 139:../../../os/oslib/include/chpipes.h ****                             size_t n, sysinterval_t timeout);
+ 140:../../../os/oslib/include/chpipes.h ****   size_t chPipeReadTimeout(pipe_t *pp, uint8_t *bp,
+ 141:../../../os/oslib/include/chpipes.h ****                            size_t n, sysinterval_t timeout);
+ 142:../../../os/oslib/include/chpipes.h **** #ifdef __cplusplus
+ 143:../../../os/oslib/include/chpipes.h **** }
+ 144:../../../os/oslib/include/chpipes.h **** #endif
+ 145:../../../os/oslib/include/chpipes.h **** 
+ 146:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+ 147:../../../os/oslib/include/chpipes.h **** /* Module inline functions.                                                  */
+ 148:../../../os/oslib/include/chpipes.h **** /*===========================================================================*/
+ 149:../../../os/oslib/include/chpipes.h **** 
+ 150:../../../os/oslib/include/chpipes.h **** /**
+ 151:../../../os/oslib/include/chpipes.h ****  * @brief   Returns the pipe buffer size as number of bytes.
+ 152:../../../os/oslib/include/chpipes.h ****  *
+ 153:../../../os/oslib/include/chpipes.h ****  * @param[in] pp        the pointer to an initialized @p pipe_t object
+ 154:../../../os/oslib/include/chpipes.h ****  * @return              The size of the pipe.
+ 155:../../../os/oslib/include/chpipes.h ****  *
+ 156:../../../os/oslib/include/chpipes.h ****  * @api
+ 157:../../../os/oslib/include/chpipes.h ****  */
+ 158:../../../os/oslib/include/chpipes.h **** static inline size_t chPipeGetSize(const pipe_t *pp) {
+ 159:../../../os/oslib/include/chpipes.h **** 
+ 160:../../../os/oslib/include/chpipes.h ****   /*lint -save -e9033 [10.8] Perfectly safe pointers
+ 161:../../../os/oslib/include/chpipes.h ****     arithmetic.*/
+ 162:../../../os/oslib/include/chpipes.h ****   return (size_t)(pp->top - pp->buffer);
+ 365               		.loc 3 162 0
+ 366 00c0 F801      		movw r30,r16
+ 367 00c2 E280      		ldd r14,Z+2
+ 368 00c4 F380      		ldd r15,Z+3
+ 369               	.LVL23:
+ 370               	.LBE67:
+ 371               	.LBE66:
+ 372               	.LBB68:
+ 373               	.LBB69:
+ 163:../../../os/oslib/include/chpipes.h ****   /*lint -restore*/
+ 164:../../../os/oslib/include/chpipes.h **** }
+ 165:../../../os/oslib/include/chpipes.h **** 
+ 166:../../../os/oslib/include/chpipes.h **** /**
+ 167:../../../os/oslib/include/chpipes.h ****  * @brief   Returns the number of used byte slots into a pipe.
+ 168:../../../os/oslib/include/chpipes.h ****  *
+ 169:../../../os/oslib/include/chpipes.h ****  * @param[in] pp        the pointer to an initialized @p pipe_t object
+ 170:../../../os/oslib/include/chpipes.h ****  * @return              The number of queued bytes.
+ 171:../../../os/oslib/include/chpipes.h ****  *
+ 172:../../../os/oslib/include/chpipes.h ****  * @api
+ 173:../../../os/oslib/include/chpipes.h ****  */
+ 174:../../../os/oslib/include/chpipes.h **** static inline size_t chPipeGetUsedCount(const pipe_t *pp) {
+ 175:../../../os/oslib/include/chpipes.h **** 
+ 176:../../../os/oslib/include/chpipes.h ****   return pp->cnt;
+ 374               		.loc 3 176 0
+ 375 00c6 8085      		ldd r24,Z+8
+ 376 00c8 9185      		ldd r25,Z+9
+ 377               	.LVL24:
+ 378               	.LBE69:
+ 379               	.LBE68:
+ 177:../../../os/oslib/include/chpipes.h **** }
+ 178:../../../os/oslib/include/chpipes.h **** 
+ 179:../../../os/oslib/include/chpipes.h **** /**
+ 180:../../../os/oslib/include/chpipes.h ****  * @brief   Returns the number of free byte slots into a pipe.
+ 181:../../../os/oslib/include/chpipes.h ****  *
+ 182:../../../os/oslib/include/chpipes.h ****  * @param[in] pp        the pointer to an initialized @p pipe_t object
+ 183:../../../os/oslib/include/chpipes.h ****  * @return              The number of empty byte slots.
+ 184:../../../os/oslib/include/chpipes.h ****  *
+ 185:../../../os/oslib/include/chpipes.h ****  * @api
+ 186:../../../os/oslib/include/chpipes.h ****  */
+ 187:../../../os/oslib/include/chpipes.h **** static inline size_t chPipeGetFreeCount(const pipe_t *pp) {
+ 188:../../../os/oslib/include/chpipes.h **** 
+ 189:../../../os/oslib/include/chpipes.h ****   return chPipeGetSize(pp) - chPipeGetUsedCount(pp);
+ 380               		.loc 3 189 0
+ 381 00ca 2081      		ld r18,Z
+ 382 00cc 3181      		ldd r19,Z+1
+ 383 00ce A701      		movw r20,r14
+ 384 00d0 421B      		sub r20,r18
+ 385 00d2 530B      		sbc r21,r19
+ 386               	.LVL25:
+ 387 00d4 481B      		sub r20,r24
+ 388 00d6 590B      		sbc r21,r25
+ 389 00d8 5887      		std Y+8,r21
+ 390 00da 4F83      		std Y+7,r20
+ 391 00dc C416      		cp r12,r20
+ 392 00de D506      		cpc r13,r21
+ 393 00e0 00F4      		brsh .L8
+ 394 00e2 D886      		std Y+8,r13
+ 395 00e4 CF82      		std Y+7,r12
+ 396               	.L8:
+ 397               	.LVL26:
+ 398               	.LBE65:
+ 399               	.LBE64:
+ 114:../../../os/oslib/src/chpipes.c **** 
+ 400               		.loc 1 114 0
+ 401 00e6 EF81      		ldd r30,Y+7
+ 402 00e8 F885      		ldd r31,Y+8
+ 403 00ea 8E0F      		add r24,r30
+ 404 00ec 9F1F      		adc r25,r31
+ 405 00ee F801      		movw r30,r16
+ 406 00f0 9187      		std Z+9,r25
+ 407 00f2 8087      		std Z+8,r24
+ 118:../../../os/oslib/src/chpipes.c ****   /*lint -restore*/
+ 408               		.loc 1 118 0
+ 409 00f4 8481      		ldd r24,Z+4
+ 410 00f6 9581      		ldd r25,Z+5
+ 411 00f8 E81A      		sub r14,r24
+ 412 00fa F90A      		sbc r15,r25
+ 413               	.LVL27:
+ 121:../../../os/oslib/src/chpipes.c ****     memcpy((void *)pp->wrptr, (const void *)bp, n);
+ 414               		.loc 1 121 0
+ 415 00fc 2F81      		ldd r18,Y+7
+ 416 00fe 3885      		ldd r19,Y+8
+ 417 0100 2E15      		cp r18,r14
+ 418 0102 3F05      		cpc r19,r15
+ 419 0104 00F4      		brsh .+2
+ 420 0106 00C0      		rjmp .L19
+ 125:../../../os/oslib/src/chpipes.c ****     memcpy((void *)pp->wrptr, (const void *)bp, s1);
+ 421               		.loc 1 125 0
+ 422 0108 4F81      		ldd r20,Y+7
+ 423 010a 5885      		ldd r21,Y+8
+ 424 010c E416      		cp r14,r20
+ 425 010e F506      		cpc r15,r21
+ 426 0110 00F4      		brsh .+2
+ 427 0112 00C0      		rjmp .L20
+ 133:../../../os/oslib/src/chpipes.c ****     pp->wrptr = pp->buffer;
+ 428               		.loc 1 133 0
+ 429 0114 4F81      		ldd r20,Y+7
+ 430 0116 5885      		ldd r21,Y+8
+ 431 0118 B401      		movw r22,r8
+ 432 011a 0E94 0000 		call memcpy
+ 433               	.LVL28:
+ 134:../../../os/oslib/src/chpipes.c ****   }
+ 434               		.loc 1 134 0
+ 435 011e F801      		movw r30,r16
+ 436 0120 8081      		ld r24,Z
+ 437 0122 9181      		ldd r25,Z+1
+ 438 0124 9583      		std Z+5,r25
+ 439 0126 8483      		std Z+4,r24
+ 440               	.LVL29:
+ 441               	.L10:
+ 137:../../../os/oslib/src/chpipes.c **** 
+ 442               		.loc 1 137 0
+ 443 0128 C501      		movw r24,r10
+ 444 012a 0E94 0000 		call chSemSignal
+ 445               	.LVL30:
+ 446               	.LBE63:
+ 447               	.LBE62:
+ 295:../../../os/oslib/src/chpipes.c ****       msg_t msg;
+ 448               		.loc 1 295 0
+ 449 012e 2F81      		ldd r18,Y+7
+ 450 0130 3885      		ldd r19,Y+8
+ 451 0132 232B      		or r18,r19
+ 452 0134 01F4      		brne .L12
+ 453               	.LBB71:
+ 454               	.LBB58:
+ 455               	.LBB59:
+ 430:../../../os/common/ports/AVR/chcore.h **** }
+ 456               		.loc 2 430 0
+ 457               	/* #APP */
+ 458               	 ;  430 "../../../os/common/ports/AVR/chcore.h" 1
+ 459 0136 F894      		cli
+ 460               	 ;  0 "" 2
+ 461               	/* #NOAPP */
+ 462               	.LBE59:
+ 463               	.LBE58:
+ 299:../../../os/oslib/src/chpipes.c ****       chSysUnlock();
+ 464               		.loc 1 299 0
+ 465 0138 B201      		movw r22,r4
+ 466 013a 8981      		ldd r24,Y+1
+ 467 013c 9A81      		ldd r25,Y+2
+ 468 013e 0E94 0000 		call chThdSuspendTimeoutS
+ 469               	.LVL31:
+ 470               	.LBB60:
+ 471               	.LBB61:
+ 472               		.loc 2 440 0
+ 473               	/* #APP */
+ 474               	 ;  440 "../../../os/common/ports/AVR/chcore.h" 1
+ 475 0142 7894      		sei
+ 476               	 ;  0 "" 2
+ 477               	/* #NOAPP */
+ 478               	.LBE61:
+ 479               	.LBE60:
+ 303:../../../os/oslib/src/chpipes.c ****         break;
+ 480               		.loc 1 303 0
+ 481 0144 892B      		or r24,r25
+ 482 0146 01F4      		brne .+2
+ 483 0148 00C0      		rjmp .L7
+ 484               	.LBE71:
+ 485               	.LBE56:
+ 316:../../../os/oslib/src/chpipes.c **** 
+ 486               		.loc 1 316 0
+ 487 014a 8D81      		ldd r24,Y+5
+ 488 014c 9E81      		ldd r25,Y+6
+ 489               	.LVL32:
+ 490 014e 0E94 0000 		call chSemSignal
+ 491               	.LVL33:
+ 318:../../../os/oslib/src/chpipes.c **** }
+ 492               		.loc 1 318 0
+ 493 0152 8B81      		ldd r24,Y+3
+ 494 0154 9C81      		ldd r25,Y+4
+ 495 0156 8C19      		sub r24,r12
+ 496 0158 9D09      		sbc r25,r13
+ 497 015a 00C0      		rjmp .L4
+ 498               	.L12:
+ 499               	.LBB73:
+ 308:../../../os/oslib/src/chpipes.c ****       bp += done;
+ 500               		.loc 1 308 0
+ 501 015c 4F81      		ldd r20,Y+7
+ 502 015e 5885      		ldd r21,Y+8
+ 503 0160 C41A      		sub r12,r20
+ 504 0162 D50A      		sbc r13,r21
+ 505               	.LVL34:
+ 309:../../../os/oslib/src/chpipes.c **** 
+ 506               		.loc 1 309 0
+ 507 0164 840E      		add r8,r20
+ 508 0166 951E      		adc r9,r21
+ 509               	.LVL35:
+ 312:../../../os/oslib/src/chpipes.c ****     }
+ 510               		.loc 1 312 0
+ 511 0168 60E0      		ldi r22,0
+ 512 016a 70E0      		ldi r23,0
+ 513 016c C101      		movw r24,r2
+ 514 016e 0E94 0000 		call chThdResume
+ 515               	.LVL36:
+ 516               	.LBE73:
+ 291:../../../os/oslib/src/chpipes.c ****     size_t done;
+ 517               		.loc 1 291 0
+ 518 0172 C114      		cp r12,__zero_reg__
+ 519 0174 D104      		cpc r13,__zero_reg__
+ 520 0176 01F0      		breq .+2
+ 521 0178 00C0      		rjmp .L7
+ 522               	.LVL37:
+ 523               	.L15:
+ 524 017a C12C      		mov r12,__zero_reg__
+ 525 017c D12C      		mov r13,__zero_reg__
+ 316:../../../os/oslib/src/chpipes.c **** 
+ 526               		.loc 1 316 0
+ 527 017e 8D81      		ldd r24,Y+5
+ 528 0180 9E81      		ldd r25,Y+6
+ 529 0182 0E94 0000 		call chSemSignal
+ 530               	.LVL38:
+ 318:../../../os/oslib/src/chpipes.c **** }
+ 531               		.loc 1 318 0
+ 532 0186 8B81      		ldd r24,Y+3
+ 533 0188 9C81      		ldd r25,Y+4
+ 534 018a 8C19      		sub r24,r12
+ 535 018c 9D09      		sbc r25,r13
+ 536 018e 00C0      		rjmp .L4
+ 537               	.LVL39:
+ 538               	.L20:
+ 539               	.LBB74:
+ 540               	.LBB72:
+ 541               	.LBB70:
+ 126:../../../os/oslib/src/chpipes.c ****     bp += s1;
+ 542               		.loc 1 126 0
+ 543 0190 A701      		movw r20,r14
+ 544 0192 B401      		movw r22,r8
+ 545 0194 0E94 0000 		call memcpy
+ 546               	.LVL40:
+ 128:../../../os/oslib/src/chpipes.c ****     memcpy((void *)pp->buffer, (const void *)bp, s2);
+ 547               		.loc 1 128 0
+ 548 0198 6F80      		ldd r6,Y+7
+ 549 019a 7884      		ldd r7,Y+8
+ 550 019c 6E18      		sub r6,r14
+ 551 019e 7F08      		sbc r7,r15
+ 552               	.LVL41:
+ 129:../../../os/oslib/src/chpipes.c ****     pp->wrptr = pp->buffer + s2;
+ 553               		.loc 1 129 0
+ 554 01a0 B401      		movw r22,r8
+ 555 01a2 6E0D      		add r22,r14
+ 556 01a4 7F1D      		adc r23,r15
+ 557               	.LVL42:
+ 558 01a6 A301      		movw r20,r6
+ 559 01a8 F801      		movw r30,r16
+ 560 01aa 8081      		ld r24,Z
+ 561 01ac 9181      		ldd r25,Z+1
+ 562 01ae 0E94 0000 		call memcpy
+ 563               	.LVL43:
+ 130:../../../os/oslib/src/chpipes.c ****   }
+ 564               		.loc 1 130 0
+ 565 01b2 F801      		movw r30,r16
+ 566 01b4 8081      		ld r24,Z
+ 567 01b6 9181      		ldd r25,Z+1
+ 568 01b8 680E      		add r6,r24
+ 569 01ba 791E      		adc r7,r25
+ 570               	.LVL44:
+ 571 01bc 7582      		std Z+5,r7
+ 572 01be 6482      		std Z+4,r6
+ 573 01c0 00C0      		rjmp .L10
+ 574               	.LVL45:
+ 575               	.L19:
+ 122:../../../os/oslib/src/chpipes.c ****     pp->wrptr += n;
+ 576               		.loc 1 122 0
+ 577 01c2 A901      		movw r20,r18
+ 578 01c4 B401      		movw r22,r8
+ 579 01c6 0E94 0000 		call memcpy
+ 580               	.LVL46:
+ 123:../../../os/oslib/src/chpipes.c ****   }
+ 581               		.loc 1 123 0
+ 582 01ca F801      		movw r30,r16
+ 583 01cc 8481      		ldd r24,Z+4
+ 584 01ce 9581      		ldd r25,Z+5
+ 585 01d0 2F81      		ldd r18,Y+7
+ 586 01d2 3885      		ldd r19,Y+8
+ 587 01d4 820F      		add r24,r18
+ 588 01d6 931F      		adc r25,r19
+ 589 01d8 9583      		std Z+5,r25
+ 590 01da 8483      		std Z+4,r24
+ 591 01dc 00C0      		rjmp .L10
+ 592               	.LBE70:
+ 593               	.LBE72:
+ 594               	.LBE74:
+ 595               		.cfi_endproc
+ 596               	.LFE102:
+ 598               		.section	.text.chPipeReadTimeout,"ax",@progbits
+ 599               	.global	chPipeReadTimeout
+ 601               	chPipeReadTimeout:
+ 602               	.LFB103:
+ 320:../../../os/oslib/src/chpipes.c **** 
+ 321:../../../os/oslib/src/chpipes.c **** /**
+ 322:../../../os/oslib/src/chpipes.c ****  * @brief   Pipe read with timeout.
+ 323:../../../os/oslib/src/chpipes.c ****  * @details The function reads data from a pipe into a buffer. The
+ 324:../../../os/oslib/src/chpipes.c ****  *          operation completes when the specified amount of data has been
+ 325:../../../os/oslib/src/chpipes.c ****  *          transferred or after the specified timeout or if the pipe has
+ 326:../../../os/oslib/src/chpipes.c ****  *          been reset.
+ 327:../../../os/oslib/src/chpipes.c ****  *
+ 328:../../../os/oslib/src/chpipes.c ****  * @param[in] pp        the pointer to an initialized @p pipe_t object
+ 329:../../../os/oslib/src/chpipes.c ****  * @param[out] bp       pointer to the data buffer
+ 330:../../../os/oslib/src/chpipes.c ****  * @param[in] n         the number of bytes to be read, the value 0 is
+ 331:../../../os/oslib/src/chpipes.c ****  *                      reserved
+ 332:../../../os/oslib/src/chpipes.c ****  * @param[in] timeout   the number of ticks before the operation timeouts,
+ 333:../../../os/oslib/src/chpipes.c ****  *                      the following special values are allowed:
+ 334:../../../os/oslib/src/chpipes.c ****  *                      - @a TIME_IMMEDIATE immediate timeout.
+ 335:../../../os/oslib/src/chpipes.c ****  *                      - @a TIME_INFINITE no timeout.
+ 336:../../../os/oslib/src/chpipes.c ****  *                      .
+ 337:../../../os/oslib/src/chpipes.c ****  * @return              The number of bytes effectively transferred. A number
+ 338:../../../os/oslib/src/chpipes.c ****  *                      lower than @p n means that a timeout occurred or the
+ 339:../../../os/oslib/src/chpipes.c ****  *                      pipe went in reset state.
+ 340:../../../os/oslib/src/chpipes.c ****  *
+ 341:../../../os/oslib/src/chpipes.c ****  * @api
+ 342:../../../os/oslib/src/chpipes.c ****  */
+ 343:../../../os/oslib/src/chpipes.c **** size_t chPipeReadTimeout(pipe_t *pp, uint8_t *bp,
+ 344:../../../os/oslib/src/chpipes.c ****                          size_t n, sysinterval_t timeout) {
+ 603               		.loc 1 344 0
+ 604               		.cfi_startproc
+ 605               	.LVL47:
+ 606 0000 2F92      		push r2
+ 607               	.LCFI24:
+ 608               		.cfi_def_cfa_offset 3
+ 609               		.cfi_offset 2, -2
+ 610 0002 3F92      		push r3
+ 611               	.LCFI25:
+ 612               		.cfi_def_cfa_offset 4
+ 613               		.cfi_offset 3, -3
+ 614 0004 4F92      		push r4
+ 615               	.LCFI26:
+ 616               		.cfi_def_cfa_offset 5
+ 617               		.cfi_offset 4, -4
+ 618 0006 5F92      		push r5
+ 619               	.LCFI27:
+ 620               		.cfi_def_cfa_offset 6
+ 621               		.cfi_offset 5, -5
+ 622 0008 6F92      		push r6
+ 623               	.LCFI28:
+ 624               		.cfi_def_cfa_offset 7
+ 625               		.cfi_offset 6, -6
+ 626 000a 7F92      		push r7
+ 627               	.LCFI29:
+ 628               		.cfi_def_cfa_offset 8
+ 629               		.cfi_offset 7, -7
+ 630 000c 8F92      		push r8
+ 631               	.LCFI30:
+ 632               		.cfi_def_cfa_offset 9
+ 633               		.cfi_offset 8, -8
+ 634 000e 9F92      		push r9
+ 635               	.LCFI31:
+ 636               		.cfi_def_cfa_offset 10
+ 637               		.cfi_offset 9, -9
+ 638 0010 AF92      		push r10
+ 639               	.LCFI32:
+ 640               		.cfi_def_cfa_offset 11
+ 641               		.cfi_offset 10, -10
+ 642 0012 BF92      		push r11
+ 643               	.LCFI33:
+ 644               		.cfi_def_cfa_offset 12
+ 645               		.cfi_offset 11, -11
+ 646 0014 CF92      		push r12
+ 647               	.LCFI34:
+ 648               		.cfi_def_cfa_offset 13
+ 649               		.cfi_offset 12, -12
+ 650 0016 DF92      		push r13
+ 651               	.LCFI35:
+ 652               		.cfi_def_cfa_offset 14
+ 653               		.cfi_offset 13, -13
+ 654 0018 EF92      		push r14
+ 655               	.LCFI36:
+ 656               		.cfi_def_cfa_offset 15
+ 657               		.cfi_offset 14, -14
+ 658 001a FF92      		push r15
+ 659               	.LCFI37:
+ 660               		.cfi_def_cfa_offset 16
+ 661               		.cfi_offset 15, -15
+ 662 001c 0F93      		push r16
+ 663               	.LCFI38:
+ 664               		.cfi_def_cfa_offset 17
+ 665               		.cfi_offset 16, -16
+ 666 001e 1F93      		push r17
+ 667               	.LCFI39:
+ 668               		.cfi_def_cfa_offset 18
+ 669               		.cfi_offset 17, -17
+ 670 0020 CF93      		push r28
+ 671               	.LCFI40:
+ 672               		.cfi_def_cfa_offset 19
+ 673               		.cfi_offset 28, -18
+ 674 0022 DF93      		push r29
+ 675               	.LCFI41:
+ 676               		.cfi_def_cfa_offset 20
+ 677               		.cfi_offset 29, -19
+ 678 0024 CDB7      		in r28,__SP_L__
+ 679 0026 DEB7      		in r29,__SP_H__
+ 680               	.LCFI42:
+ 681               		.cfi_def_cfa_register 28
+ 682 0028 2897      		sbiw r28,8
+ 683               	.LCFI43:
+ 684               		.cfi_def_cfa_offset 28
+ 685 002a 0FB6      		in __tmp_reg__,__SREG__
+ 686 002c F894      		cli
+ 687 002e DEBF      		out __SP_H__,r29
+ 688 0030 0FBE      		out __SREG__,__tmp_reg__
+ 689 0032 CDBF      		out __SP_L__,r28
+ 690               	/* prologue: function */
+ 691               	/* frame size = 8 */
+ 692               	/* stack size = 26 */
+ 693               	.L__stack_usage = 26
+ 694 0034 8C01      		movw r16,r24
+ 695 0036 4B01      		movw r8,r22
+ 696 0038 5C83      		std Y+4,r21
+ 697 003a 4B83      		std Y+3,r20
+ 698 003c 2901      		movw r4,r18
+ 699               	.LVL48:
+ 345:../../../os/oslib/src/chpipes.c ****   size_t max = n;
+ 346:../../../os/oslib/src/chpipes.c **** 
+ 347:../../../os/oslib/src/chpipes.c ****   chDbgCheck(n > 0U);
+ 348:../../../os/oslib/src/chpipes.c **** 
+ 349:../../../os/oslib/src/chpipes.c ****   /* If the pipe is in reset state then returns immediately.*/
+ 350:../../../os/oslib/src/chpipes.c ****   if (pp->reset) {
+ 700               		.loc 1 350 0
+ 701 003e FC01      		movw r30,r24
+ 702 0040 8285      		ldd r24,Z+10
+ 703               	.LVL49:
+ 704 0042 8823      		tst r24
+ 705 0044 01F0      		breq .L35
+ 351:../../../os/oslib/src/chpipes.c ****     return (size_t)0;
+ 706               		.loc 1 351 0
+ 707 0046 80E0      		ldi r24,0
+ 708 0048 90E0      		ldi r25,0
+ 709               	.LVL50:
+ 710               	.L22:
+ 711               	/* epilogue start */
+ 352:../../../os/oslib/src/chpipes.c ****   }
+ 353:../../../os/oslib/src/chpipes.c **** 
+ 354:../../../os/oslib/src/chpipes.c ****   PR_LOCK(pp);
+ 355:../../../os/oslib/src/chpipes.c **** 
+ 356:../../../os/oslib/src/chpipes.c ****   while (n > 0U) {
+ 357:../../../os/oslib/src/chpipes.c ****     size_t done;
+ 358:../../../os/oslib/src/chpipes.c **** 
+ 359:../../../os/oslib/src/chpipes.c ****     done = pipe_read(pp, bp, n);
+ 360:../../../os/oslib/src/chpipes.c ****     if (done == (size_t)0) {
+ 361:../../../os/oslib/src/chpipes.c ****       msg_t msg;
+ 362:../../../os/oslib/src/chpipes.c **** 
+ 363:../../../os/oslib/src/chpipes.c ****       chSysLock();
+ 364:../../../os/oslib/src/chpipes.c ****       msg = chThdSuspendTimeoutS(&pp->rtr, timeout);
+ 365:../../../os/oslib/src/chpipes.c ****       chSysUnlock();
+ 366:../../../os/oslib/src/chpipes.c **** 
+ 367:../../../os/oslib/src/chpipes.c ****       /* Anything except MSG_OK causes the operation to stop.*/
+ 368:../../../os/oslib/src/chpipes.c ****       if (msg != MSG_OK) {
+ 369:../../../os/oslib/src/chpipes.c ****         break;
+ 370:../../../os/oslib/src/chpipes.c ****       }
+ 371:../../../os/oslib/src/chpipes.c ****     }
+ 372:../../../os/oslib/src/chpipes.c ****     else {
+ 373:../../../os/oslib/src/chpipes.c ****       n  -= done;
+ 374:../../../os/oslib/src/chpipes.c ****       bp += done;
+ 375:../../../os/oslib/src/chpipes.c **** 
+ 376:../../../os/oslib/src/chpipes.c ****       /* Resuming the writer, if present.*/
+ 377:../../../os/oslib/src/chpipes.c ****       chThdResume(&pp->wtr, MSG_OK);
+ 378:../../../os/oslib/src/chpipes.c ****     }
+ 379:../../../os/oslib/src/chpipes.c ****   }
+ 380:../../../os/oslib/src/chpipes.c **** 
+ 381:../../../os/oslib/src/chpipes.c ****   PR_UNLOCK(pp);
+ 382:../../../os/oslib/src/chpipes.c **** 
+ 383:../../../os/oslib/src/chpipes.c ****   return max - n;
+ 384:../../../os/oslib/src/chpipes.c **** }
+ 712               		.loc 1 384 0
+ 713 004a 2896      		adiw r28,8
+ 714 004c 0FB6      		in __tmp_reg__,__SREG__
+ 715 004e F894      		cli
+ 716 0050 DEBF      		out __SP_H__,r29
+ 717 0052 0FBE      		out __SREG__,__tmp_reg__
+ 718 0054 CDBF      		out __SP_L__,r28
+ 719 0056 DF91      		pop r29
+ 720 0058 CF91      		pop r28
+ 721 005a 1F91      		pop r17
+ 722 005c 0F91      		pop r16
+ 723               	.LVL51:
+ 724 005e FF90      		pop r15
+ 725 0060 EF90      		pop r14
+ 726 0062 DF90      		pop r13
+ 727 0064 CF90      		pop r12
+ 728 0066 BF90      		pop r11
+ 729 0068 AF90      		pop r10
+ 730 006a 9F90      		pop r9
+ 731 006c 8F90      		pop r8
+ 732               	.LVL52:
+ 733 006e 7F90      		pop r7
+ 734 0070 6F90      		pop r6
+ 735 0072 5F90      		pop r5
+ 736 0074 4F90      		pop r4
+ 737               	.LVL53:
+ 738 0076 3F90      		pop r3
+ 739 0078 2F90      		pop r2
+ 740 007a 0895      		ret
+ 741               	.LVL54:
+ 742               	.L35:
+ 354:../../../os/oslib/src/chpipes.c **** 
+ 743               		.loc 1 354 0
+ 744 007c 9801      		movw r18,r16
+ 745 007e 2F5E      		subi r18,-17
+ 746 0080 3F4F      		sbci r19,-1
+ 747 0082 3E83      		std Y+6,r19
+ 748 0084 2D83      		std Y+5,r18
+ 749 0086 60E0      		ldi r22,0
+ 750 0088 70E0      		ldi r23,0
+ 751 008a C901      		movw r24,r18
+ 752 008c 0E94 0000 		call chSemWaitTimeout
+ 753               	.LVL55:
+ 356:../../../os/oslib/src/chpipes.c ****     size_t done;
+ 754               		.loc 1 356 0
+ 755 0090 8B81      		ldd r24,Y+3
+ 756 0092 9C81      		ldd r25,Y+4
+ 757 0094 892B      		or r24,r25
+ 758 0096 01F4      		brne .+2
+ 759 0098 00C0      		rjmp .L33
+ 760 009a 5801      		movw r10,r16
+ 761 009c 9FE0      		ldi r25,15
+ 762 009e A90E      		add r10,r25
+ 763 00a0 B11C      		adc r11,__zero_reg__
+ 764 00a2 CB80      		ldd r12,Y+3
+ 765 00a4 DC80      		ldd r13,Y+4
+ 766               	.LBB85:
+ 377:../../../os/oslib/src/chpipes.c ****     }
+ 767               		.loc 1 377 0
+ 768 00a6 1801      		movw r2,r16
+ 769 00a8 EBE0      		ldi r30,11
+ 770 00aa 2E0E      		add r2,r30
+ 771 00ac 311C      		adc r3,__zero_reg__
+ 772               	.LBB86:
+ 364:../../../os/oslib/src/chpipes.c ****       chSysUnlock();
+ 773               		.loc 1 364 0
+ 774 00ae 9801      		movw r18,r16
+ 775 00b0 235F      		subi r18,-13
+ 776 00b2 3F4F      		sbci r19,-1
+ 777 00b4 3A83      		std Y+2,r19
+ 778 00b6 2983      		std Y+1,r18
+ 779               	.LVL56:
+ 780               	.L25:
+ 781               	.LBE86:
+ 782               	.LBB91:
+ 783               	.LBB92:
+ 159:../../../os/oslib/src/chpipes.c **** 
+ 784               		.loc 1 159 0
+ 785 00b8 60E0      		ldi r22,0
+ 786 00ba 70E0      		ldi r23,0
+ 787 00bc C501      		movw r24,r10
+ 788 00be 0E94 0000 		call chSemWaitTimeout
+ 789               	.LVL57:
+ 790               	.LBB93:
+ 791               	.LBB94:
+ 176:../../../os/oslib/include/chpipes.h **** }
+ 792               		.loc 3 176 0
+ 793 00c2 F801      		movw r30,r16
+ 794 00c4 8085      		ldd r24,Z+8
+ 795 00c6 9185      		ldd r25,Z+9
+ 796               	.LVL58:
+ 797 00c8 9887      		std Y+8,r25
+ 798 00ca 8F83      		std Y+7,r24
+ 799 00cc C816      		cp r12,r24
+ 800 00ce D906      		cpc r13,r25
+ 801 00d0 00F4      		brsh .L26
+ 802 00d2 D886      		std Y+8,r13
+ 803 00d4 CF82      		std Y+7,r12
+ 804               	.L26:
+ 805               	.LVL59:
+ 806               	.LBE94:
+ 807               	.LBE93:
+ 165:../../../os/oslib/src/chpipes.c **** 
+ 808               		.loc 1 165 0
+ 809 00d6 2F81      		ldd r18,Y+7
+ 810 00d8 3885      		ldd r19,Y+8
+ 811 00da 821B      		sub r24,r18
+ 812 00dc 930B      		sbc r25,r19
+ 813 00de F801      		movw r30,r16
+ 814 00e0 9187      		std Z+9,r25
+ 815 00e2 8087      		std Z+8,r24
+ 169:../../../os/oslib/src/chpipes.c ****   /*lint -restore*/
+ 816               		.loc 1 169 0
+ 817 00e4 6681      		ldd r22,Z+6
+ 818 00e6 7781      		ldd r23,Z+7
+ 819 00e8 E280      		ldd r14,Z+2
+ 820 00ea F380      		ldd r15,Z+3
+ 821 00ec E61A      		sub r14,r22
+ 822 00ee F70A      		sbc r15,r23
+ 823               	.LVL60:
+ 172:../../../os/oslib/src/chpipes.c ****     memcpy((void *)bp, (void *)pp->rdptr, n);
+ 824               		.loc 1 172 0
+ 825 00f0 2E15      		cp r18,r14
+ 826 00f2 3F05      		cpc r19,r15
+ 827 00f4 00F4      		brsh .+2
+ 828 00f6 00C0      		rjmp .L36
+ 176:../../../os/oslib/src/chpipes.c ****     memcpy((void *)bp, (void *)pp->rdptr, s1);
+ 829               		.loc 1 176 0
+ 830 00f8 8F81      		ldd r24,Y+7
+ 831 00fa 9885      		ldd r25,Y+8
+ 832 00fc E816      		cp r14,r24
+ 833 00fe F906      		cpc r15,r25
+ 834 0100 00F4      		brsh .+2
+ 835 0102 00C0      		rjmp .L37
+ 184:../../../os/oslib/src/chpipes.c ****     pp->rdptr = pp->buffer;
+ 836               		.loc 1 184 0
+ 837 0104 4F81      		ldd r20,Y+7
+ 838 0106 5885      		ldd r21,Y+8
+ 839 0108 C401      		movw r24,r8
+ 840 010a 0E94 0000 		call memcpy
+ 841               	.LVL61:
+ 185:../../../os/oslib/src/chpipes.c ****   }
+ 842               		.loc 1 185 0
+ 843 010e F801      		movw r30,r16
+ 844 0110 8081      		ld r24,Z
+ 845 0112 9181      		ldd r25,Z+1
+ 846 0114 9783      		std Z+7,r25
+ 847 0116 8683      		std Z+6,r24
+ 848               	.LVL62:
+ 849               	.L28:
+ 188:../../../os/oslib/src/chpipes.c **** 
+ 850               		.loc 1 188 0
+ 851 0118 C501      		movw r24,r10
+ 852 011a 0E94 0000 		call chSemSignal
+ 853               	.LVL63:
+ 854               	.LBE92:
+ 855               	.LBE91:
+ 360:../../../os/oslib/src/chpipes.c ****       msg_t msg;
+ 856               		.loc 1 360 0
+ 857 011e 2F81      		ldd r18,Y+7
+ 858 0120 3885      		ldd r19,Y+8
+ 859 0122 232B      		or r18,r19
+ 860 0124 01F4      		brne .L30
+ 861               	.LBB96:
+ 862               	.LBB87:
+ 863               	.LBB88:
+ 430:../../../os/common/ports/AVR/chcore.h **** }
+ 864               		.loc 2 430 0
+ 865               	/* #APP */
+ 866               	 ;  430 "../../../os/common/ports/AVR/chcore.h" 1
+ 867 0126 F894      		cli
+ 868               	 ;  0 "" 2
+ 869               	/* #NOAPP */
+ 870               	.LBE88:
+ 871               	.LBE87:
+ 364:../../../os/oslib/src/chpipes.c ****       chSysUnlock();
+ 872               		.loc 1 364 0
+ 873 0128 B201      		movw r22,r4
+ 874 012a 8981      		ldd r24,Y+1
+ 875 012c 9A81      		ldd r25,Y+2
+ 876 012e 0E94 0000 		call chThdSuspendTimeoutS
+ 877               	.LVL64:
+ 878               	.LBB89:
+ 879               	.LBB90:
+ 880               		.loc 2 440 0
+ 881               	/* #APP */
+ 882               	 ;  440 "../../../os/common/ports/AVR/chcore.h" 1
+ 883 0132 7894      		sei
+ 884               	 ;  0 "" 2
+ 885               	/* #NOAPP */
+ 886               	.LBE90:
+ 887               	.LBE89:
+ 368:../../../os/oslib/src/chpipes.c ****         break;
+ 888               		.loc 1 368 0
+ 889 0134 892B      		or r24,r25
+ 890 0136 01F4      		brne .+2
+ 891 0138 00C0      		rjmp .L25
+ 892               	.LBE96:
+ 893               	.LBE85:
+ 381:../../../os/oslib/src/chpipes.c **** 
+ 894               		.loc 1 381 0
+ 895 013a 8D81      		ldd r24,Y+5
+ 896 013c 9E81      		ldd r25,Y+6
+ 897               	.LVL65:
+ 898 013e 0E94 0000 		call chSemSignal
+ 899               	.LVL66:
+ 383:../../../os/oslib/src/chpipes.c **** }
+ 900               		.loc 1 383 0
+ 901 0142 8B81      		ldd r24,Y+3
+ 902 0144 9C81      		ldd r25,Y+4
+ 903 0146 8C19      		sub r24,r12
+ 904 0148 9D09      		sbc r25,r13
+ 905 014a 00C0      		rjmp .L22
+ 906               	.L30:
+ 907               	.LBB98:
+ 373:../../../os/oslib/src/chpipes.c ****       bp += done;
+ 908               		.loc 1 373 0
+ 909 014c 8F81      		ldd r24,Y+7
+ 910 014e 9885      		ldd r25,Y+8
+ 911 0150 C81A      		sub r12,r24
+ 912 0152 D90A      		sbc r13,r25
+ 913               	.LVL67:
+ 374:../../../os/oslib/src/chpipes.c **** 
+ 914               		.loc 1 374 0
+ 915 0154 880E      		add r8,r24
+ 916 0156 991E      		adc r9,r25
+ 917               	.LVL68:
+ 377:../../../os/oslib/src/chpipes.c ****     }
+ 918               		.loc 1 377 0
+ 919 0158 60E0      		ldi r22,0
+ 920 015a 70E0      		ldi r23,0
+ 921 015c C101      		movw r24,r2
+ 922 015e 0E94 0000 		call chThdResume
+ 923               	.LVL69:
+ 924               	.LBE98:
+ 356:../../../os/oslib/src/chpipes.c ****     size_t done;
+ 925               		.loc 1 356 0
+ 926 0162 C114      		cp r12,__zero_reg__
+ 927 0164 D104      		cpc r13,__zero_reg__
+ 928 0166 01F0      		breq .+2
+ 929 0168 00C0      		rjmp .L25
+ 930               	.LVL70:
+ 931               	.L33:
+ 932 016a C12C      		mov r12,__zero_reg__
+ 933 016c D12C      		mov r13,__zero_reg__
+ 381:../../../os/oslib/src/chpipes.c **** 
+ 934               		.loc 1 381 0
+ 935 016e 8D81      		ldd r24,Y+5
+ 936 0170 9E81      		ldd r25,Y+6
+ 937 0172 0E94 0000 		call chSemSignal
+ 938               	.LVL71:
+ 383:../../../os/oslib/src/chpipes.c **** }
+ 939               		.loc 1 383 0
+ 940 0176 8B81      		ldd r24,Y+3
+ 941 0178 9C81      		ldd r25,Y+4
+ 942 017a 8C19      		sub r24,r12
+ 943 017c 9D09      		sbc r25,r13
+ 944 017e 00C0      		rjmp .L22
+ 945               	.LVL72:
+ 946               	.L37:
+ 947               	.LBB99:
+ 948               	.LBB97:
+ 949               	.LBB95:
+ 177:../../../os/oslib/src/chpipes.c ****     bp += s1;
+ 950               		.loc 1 177 0
+ 951 0180 A701      		movw r20,r14
+ 952 0182 C401      		movw r24,r8
+ 953 0184 0E94 0000 		call memcpy
+ 954               	.LVL73:
+ 179:../../../os/oslib/src/chpipes.c ****     memcpy((void *)bp, (void *)pp->buffer, s2);
+ 955               		.loc 1 179 0
+ 956 0188 6F80      		ldd r6,Y+7
+ 957 018a 7884      		ldd r7,Y+8
+ 958 018c 6E18      		sub r6,r14
+ 959 018e 7F08      		sbc r7,r15
+ 960               	.LVL74:
+ 180:../../../os/oslib/src/chpipes.c ****     pp->rdptr = pp->buffer + s2;
+ 961               		.loc 1 180 0
+ 962 0190 F801      		movw r30,r16
+ 963 0192 6081      		ld r22,Z
+ 964 0194 7181      		ldd r23,Z+1
+ 965 0196 A301      		movw r20,r6
+ 966 0198 C401      		movw r24,r8
+ 967 019a 8E0D      		add r24,r14
+ 968 019c 9F1D      		adc r25,r15
+ 969               	.LVL75:
+ 970 019e 0E94 0000 		call memcpy
+ 971               	.LVL76:
+ 181:../../../os/oslib/src/chpipes.c ****   }
+ 972               		.loc 1 181 0
+ 973 01a2 F801      		movw r30,r16
+ 974 01a4 8081      		ld r24,Z
+ 975 01a6 9181      		ldd r25,Z+1
+ 976 01a8 680E      		add r6,r24
+ 977 01aa 791E      		adc r7,r25
+ 978               	.LVL77:
+ 979 01ac 7782      		std Z+7,r7
+ 980 01ae 6682      		std Z+6,r6
+ 981 01b0 00C0      		rjmp .L28
+ 982               	.LVL78:
+ 983               	.L36:
+ 173:../../../os/oslib/src/chpipes.c ****     pp->rdptr += n;
+ 984               		.loc 1 173 0
+ 985 01b2 A901      		movw r20,r18
+ 986 01b4 C401      		movw r24,r8
+ 987 01b6 0E94 0000 		call memcpy
+ 988               	.LVL79:
+ 174:../../../os/oslib/src/chpipes.c ****   }
+ 989               		.loc 1 174 0
+ 990 01ba F801      		movw r30,r16
+ 991 01bc 8681      		ldd r24,Z+6
+ 992 01be 9781      		ldd r25,Z+7
+ 993 01c0 2F81      		ldd r18,Y+7
+ 994 01c2 3885      		ldd r19,Y+8
+ 995 01c4 820F      		add r24,r18
+ 996 01c6 931F      		adc r25,r19
+ 997 01c8 9783      		std Z+7,r25
+ 998 01ca 8683      		std Z+6,r24
+ 999 01cc 00C0      		rjmp .L28
+ 1000               	.LBE95:
+ 1001               	.LBE97:
+ 1002               	.LBE99:
+ 1003               		.cfi_endproc
+ 1004               	.LFE103:
+ 1006               		.text
+ 1007               	.Letext0:
+ 1008               		.file 4 "/usr/lib/gcc/avr/5.4.0/include/stddef.h"
+ 1009               		.file 5 "/usr/lib/avr/include/stdint.h"
+ 1010               		.file 6 "../../../os/common/ports/AVR/compilers/GCC/chtypes.h"
+ 1011               		.file 7 "../../../os/nil/include/ch.h"
+ 1012               		.file 8 "../../../os/nil/include/chsem.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 chpipes.c
+     /tmp/ccG5sAdo.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccG5sAdo.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccG5sAdo.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccG5sAdo.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccG5sAdo.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccG5sAdo.s:13     .text.chPipeObjectInit:0000000000000000 chPipeObjectInit
+     /tmp/ccG5sAdo.s:65     .text.chPipeReset:0000000000000000 chPipeReset
+     /tmp/ccG5sAdo.s:172    .text.chPipeWriteTimeout:0000000000000000 chPipeWriteTimeout
+     /tmp/ccG5sAdo.s:601    .text.chPipeReadTimeout:0000000000000000 chPipeReadTimeout
+
+UNDEFINED SYMBOLS
+chSemWaitTimeout
+chThdResumeI
+chSchRescheduleS
+chSemSignal
+memcpy
+chThdSuspendTimeoutS
+chThdResume

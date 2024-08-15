@@ -1,0 +1,3488 @@
+   1               		.file	"chevt.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.file 1 "../../os/nil/src/chevt.c"
+  11               		.section	.text.chEvtRegisterMaskWithFlags,"ax",@progbits
+  12               	.global	chEvtRegisterMaskWithFlags
+  14               	chEvtRegisterMaskWithFlags:
+  15               	.LVL0:
+  16               	.LFB98:
+   1:../../os/nil/src/chevt.c **** /*
+   2:../../os/nil/src/chevt.c ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../os/nil/src/chevt.c ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../os/nil/src/chevt.c **** 
+   5:../../os/nil/src/chevt.c ****     This file is part of ChibiOS.
+   6:../../os/nil/src/chevt.c **** 
+   7:../../os/nil/src/chevt.c ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../os/nil/src/chevt.c ****     it under the terms of the GNU General Public License as published by
+   9:../../os/nil/src/chevt.c ****     the Free Software Foundation version 3 of the License.
+  10:../../os/nil/src/chevt.c **** 
+  11:../../os/nil/src/chevt.c ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../os/nil/src/chevt.c ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../os/nil/src/chevt.c ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../os/nil/src/chevt.c ****     GNU General Public License for more details.
+  15:../../os/nil/src/chevt.c **** 
+  16:../../os/nil/src/chevt.c ****     You should have received a copy of the GNU General Public License
+  17:../../os/nil/src/chevt.c ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../os/nil/src/chevt.c **** */
+  19:../../os/nil/src/chevt.c **** 
+  20:../../os/nil/src/chevt.c **** /**
+  21:../../os/nil/src/chevt.c ****  * @file    nil/src/chevt.c
+  22:../../os/nil/src/chevt.c ****  * @brief   Nil RTOS events source file.
+  23:../../os/nil/src/chevt.c ****  *
+  24:../../os/nil/src/chevt.c ****  * @addtogroup NIL_EVENTS
+  25:../../os/nil/src/chevt.c ****  * @{
+  26:../../os/nil/src/chevt.c ****  */
+  27:../../os/nil/src/chevt.c **** 
+  28:../../os/nil/src/chevt.c **** #include "ch.h"
+  29:../../os/nil/src/chevt.c **** 
+  30:../../os/nil/src/chevt.c **** #if (CH_CFG_USE_EVENTS == TRUE) || defined(__DOXYGEN__)
+  31:../../os/nil/src/chevt.c **** 
+  32:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  33:../../os/nil/src/chevt.c **** /* Module local definitions.                                                 */
+  34:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  35:../../os/nil/src/chevt.c **** 
+  36:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  37:../../os/nil/src/chevt.c **** /* Module exported variables.                                                */
+  38:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  39:../../os/nil/src/chevt.c **** 
+  40:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  41:../../os/nil/src/chevt.c **** /* Module local variables.                                                   */
+  42:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  43:../../os/nil/src/chevt.c **** 
+  44:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  45:../../os/nil/src/chevt.c **** /* Module local functions.                                                   */
+  46:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  47:../../os/nil/src/chevt.c **** 
+  48:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  49:../../os/nil/src/chevt.c **** /* Module interrupt handlers.                                                */
+  50:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  51:../../os/nil/src/chevt.c **** 
+  52:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  53:../../os/nil/src/chevt.c **** /* Module exported functions.                                                */
+  54:../../os/nil/src/chevt.c **** /*===========================================================================*/
+  55:../../os/nil/src/chevt.c **** 
+  56:../../os/nil/src/chevt.c **** /**
+  57:../../os/nil/src/chevt.c ****  * @brief   Registers an Event Listener on an Event Source.
+  58:../../os/nil/src/chevt.c ****  * @details Once a thread has registered as listener on an event source it
+  59:../../os/nil/src/chevt.c ****  *          will be notified of all events broadcasted there.
+  60:../../os/nil/src/chevt.c ****  * @note    Multiple Event Listeners can specify the same bits to be ORed to
+  61:../../os/nil/src/chevt.c ****  *          different threads.
+  62:../../os/nil/src/chevt.c ****  *
+  63:../../os/nil/src/chevt.c ****  * @param[in] esp       pointer to the  @p event_source_t structure
+  64:../../os/nil/src/chevt.c ****  * @param[in] elp       pointer to the @p event_listener_t structure
+  65:../../os/nil/src/chevt.c ****  * @param[in] events    events to be ORed to the thread when
+  66:../../os/nil/src/chevt.c ****  *                      the event source is broadcasted
+  67:../../os/nil/src/chevt.c ****  * @param[in] wflags    mask of flags the listening thread is interested in
+  68:../../os/nil/src/chevt.c ****  *
+  69:../../os/nil/src/chevt.c ****  * @api
+  70:../../os/nil/src/chevt.c ****  */
+  71:../../os/nil/src/chevt.c **** void chEvtRegisterMaskWithFlags(event_source_t *esp,
+  72:../../os/nil/src/chevt.c ****                                 event_listener_t *elp,
+  73:../../os/nil/src/chevt.c ****                                 eventmask_t events,
+  74:../../os/nil/src/chevt.c ****                                 eventflags_t wflags) {
+  17               		.loc 1 74 54 view -0
+  18               		.cfi_startproc
+  19               	/* prologue: function */
+  20               	/* frame size = 0 */
+  21               	/* stack size = 0 */
+  22               	.L__stack_usage = 0
+  23               		.loc 1 74 54 is_stmt 0 view .LVU1
+  24 0000 DC01      		movw r26,r24
+  25 0002 FB01      		movw r30,r22
+  75:../../os/nil/src/chevt.c **** 
+  76:../../os/nil/src/chevt.c ****   chDbgCheck((esp != NULL) && (elp != NULL));
+  26               		.loc 1 76 3 is_stmt 1 view .LVU2
+  27               		.loc 1 76 3 view .LVU3
+  28               		.loc 1 76 3 discriminator 7 view .LVU4
+  77:../../os/nil/src/chevt.c **** 
+  78:../../os/nil/src/chevt.c ****   chSysLock();
+  29               		.loc 1 78 3 view .LVU5
+  30               	.LBB56:
+  31               	.LBI56:
+  32               		.file 2 "../../os/common/ports/AVR/chcore.h"
+   1:../../os/common/ports/AVR/chcore.h **** /*
+   2:../../os/common/ports/AVR/chcore.h ****     ChibiOS - Copyright (C) 2006,2007,2008,2009,2010,2011,2012,2013,2014,
+   3:../../os/common/ports/AVR/chcore.h ****               2015,2016,2017,2018,2019,2020,2021 Giovanni Di Sirio.
+   4:../../os/common/ports/AVR/chcore.h **** 
+   5:../../os/common/ports/AVR/chcore.h ****     This file is part of ChibiOS.
+   6:../../os/common/ports/AVR/chcore.h **** 
+   7:../../os/common/ports/AVR/chcore.h ****     ChibiOS is free software; you can redistribute it and/or modify
+   8:../../os/common/ports/AVR/chcore.h ****     it under the terms of the GNU General Public License as published by
+   9:../../os/common/ports/AVR/chcore.h ****     the Free Software Foundation version 3 of the License.
+  10:../../os/common/ports/AVR/chcore.h **** 
+  11:../../os/common/ports/AVR/chcore.h ****     ChibiOS is distributed in the hope that it will be useful,
+  12:../../os/common/ports/AVR/chcore.h ****     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../../os/common/ports/AVR/chcore.h ****     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../../os/common/ports/AVR/chcore.h ****     GNU General Public License for more details.
+  15:../../os/common/ports/AVR/chcore.h **** 
+  16:../../os/common/ports/AVR/chcore.h ****     You should have received a copy of the GNU General Public License
+  17:../../os/common/ports/AVR/chcore.h ****     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  18:../../os/common/ports/AVR/chcore.h **** */
+  19:../../os/common/ports/AVR/chcore.h **** 
+  20:../../os/common/ports/AVR/chcore.h **** /**
+  21:../../os/common/ports/AVR/chcore.h ****  * @file    chcore.h
+  22:../../os/common/ports/AVR/chcore.h ****  * @brief   AVR port macros and structures.
+  23:../../os/common/ports/AVR/chcore.h ****  *
+  24:../../os/common/ports/AVR/chcore.h ****  * @addtogroup AVR_CORE
+  25:../../os/common/ports/AVR/chcore.h ****  * @{
+  26:../../os/common/ports/AVR/chcore.h ****  */
+  27:../../os/common/ports/AVR/chcore.h **** 
+  28:../../os/common/ports/AVR/chcore.h **** #ifndef CHCORE_H
+  29:../../os/common/ports/AVR/chcore.h **** #define CHCORE_H
+  30:../../os/common/ports/AVR/chcore.h **** 
+  31:../../os/common/ports/AVR/chcore.h **** #include <avr/io.h>
+  32:../../os/common/ports/AVR/chcore.h **** #include <avr/interrupt.h>
+  33:../../os/common/ports/AVR/chcore.h **** 
+  34:../../os/common/ports/AVR/chcore.h **** extern bool __avr_in_isr;
+  35:../../os/common/ports/AVR/chcore.h **** 
+  36:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+  37:../../os/common/ports/AVR/chcore.h **** /* Module constants.                                                         */
+  38:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+  39:../../os/common/ports/AVR/chcore.h **** 
+  40:../../os/common/ports/AVR/chcore.h **** /**
+  41:../../os/common/ports/AVR/chcore.h ****  * @name    Port Capabilities and Constants
+  42:../../os/common/ports/AVR/chcore.h ****  * @{
+  43:../../os/common/ports/AVR/chcore.h ****  */
+  44:../../os/common/ports/AVR/chcore.h **** /**
+  45:../../os/common/ports/AVR/chcore.h ****  * @brief   This port supports a realtime counter.
+  46:../../os/common/ports/AVR/chcore.h ****  */
+  47:../../os/common/ports/AVR/chcore.h **** #define PORT_SUPPORTS_RT                FALSE
+  48:../../os/common/ports/AVR/chcore.h **** 
+  49:../../os/common/ports/AVR/chcore.h **** /**
+  50:../../os/common/ports/AVR/chcore.h ****  * @brief   Natural alignment constant.
+  51:../../os/common/ports/AVR/chcore.h ****  * @note    It is the minimum alignment for pointer-size variables.
+  52:../../os/common/ports/AVR/chcore.h ****  */
+  53:../../os/common/ports/AVR/chcore.h **** #define PORT_NATURAL_ALIGN              1U
+  54:../../os/common/ports/AVR/chcore.h **** 
+  55:../../os/common/ports/AVR/chcore.h **** /**
+  56:../../os/common/ports/AVR/chcore.h ****  * @brief   Stack alignment constant.
+  57:../../os/common/ports/AVR/chcore.h ****  * @note    It is the alignment required for the stack pointer.
+  58:../../os/common/ports/AVR/chcore.h ****  */
+  59:../../os/common/ports/AVR/chcore.h **** #define PORT_STACK_ALIGN                1U
+  60:../../os/common/ports/AVR/chcore.h **** 
+  61:../../os/common/ports/AVR/chcore.h **** /**
+  62:../../os/common/ports/AVR/chcore.h ****  * @brief   Working Areas alignment constant.
+  63:../../os/common/ports/AVR/chcore.h ****  * @note    It is the alignment to be enforced for thread working areas.
+  64:../../os/common/ports/AVR/chcore.h ****  */
+  65:../../os/common/ports/AVR/chcore.h **** #define PORT_WORKING_AREA_ALIGN         1U
+  66:../../os/common/ports/AVR/chcore.h **** /** @} */
+  67:../../os/common/ports/AVR/chcore.h **** 
+  68:../../os/common/ports/AVR/chcore.h **** /**
+  69:../../os/common/ports/AVR/chcore.h ****  * @name    Architecture and Compiler
+  70:../../os/common/ports/AVR/chcore.h ****  * @{
+  71:../../os/common/ports/AVR/chcore.h ****  */
+  72:../../os/common/ports/AVR/chcore.h **** /**
+  73:../../os/common/ports/AVR/chcore.h ****  * @brief   Macro defining an AVR architecture.
+  74:../../os/common/ports/AVR/chcore.h ****  */
+  75:../../os/common/ports/AVR/chcore.h **** #define PORT_ARCHITECTURE_AVR
+  76:../../os/common/ports/AVR/chcore.h **** 
+  77:../../os/common/ports/AVR/chcore.h **** /**
+  78:../../os/common/ports/AVR/chcore.h ****  * @brief   Macro defining the specific AVR architecture.
+  79:../../os/common/ports/AVR/chcore.h ****  */
+  80:../../os/common/ports/AVR/chcore.h **** #define PORT_ARCHITECTURE_AVR_MEGAAVR
+  81:../../os/common/ports/AVR/chcore.h **** 
+  82:../../os/common/ports/AVR/chcore.h **** /**
+  83:../../os/common/ports/AVR/chcore.h ****  * @brief   Name of the implemented architecture.
+  84:../../os/common/ports/AVR/chcore.h ****  */
+  85:../../os/common/ports/AVR/chcore.h **** #define PORT_ARCHITECTURE_NAME          "AVR"
+  86:../../os/common/ports/AVR/chcore.h **** 
+  87:../../os/common/ports/AVR/chcore.h **** /**
+  88:../../os/common/ports/AVR/chcore.h ****  * @brief   Name of the architecture variant.
+  89:../../os/common/ports/AVR/chcore.h ****  */
+  90:../../os/common/ports/AVR/chcore.h **** #define PORT_CORE_VARIANT_NAME          "MegaAVR"
+  91:../../os/common/ports/AVR/chcore.h **** 
+  92:../../os/common/ports/AVR/chcore.h **** /**
+  93:../../os/common/ports/AVR/chcore.h ****  * @brief   Compiler name and version.
+  94:../../os/common/ports/AVR/chcore.h ****  */
+  95:../../os/common/ports/AVR/chcore.h **** #if defined(__GNUC__) || defined(__DOXYGEN__)
+  96:../../os/common/ports/AVR/chcore.h **** #define PORT_COMPILER_NAME              "GCC " __VERSION__
+  97:../../os/common/ports/AVR/chcore.h **** 
+  98:../../os/common/ports/AVR/chcore.h **** #else
+  99:../../os/common/ports/AVR/chcore.h **** #error "unsupported compiler"
+ 100:../../os/common/ports/AVR/chcore.h **** #endif
+ 101:../../os/common/ports/AVR/chcore.h **** 
+ 102:../../os/common/ports/AVR/chcore.h **** /**
+ 103:../../os/common/ports/AVR/chcore.h ****  * @brief   Port-specific information string.
+ 104:../../os/common/ports/AVR/chcore.h ****  */
+ 105:../../os/common/ports/AVR/chcore.h **** #define PORT_INFO                       "None"
+ 106:../../os/common/ports/AVR/chcore.h **** /** @} */
+ 107:../../os/common/ports/AVR/chcore.h **** 
+ 108:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 109:../../os/common/ports/AVR/chcore.h **** /* Module pre-compile time settings.                                         */
+ 110:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 111:../../os/common/ports/AVR/chcore.h **** 
+ 112:../../os/common/ports/AVR/chcore.h **** /**
+ 113:../../os/common/ports/AVR/chcore.h ****  * @brief   Stack size for the system idle thread.
+ 114:../../os/common/ports/AVR/chcore.h ****  * @details This size depends on the idle thread implementation, usually
+ 115:../../os/common/ports/AVR/chcore.h ****  *          the idle thread should take no more space than those reserved
+ 116:../../os/common/ports/AVR/chcore.h ****  *          by @p PORT_INT_REQUIRED_STACK.
+ 117:../../os/common/ports/AVR/chcore.h ****  */
+ 118:../../os/common/ports/AVR/chcore.h **** #if !defined(PORT_IDLE_THREAD_STACK_SIZE) || defined(__DOXYGEN__)
+ 119:../../os/common/ports/AVR/chcore.h **** #define PORT_IDLE_THREAD_STACK_SIZE     8
+ 120:../../os/common/ports/AVR/chcore.h **** #endif
+ 121:../../os/common/ports/AVR/chcore.h **** 
+ 122:../../os/common/ports/AVR/chcore.h **** /**
+ 123:../../os/common/ports/AVR/chcore.h ****  * @brief   Per-thread stack overhead for interrupts servicing.
+ 124:../../os/common/ports/AVR/chcore.h ****  * @details This constant is used in the calculation of the correct working
+ 125:../../os/common/ports/AVR/chcore.h ****  *          area size.
+ 126:../../os/common/ports/AVR/chcore.h ****  */
+ 127:../../os/common/ports/AVR/chcore.h **** #if !defined(PORT_INT_REQUIRED_STACK) || defined(__DOXYGEN__)
+ 128:../../os/common/ports/AVR/chcore.h **** #define PORT_INT_REQUIRED_STACK         32
+ 129:../../os/common/ports/AVR/chcore.h **** #endif
+ 130:../../os/common/ports/AVR/chcore.h **** 
+ 131:../../os/common/ports/AVR/chcore.h **** /**
+ 132:../../os/common/ports/AVR/chcore.h ****  * @brief   Enables a "wait for interrupt" instruction in the idle loop.
+ 133:../../os/common/ports/AVR/chcore.h ****  */
+ 134:../../os/common/ports/AVR/chcore.h **** #if !defined(PORT_AVR_WFI_SLEEP_IDLE) || defined(__DOXYGEN__)
+ 135:../../os/common/ports/AVR/chcore.h **** #define PORT_AVR_WFI_SLEEP_IDLE      FALSE
+ 136:../../os/common/ports/AVR/chcore.h **** #endif
+ 137:../../os/common/ports/AVR/chcore.h **** 
+ 138:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 139:../../os/common/ports/AVR/chcore.h **** /* Derived constants and error checks.                                       */
+ 140:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 141:../../os/common/ports/AVR/chcore.h **** 
+ 142:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 143:../../os/common/ports/AVR/chcore.h **** /* Module data structures and types.                                         */
+ 144:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 145:../../os/common/ports/AVR/chcore.h **** 
+ 146:../../os/common/ports/AVR/chcore.h **** /* The following code is not processed when the file is included from an
+ 147:../../os/common/ports/AVR/chcore.h ****    asm module.*/
+ 148:../../os/common/ports/AVR/chcore.h **** #if !defined(_FROM_ASM_)
+ 149:../../os/common/ports/AVR/chcore.h **** 
+ 150:../../os/common/ports/AVR/chcore.h **** /**
+ 151:../../os/common/ports/AVR/chcore.h ****  * @brief   Type of stack and memory alignment enforcement.
+ 152:../../os/common/ports/AVR/chcore.h ****  * @note    In this architecture the stack alignment is enforced to 8 bits.
+ 153:../../os/common/ports/AVR/chcore.h ****  */
+ 154:../../os/common/ports/AVR/chcore.h **** typedef uint8_t stkalign_t;
+ 155:../../os/common/ports/AVR/chcore.h **** 
+ 156:../../os/common/ports/AVR/chcore.h **** /**
+ 157:../../os/common/ports/AVR/chcore.h ****  * @brief   Interrupt saved context.
+ 158:../../os/common/ports/AVR/chcore.h ****  * @details This structure represents the stack frame saved during a
+ 159:../../os/common/ports/AVR/chcore.h ****  *          preemption-capable interrupt handler.
+ 160:../../os/common/ports/AVR/chcore.h ****  * @note    R2 and R13 are not saved because those are assumed to be immutable
+ 161:../../os/common/ports/AVR/chcore.h ****  *          during the system life cycle.
+ 162:../../os/common/ports/AVR/chcore.h ****  */
+ 163:../../os/common/ports/AVR/chcore.h **** struct port_extctx {
+ 164:../../os/common/ports/AVR/chcore.h ****   uint8_t       _next;
+ 165:../../os/common/ports/AVR/chcore.h ****   uint8_t       r31;
+ 166:../../os/common/ports/AVR/chcore.h ****   uint8_t       r30;
+ 167:../../os/common/ports/AVR/chcore.h ****   uint8_t       r27;
+ 168:../../os/common/ports/AVR/chcore.h ****   uint8_t       r26;
+ 169:../../os/common/ports/AVR/chcore.h ****   uint8_t       r25;
+ 170:../../os/common/ports/AVR/chcore.h ****   uint8_t       r24;
+ 171:../../os/common/ports/AVR/chcore.h ****   uint8_t       r23;
+ 172:../../os/common/ports/AVR/chcore.h ****   uint8_t       r22;
+ 173:../../os/common/ports/AVR/chcore.h ****   uint8_t       r21;
+ 174:../../os/common/ports/AVR/chcore.h ****   uint8_t       r20;
+ 175:../../os/common/ports/AVR/chcore.h ****   uint8_t       r19;
+ 176:../../os/common/ports/AVR/chcore.h ****   uint8_t       r18;
+ 177:../../os/common/ports/AVR/chcore.h ****   uint8_t       sr;
+ 178:../../os/common/ports/AVR/chcore.h ****   uint8_t       r1;
+ 179:../../os/common/ports/AVR/chcore.h ****   uint8_t       r0;
+ 180:../../os/common/ports/AVR/chcore.h **** #if defined(__AVR_3_BYTE_PC__)
+ 181:../../os/common/ports/AVR/chcore.h ****   uint8_t       pcx;
+ 182:../../os/common/ports/AVR/chcore.h **** #endif
+ 183:../../os/common/ports/AVR/chcore.h ****   uint16_t      pc;
+ 184:../../os/common/ports/AVR/chcore.h **** };
+ 185:../../os/common/ports/AVR/chcore.h **** 
+ 186:../../os/common/ports/AVR/chcore.h **** /**
+ 187:../../os/common/ports/AVR/chcore.h ****  * @brief   System saved context.
+ 188:../../os/common/ports/AVR/chcore.h ****  * @details This structure represents the inner stack frame during a context
+ 189:../../os/common/ports/AVR/chcore.h ****  *          switching.
+ 190:../../os/common/ports/AVR/chcore.h ****  * @note    R2 and R13 are not saved because those are assumed to be immutable
+ 191:../../os/common/ports/AVR/chcore.h ****  *          during the system life cycle.
+ 192:../../os/common/ports/AVR/chcore.h ****  * @note    LR is stored in the caller context so it is not present in this
+ 193:../../os/common/ports/AVR/chcore.h ****  *          structure.
+ 194:../../os/common/ports/AVR/chcore.h ****  */
+ 195:../../os/common/ports/AVR/chcore.h **** struct port_intctx {
+ 196:../../os/common/ports/AVR/chcore.h ****   uint8_t       _next;
+ 197:../../os/common/ports/AVR/chcore.h ****   uint8_t       r29;
+ 198:../../os/common/ports/AVR/chcore.h ****   uint8_t       r28;
+ 199:../../os/common/ports/AVR/chcore.h ****   uint8_t       r17;
+ 200:../../os/common/ports/AVR/chcore.h ****   uint8_t       r16;
+ 201:../../os/common/ports/AVR/chcore.h ****   uint8_t       r15;
+ 202:../../os/common/ports/AVR/chcore.h ****   uint8_t       r14;
+ 203:../../os/common/ports/AVR/chcore.h ****   uint8_t       r13;
+ 204:../../os/common/ports/AVR/chcore.h ****   uint8_t       r12;
+ 205:../../os/common/ports/AVR/chcore.h ****   uint8_t       r11;
+ 206:../../os/common/ports/AVR/chcore.h ****   uint8_t       r10;
+ 207:../../os/common/ports/AVR/chcore.h ****   uint8_t       r9;
+ 208:../../os/common/ports/AVR/chcore.h ****   uint8_t       r8;
+ 209:../../os/common/ports/AVR/chcore.h ****   uint8_t       r7;
+ 210:../../os/common/ports/AVR/chcore.h ****   uint8_t       r6;
+ 211:../../os/common/ports/AVR/chcore.h ****   uint8_t       r5;
+ 212:../../os/common/ports/AVR/chcore.h ****   uint8_t       r4;
+ 213:../../os/common/ports/AVR/chcore.h ****   uint8_t       r3;
+ 214:../../os/common/ports/AVR/chcore.h ****   uint8_t       r2;
+ 215:../../os/common/ports/AVR/chcore.h **** #if defined(__AVR_3_BYTE_PC__)
+ 216:../../os/common/ports/AVR/chcore.h ****   uint8_t       pcx;
+ 217:../../os/common/ports/AVR/chcore.h **** #endif
+ 218:../../os/common/ports/AVR/chcore.h ****   uint8_t       pcl;
+ 219:../../os/common/ports/AVR/chcore.h ****   uint8_t       pch;
+ 220:../../os/common/ports/AVR/chcore.h **** };
+ 221:../../os/common/ports/AVR/chcore.h **** 
+ 222:../../os/common/ports/AVR/chcore.h **** /**
+ 223:../../os/common/ports/AVR/chcore.h ****  * @brief   Platform dependent part of the @p thread_t structure.
+ 224:../../os/common/ports/AVR/chcore.h ****  * @details This structure usually contains just the saved stack pointer
+ 225:../../os/common/ports/AVR/chcore.h ****  *          defined as a pointer to a @p port_intctx structure.
+ 226:../../os/common/ports/AVR/chcore.h ****  */
+ 227:../../os/common/ports/AVR/chcore.h **** struct port_context {
+ 228:../../os/common/ports/AVR/chcore.h ****   struct port_intctx *sp;
+ 229:../../os/common/ports/AVR/chcore.h **** };
+ 230:../../os/common/ports/AVR/chcore.h **** 
+ 231:../../os/common/ports/AVR/chcore.h **** #endif /* !defined(_FROM_ASM_) */
+ 232:../../os/common/ports/AVR/chcore.h **** 
+ 233:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 234:../../os/common/ports/AVR/chcore.h **** /* Module macros.                                                            */
+ 235:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 236:../../os/common/ports/AVR/chcore.h **** 
+ 237:../../os/common/ports/AVR/chcore.h **** /**
+ 238:../../os/common/ports/AVR/chcore.h ****  * @brief   Platform dependent part of the @p chThdCreateI() API.
+ 239:../../os/common/ports/AVR/chcore.h ****  * @details This code usually setup the context switching frame represented
+ 240:../../os/common/ports/AVR/chcore.h ****  *          by an @p port_intctx structure.
+ 241:../../os/common/ports/AVR/chcore.h ****  */
+ 242:../../os/common/ports/AVR/chcore.h **** #if defined(__AVR_3_BYTE_PC__) || defined(__DOXYGEN__)
+ 243:../../os/common/ports/AVR/chcore.h **** #define PORT_SETUP_CONTEXT(tp, wbase, wtop, pf, arg) {                      \
+ 244:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp = (struct port_intctx *)((uint8_t *)(wtop) -                   \
+ 245:../../os/common/ports/AVR/chcore.h ****                                       sizeof(struct port_intctx));          \
+ 246:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r2  = (uint8_t)(0xff & (uint16_t)pf);                         \
+ 247:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r3  = (uint8_t)((uint16_t)(pf) >> 8);                         \
+ 248:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r4  = (uint8_t)(0xff & (uint16_t)arg);                        \
+ 249:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r5  = (uint8_t)((uint16_t)(arg) >> 8);                        \
+ 250:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pcx = (uint8_t)0;                                             \
+ 251:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pcl = (uint16_t)_port_thread_start >> 8;                      \
+ 252:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pch = (uint8_t)(0xff & (uint16_t)_port_thread_start);         \
+ 253:../../os/common/ports/AVR/chcore.h **** }
+ 254:../../os/common/ports/AVR/chcore.h **** #else /* !__AVR_3_BYTE_PC__ */
+ 255:../../os/common/ports/AVR/chcore.h **** #define PORT_SETUP_CONTEXT(tp, wbase, wtop, pf, arg) {                      \
+ 256:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp = (struct port_intctx *)((uint8_t *)(wtop) -                   \
+ 257:../../os/common/ports/AVR/chcore.h ****                                       sizeof(struct port_intctx));          \
+ 258:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r2  = (uint8_t)(0xff & (uint16_t)pf);                         \
+ 259:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r3  = (uint8_t)((uint16_t)(pf) >> 8);                         \
+ 260:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r4  = (uint8_t)(0xff & (uint16_t)arg);                        \
+ 261:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->r5  = (uint8_t)((uint16_t)(arg) >> 8);                        \
+ 262:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pcl = (uint16_t)_port_thread_start >> 8;                      \
+ 263:../../os/common/ports/AVR/chcore.h ****   tp->ctx.sp->pch = (uint8_t)(0xff & (uint16_t)_port_thread_start);         \
+ 264:../../os/common/ports/AVR/chcore.h **** }
+ 265:../../os/common/ports/AVR/chcore.h **** #endif /* !__AVR_3_BYTE_PC__ */
+ 266:../../os/common/ports/AVR/chcore.h **** 
+ 267:../../os/common/ports/AVR/chcore.h **** /**
+ 268:../../os/common/ports/AVR/chcore.h ****  * @brief   Computes the thread working area global size.
+ 269:../../os/common/ports/AVR/chcore.h ****  * @note    There is no need to perform alignments in this macro.
+ 270:../../os/common/ports/AVR/chcore.h ****  */
+ 271:../../os/common/ports/AVR/chcore.h **** #define PORT_WA_SIZE(n) ((sizeof(struct port_intctx) - 1) +                \
+ 272:../../os/common/ports/AVR/chcore.h ****                          (sizeof(struct port_extctx) - 1) +                \
+ 273:../../os/common/ports/AVR/chcore.h ****                          ((size_t)(n)) + ((size_t)(PORT_INT_REQUIRED_STACK)))
+ 274:../../os/common/ports/AVR/chcore.h **** 
+ 275:../../os/common/ports/AVR/chcore.h **** /**
+ 276:../../os/common/ports/AVR/chcore.h ****  * @brief   Static working area allocation.
+ 277:../../os/common/ports/AVR/chcore.h ****  * @details This macro is used to allocate a static thread working area
+ 278:../../os/common/ports/AVR/chcore.h ****  *          aligned as both position and size.
+ 279:../../os/common/ports/AVR/chcore.h ****  *
+ 280:../../os/common/ports/AVR/chcore.h ****  * @param[in] s         the name to be assigned to the stack array
+ 281:../../os/common/ports/AVR/chcore.h ****  * @param[in] n         the stack size to be assigned to the thread
+ 282:../../os/common/ports/AVR/chcore.h ****  */
+ 283:../../os/common/ports/AVR/chcore.h **** #define PORT_WORKING_AREA(s, n)                                             \
+ 284:../../os/common/ports/AVR/chcore.h ****   stkalign_t s[THD_WORKING_AREA_SIZE(n) / sizeof (stkalign_t)]
+ 285:../../os/common/ports/AVR/chcore.h **** 
+ 286:../../os/common/ports/AVR/chcore.h **** /**
+ 287:../../os/common/ports/AVR/chcore.h ****  * @brief   Priority level verification macro.
+ 288:../../os/common/ports/AVR/chcore.h ****  */
+ 289:../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_IS_VALID_PRIORITY(n) false
+ 290:../../os/common/ports/AVR/chcore.h **** 
+ 291:../../os/common/ports/AVR/chcore.h **** /**
+ 292:../../os/common/ports/AVR/chcore.h ****  * @brief   Priority level verification macro.
+ 293:../../os/common/ports/AVR/chcore.h ****  */
+ 294:../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_IS_VALID_KERNEL_PRIORITY(n) false
+ 295:../../os/common/ports/AVR/chcore.h **** 
+ 296:../../os/common/ports/AVR/chcore.h **** /**
+ 297:../../os/common/ports/AVR/chcore.h ****  * @brief   IRQ prologue code.
+ 298:../../os/common/ports/AVR/chcore.h ****  * @details This macro must be inserted at the start of all IRQ handlers
+ 299:../../os/common/ports/AVR/chcore.h ****  *          enabled to invoke system APIs.
+ 300:../../os/common/ports/AVR/chcore.h ****  * @note    This code tricks the compiler to save all the specified registers
+ 301:../../os/common/ports/AVR/chcore.h ****  *          by "touching" them.
+ 302:../../os/common/ports/AVR/chcore.h ****  */
+ 303:../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_PROLOGUE() {                                               \
+ 304:../../os/common/ports/AVR/chcore.h ****   asm ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24",            \
+ 305:../../os/common/ports/AVR/chcore.h ****                 "r25", "r26", "r27", "r30", "r31");                         \
+ 306:../../os/common/ports/AVR/chcore.h ****   __avr_in_isr = true;                                                      \
+ 307:../../os/common/ports/AVR/chcore.h **** }
+ 308:../../os/common/ports/AVR/chcore.h **** 
+ 309:../../os/common/ports/AVR/chcore.h **** /**
+ 310:../../os/common/ports/AVR/chcore.h ****  * @brief   IRQ epilogue code.
+ 311:../../os/common/ports/AVR/chcore.h ****  * @details This macro must be inserted at the end of all IRQ handlers
+ 312:../../os/common/ports/AVR/chcore.h ****  *          enabled to invoke system APIs.
+ 313:../../os/common/ports/AVR/chcore.h ****  */
+ 314:../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_EPILOGUE() {                                               \
+ 315:../../os/common/ports/AVR/chcore.h ****   __avr_in_isr = false;                                                     \
+ 316:../../os/common/ports/AVR/chcore.h ****   __dbg_check_lock();                                                       \
+ 317:../../os/common/ports/AVR/chcore.h ****   if (chSchIsPreemptionRequired())                                          \
+ 318:../../os/common/ports/AVR/chcore.h ****     chSchDoPreemption();                                                    \
+ 319:../../os/common/ports/AVR/chcore.h ****   __dbg_check_unlock();                                                     \
+ 320:../../os/common/ports/AVR/chcore.h **** }
+ 321:../../os/common/ports/AVR/chcore.h **** 
+ 322:../../os/common/ports/AVR/chcore.h **** /**
+ 323:../../os/common/ports/AVR/chcore.h ****  * @brief   IRQ handler function declaration.
+ 324:../../os/common/ports/AVR/chcore.h ****  * @note    @p id can be a function name or a vector number depending on the
+ 325:../../os/common/ports/AVR/chcore.h ****  *          port implementation.
+ 326:../../os/common/ports/AVR/chcore.h ****  */
+ 327:../../os/common/ports/AVR/chcore.h **** #define PORT_IRQ_HANDLER(id) ISR(id)
+ 328:../../os/common/ports/AVR/chcore.h **** 
+ 329:../../os/common/ports/AVR/chcore.h **** /**
+ 330:../../os/common/ports/AVR/chcore.h ****  * @brief   Fast IRQ handler function declaration.
+ 331:../../os/common/ports/AVR/chcore.h ****  * @note    @p id can be a function name or a vector number depending on the
+ 332:../../os/common/ports/AVR/chcore.h ****  *          port implementation.
+ 333:../../os/common/ports/AVR/chcore.h ****  */
+ 334:../../os/common/ports/AVR/chcore.h **** #define PORT_FAST_IRQ_HANDLER(id) ISR(id)
+ 335:../../os/common/ports/AVR/chcore.h **** 
+ 336:../../os/common/ports/AVR/chcore.h **** /**
+ 337:../../os/common/ports/AVR/chcore.h ****  * @brief   Performs a context switch between two threads.
+ 338:../../os/common/ports/AVR/chcore.h ****  * @details This is the most critical code in any port, this function
+ 339:../../os/common/ports/AVR/chcore.h ****  *          is responsible for the context switch between 2 threads.
+ 340:../../os/common/ports/AVR/chcore.h ****  * @note    The implementation of this code affects <b>directly</b> the context
+ 341:../../os/common/ports/AVR/chcore.h ****  *          switch performance so optimize here as much as you can.
+ 342:../../os/common/ports/AVR/chcore.h ****  *
+ 343:../../os/common/ports/AVR/chcore.h ****  * @param[in] ntp       the thread to be switched in
+ 344:../../os/common/ports/AVR/chcore.h ****  * @param[in] otp       the thread to be switched out
+ 345:../../os/common/ports/AVR/chcore.h ****  */
+ 346:../../os/common/ports/AVR/chcore.h **** #define port_switch(ntp, otp) {                                             \
+ 347:../../os/common/ports/AVR/chcore.h ****   _port_switch(ntp, otp);                                                   \
+ 348:../../os/common/ports/AVR/chcore.h ****   asm volatile ("" : : : "memory");                                         \
+ 349:../../os/common/ports/AVR/chcore.h **** }
+ 350:../../os/common/ports/AVR/chcore.h **** 
+ 351:../../os/common/ports/AVR/chcore.h **** 
+ 352:../../os/common/ports/AVR/chcore.h **** /**
+ 353:../../os/common/ports/AVR/chcore.h ****  * @brief   Port-related initialization code.
+ 354:../../os/common/ports/AVR/chcore.h ****  * @note    This function is empty in this port.
+ 355:../../os/common/ports/AVR/chcore.h ****  */
+ 356:../../os/common/ports/AVR/chcore.h **** #define port_init(oip) {                                                    \
+ 357:../../os/common/ports/AVR/chcore.h ****   __avr_in_isr = true;                                                      \
+ 358:../../os/common/ports/AVR/chcore.h **** }
+ 359:../../os/common/ports/AVR/chcore.h **** 
+ 360:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 361:../../os/common/ports/AVR/chcore.h **** /* External declarations.                                                    */
+ 362:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 363:../../os/common/ports/AVR/chcore.h **** 
+ 364:../../os/common/ports/AVR/chcore.h **** /* The following code is not processed when the file is included from an
+ 365:../../os/common/ports/AVR/chcore.h ****    asm module.*/
+ 366:../../os/common/ports/AVR/chcore.h **** #if !defined(_FROM_ASM_)
+ 367:../../os/common/ports/AVR/chcore.h **** 
+ 368:../../os/common/ports/AVR/chcore.h **** #ifdef __cplusplus
+ 369:../../os/common/ports/AVR/chcore.h **** extern "C" {
+ 370:../../os/common/ports/AVR/chcore.h **** #endif
+ 371:../../os/common/ports/AVR/chcore.h ****   void _port_switch(thread_t *ntp, thread_t *otp);
+ 372:../../os/common/ports/AVR/chcore.h ****   void _port_thread_start(void);
+ 373:../../os/common/ports/AVR/chcore.h **** #ifdef __cplusplus
+ 374:../../os/common/ports/AVR/chcore.h **** }
+ 375:../../os/common/ports/AVR/chcore.h **** #endif
+ 376:../../os/common/ports/AVR/chcore.h **** 
+ 377:../../os/common/ports/AVR/chcore.h **** #endif /* !defined(_FROM_ASM_) */
+ 378:../../os/common/ports/AVR/chcore.h **** 
+ 379:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 380:../../os/common/ports/AVR/chcore.h **** /* Module inline functions.                                                  */
+ 381:../../os/common/ports/AVR/chcore.h **** /*===========================================================================*/
+ 382:../../os/common/ports/AVR/chcore.h **** 
+ 383:../../os/common/ports/AVR/chcore.h **** /* The following code is not processed when the file is included from an
+ 384:../../os/common/ports/AVR/chcore.h ****    asm module.*/
+ 385:../../os/common/ports/AVR/chcore.h **** #if !defined(_FROM_ASM_)
+ 386:../../os/common/ports/AVR/chcore.h **** 
+ 387:../../os/common/ports/AVR/chcore.h **** /**
+ 388:../../os/common/ports/AVR/chcore.h ****  * @brief   Returns a word encoding the current interrupts status.
+ 389:../../os/common/ports/AVR/chcore.h ****  *
+ 390:../../os/common/ports/AVR/chcore.h ****  * @return              The interrupts status.
+ 391:../../os/common/ports/AVR/chcore.h ****  */
+ 392:../../os/common/ports/AVR/chcore.h **** static inline syssts_t port_get_irq_status(void) {
+ 393:../../os/common/ports/AVR/chcore.h **** 
+ 394:../../os/common/ports/AVR/chcore.h ****   return SREG;
+ 395:../../os/common/ports/AVR/chcore.h **** }
+ 396:../../os/common/ports/AVR/chcore.h **** 
+ 397:../../os/common/ports/AVR/chcore.h **** /**
+ 398:../../os/common/ports/AVR/chcore.h ****  * @brief   Checks the interrupt status.
+ 399:../../os/common/ports/AVR/chcore.h ****  *
+ 400:../../os/common/ports/AVR/chcore.h ****  * @param[in] sts       the interrupt status word
+ 401:../../os/common/ports/AVR/chcore.h ****  *
+ 402:../../os/common/ports/AVR/chcore.h ****  * @return              The interrupt status.
+ 403:../../os/common/ports/AVR/chcore.h ****  * @retval false        the word specified a disabled interrupts status.
+ 404:../../os/common/ports/AVR/chcore.h ****  * @retval true         the word specified an enabled interrupts status.
+ 405:../../os/common/ports/AVR/chcore.h ****  */
+ 406:../../os/common/ports/AVR/chcore.h **** static inline bool port_irq_enabled(syssts_t sts) {
+ 407:../../os/common/ports/AVR/chcore.h **** 
+ 408:../../os/common/ports/AVR/chcore.h ****   return (bool)((sts & 0x80) != 0);
+ 409:../../os/common/ports/AVR/chcore.h **** }
+ 410:../../os/common/ports/AVR/chcore.h **** 
+ 411:../../os/common/ports/AVR/chcore.h **** /**
+ 412:../../os/common/ports/AVR/chcore.h ****  * @brief   Determines the current execution context.
+ 413:../../os/common/ports/AVR/chcore.h ****  *
+ 414:../../os/common/ports/AVR/chcore.h ****  * @return              The execution context.
+ 415:../../os/common/ports/AVR/chcore.h ****  * @retval false        not running in ISR mode.
+ 416:../../os/common/ports/AVR/chcore.h ****  * @retval true         running in ISR mode.
+ 417:../../os/common/ports/AVR/chcore.h ****  */
+ 418:../../os/common/ports/AVR/chcore.h **** static inline bool port_is_isr_context(void) {
+ 419:../../os/common/ports/AVR/chcore.h **** 
+ 420:../../os/common/ports/AVR/chcore.h ****   return __avr_in_isr;
+ 421:../../os/common/ports/AVR/chcore.h **** }
+ 422:../../os/common/ports/AVR/chcore.h **** 
+ 423:../../os/common/ports/AVR/chcore.h **** /**
+ 424:../../os/common/ports/AVR/chcore.h ****  * @brief   Kernel-lock action.
+ 425:../../os/common/ports/AVR/chcore.h ****  * @details Usually this function just disables interrupts but may perform more
+ 426:../../os/common/ports/AVR/chcore.h ****  *          actions.
+ 427:../../os/common/ports/AVR/chcore.h ****  */
+ 428:../../os/common/ports/AVR/chcore.h **** static inline void port_lock(void) {
+  33               		.loc 2 428 20 view .LVU6
+  34               	.LBB57:
+ 429:../../os/common/ports/AVR/chcore.h **** 
+ 430:../../os/common/ports/AVR/chcore.h ****   asm volatile ("cli" : : : "memory");
+  35               		.loc 2 430 3 view .LVU7
+  36               	/* #APP */
+  37               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+  38 0004 F894      		cli
+  39               	 ;  0 "" 2
+  40               	/* #NOAPP */
+  41               	.LBE57:
+  42               	.LBE56:
+  43               		.loc 1 78 3 discriminator 1 view .LVU8
+  44               		.loc 1 78 14 discriminator 1 view .LVU9
+  79:../../os/nil/src/chevt.c ****   elp->next     = esp->next;
+  45               		.loc 1 79 3 view .LVU10
+  46               		.loc 1 79 17 is_stmt 0 view .LVU11
+  47 0006 8D91      		ld r24,X+
+  48 0008 9C91      		ld r25,X
+  49 000a 1197      		sbiw r26,1
+  50               	.LVL1:
+  51               		.loc 1 79 17 view .LVU12
+  52 000c 9183      		std Z+1,r25
+  53 000e 8083      		st Z,r24
+  80:../../os/nil/src/chevt.c ****   esp->next     = elp;
+  54               		.loc 1 80 3 is_stmt 1 view .LVU13
+  55               		.loc 1 80 17 is_stmt 0 view .LVU14
+  56 0010 6D93      		st X+,r22
+  57 0012 7C93      		st X,r23
+  81:../../os/nil/src/chevt.c ****   elp->listener = chThdGetSelfX();
+  58               		.loc 1 81 3 is_stmt 1 view .LVU15
+  59               		.loc 1 81 17 is_stmt 0 view .LVU16
+  60 0014 8091 0000 		lds r24,nil
+  61 0018 9091 0000 		lds r25,nil+1
+  62 001c 9383      		std Z+3,r25
+  63 001e 8283      		std Z+2,r24
+  82:../../os/nil/src/chevt.c ****   elp->events   = events;
+  64               		.loc 1 82 3 is_stmt 1 view .LVU17
+  65               		.loc 1 82 17 is_stmt 0 view .LVU18
+  66 0020 4483      		std Z+4,r20
+  83:../../os/nil/src/chevt.c ****   elp->flags    = (eventflags_t)0;
+  67               		.loc 1 83 3 is_stmt 1 view .LVU19
+  68               		.loc 1 83 17 is_stmt 0 view .LVU20
+  69 0022 1582      		std Z+5,__zero_reg__
+  84:../../os/nil/src/chevt.c ****   elp->wflags   = wflags;
+  70               		.loc 1 84 3 is_stmt 1 view .LVU21
+  71               		.loc 1 84 17 is_stmt 0 view .LVU22
+  72 0024 2683      		std Z+6,r18
+  85:../../os/nil/src/chevt.c ****   chSysUnlock();
+  73               		.loc 1 85 3 is_stmt 1 view .LVU23
+  74               		.loc 1 85 3 view .LVU24
+  75               	.LBB58:
+  76               	.LBI58:
+ 431:../../os/common/ports/AVR/chcore.h **** }
+ 432:../../os/common/ports/AVR/chcore.h **** 
+ 433:../../os/common/ports/AVR/chcore.h **** /**
+ 434:../../os/common/ports/AVR/chcore.h ****  * @brief   Kernel-unlock action.
+ 435:../../os/common/ports/AVR/chcore.h ****  * @details Usually this function just enables interrupts but may perform more
+ 436:../../os/common/ports/AVR/chcore.h ****  *          actions.
+ 437:../../os/common/ports/AVR/chcore.h ****  */
+ 438:../../os/common/ports/AVR/chcore.h **** static inline void port_unlock(void) {
+  77               		.loc 2 438 20 view .LVU25
+  78               	.LBB59:
+ 439:../../os/common/ports/AVR/chcore.h **** 
+ 440:../../os/common/ports/AVR/chcore.h ****   asm volatile ("sei" : : : "memory");
+  79               		.loc 2 440 3 view .LVU26
+  80               	/* #APP */
+  81               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+  82 0026 7894      		sei
+  83               	 ;  0 "" 2
+  84               	/* #NOAPP */
+  85               	.LBE59:
+  86               	.LBE58:
+  87               		.loc 1 85 16 discriminator 1 view .LVU27
+  88               	/* epilogue start */
+  86:../../os/nil/src/chevt.c **** }
+  89               		.loc 1 86 1 is_stmt 0 view .LVU28
+  90 0028 0895      		ret
+  91               		.cfi_endproc
+  92               	.LFE98:
+  94               		.section	.text.chEvtUnregister,"ax",@progbits
+  95               	.global	chEvtUnregister
+  97               	chEvtUnregister:
+  98               	.LVL2:
+  99               	.LFB99:
+  87:../../os/nil/src/chevt.c **** 
+  88:../../os/nil/src/chevt.c **** /**
+  89:../../os/nil/src/chevt.c ****  * @brief   Unregisters an Event Listener from its Event Source.
+  90:../../os/nil/src/chevt.c ****  * @note    If the event listener is not registered on the specified event
+  91:../../os/nil/src/chevt.c ****  *          source then the function does nothing.
+  92:../../os/nil/src/chevt.c ****  * @note    For optimal performance it is better to perform the unregister
+  93:../../os/nil/src/chevt.c ****  *          operations in inverse order of the register operations (elements
+  94:../../os/nil/src/chevt.c ****  *          are found on top of the list).
+  95:../../os/nil/src/chevt.c ****  *
+  96:../../os/nil/src/chevt.c ****  * @param[in] esp       pointer to the  @p event_source_t structure
+  97:../../os/nil/src/chevt.c ****  * @param[in] elp       pointer to the @p event_listener_t structure
+  98:../../os/nil/src/chevt.c ****  *
+  99:../../os/nil/src/chevt.c ****  * @api
+ 100:../../os/nil/src/chevt.c ****  */
+ 101:../../os/nil/src/chevt.c **** void chEvtUnregister(event_source_t *esp, event_listener_t *elp) {
+ 100               		.loc 1 101 66 is_stmt 1 view -0
+ 101               		.cfi_startproc
+ 102               	/* prologue: function */
+ 103               	/* frame size = 0 */
+ 104               	/* stack size = 0 */
+ 105               	.L__stack_usage = 0
+ 106               		.loc 1 101 66 is_stmt 0 view .LVU30
+ 107 0000 9C01      		movw r18,r24
+ 108 0002 AB01      		movw r20,r22
+ 102:../../os/nil/src/chevt.c ****   event_listener_t *p;
+ 109               		.loc 1 102 3 is_stmt 1 view .LVU31
+ 103:../../os/nil/src/chevt.c **** 
+ 104:../../os/nil/src/chevt.c ****   chDbgCheck((esp != NULL) && (elp != NULL));
+ 110               		.loc 1 104 3 view .LVU32
+ 111               		.loc 1 104 3 view .LVU33
+ 112               		.loc 1 104 3 discriminator 7 view .LVU34
+ 105:../../os/nil/src/chevt.c **** 
+ 106:../../os/nil/src/chevt.c ****   /*lint -save -e9087 -e740 [11.3, 1.3] Cast required by list handling.*/
+ 107:../../os/nil/src/chevt.c ****   p = (event_listener_t *)esp;
+ 113               		.loc 1 107 3 view .LVU35
+ 114               	.LVL3:
+ 108:../../os/nil/src/chevt.c ****   /*lint -restore*/
+ 109:../../os/nil/src/chevt.c ****   chSysLock();
+ 115               		.loc 1 109 3 view .LVU36
+ 116               	.LBB60:
+ 117               	.LBI60:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 118               		.loc 2 428 20 view .LVU37
+ 119               	.LBB61:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 120               		.loc 2 430 3 view .LVU38
+ 121               	/* #APP */
+ 122               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 123 0004 F894      		cli
+ 124               	 ;  0 "" 2
+ 125               	/* #NOAPP */
+ 126               	.LBE61:
+ 127               	.LBE60:
+ 128               		.loc 1 109 3 discriminator 1 view .LVU39
+ 129               		.loc 1 109 14 discriminator 1 view .LVU40
+ 110:../../os/nil/src/chevt.c ****   /*lint -save -e9087 -e740 [11.3, 1.3] Cast required by list handling.*/
+ 111:../../os/nil/src/chevt.c ****   while (p->next != (event_listener_t *)esp) {
+ 130               		.loc 1 111 3 view .LVU41
+ 107:../../os/nil/src/chevt.c ****   /*lint -restore*/
+ 131               		.loc 1 107 5 is_stmt 0 view .LVU42
+ 132 0006 FC01      		movw r30,r24
+ 133               	.LBB63:
+ 134               	.LBB62:
+ 431:../../os/common/ports/AVR/chcore.h **** 
+ 135               		.loc 2 431 1 view .LVU43
+ 136 0008 00C0      		rjmp .L4
+ 137               	.LVL4:
+ 138               	.L6:
+ 431:../../os/common/ports/AVR/chcore.h **** 
+ 139               		.loc 2 431 1 view .LVU44
+ 140               	.LBE62:
+ 141               	.LBE63:
+ 112:../../os/nil/src/chevt.c ****   /*lint -restore*/
+ 113:../../os/nil/src/chevt.c ****     if (p->next == elp) {
+ 142               		.loc 1 113 5 is_stmt 1 view .LVU45
+ 143               		.loc 1 113 8 is_stmt 0 view .LVU46
+ 144 000a E417      		cp r30,r20
+ 145 000c F507      		cpc r31,r21
+ 146 000e 01F0      		breq .L8
+ 147               	.LVL5:
+ 148               	.L4:
+ 111:../../os/nil/src/chevt.c ****   /*lint -restore*/
+ 149               		.loc 1 111 18 is_stmt 1 view .LVU47
+ 150 0010 DF01      		movw r26,r30
+ 111:../../os/nil/src/chevt.c ****   /*lint -restore*/
+ 151               		.loc 1 111 11 is_stmt 0 view .LVU48
+ 152 0012 0190      		ld __tmp_reg__,Z+
+ 153 0014 F081      		ld r31,Z
+ 154 0016 E02D      		mov r30,__tmp_reg__
+ 155               	.LVL6:
+ 111:../../os/nil/src/chevt.c ****   /*lint -restore*/
+ 156               		.loc 1 111 18 view .LVU49
+ 157 0018 E217      		cp r30,r18
+ 158 001a F307      		cpc r31,r19
+ 159 001c 01F4      		brne .L6
+ 114:../../os/nil/src/chevt.c ****       p->next = elp->next;
+ 115:../../os/nil/src/chevt.c ****       break;
+ 116:../../os/nil/src/chevt.c ****     }
+ 117:../../os/nil/src/chevt.c ****     p = p->next;
+ 118:../../os/nil/src/chevt.c ****   }
+ 119:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 160               		.loc 1 119 3 is_stmt 1 view .LVU50
+ 161               		.loc 1 119 3 view .LVU51
+ 162               	.LBB64:
+ 163               	.LBI64:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 164               		.loc 2 438 20 view .LVU52
+ 165               	.LBB65:
+ 166               		.loc 2 440 3 view .LVU53
+ 167               	/* #APP */
+ 168               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 169 001e 7894      		sei
+ 170               	 ;  0 "" 2
+ 171               	/* #NOAPP */
+ 172               	.LBE65:
+ 173               	.LBE64:
+ 174               		.loc 1 119 16 discriminator 1 view .LVU54
+ 175               	/* epilogue start */
+ 120:../../os/nil/src/chevt.c **** }
+ 176               		.loc 1 120 1 is_stmt 0 view .LVU55
+ 177 0020 0895      		ret
+ 178               	.L8:
+ 114:../../os/nil/src/chevt.c ****       p->next = elp->next;
+ 179               		.loc 1 114 7 is_stmt 1 view .LVU56
+ 114:../../os/nil/src/chevt.c ****       p->next = elp->next;
+ 180               		.loc 1 114 20 is_stmt 0 view .LVU57
+ 181 0022 8081      		ld r24,Z
+ 182 0024 9181      		ldd r25,Z+1
+ 114:../../os/nil/src/chevt.c ****       p->next = elp->next;
+ 183               		.loc 1 114 15 view .LVU58
+ 184 0026 8D93      		st X+,r24
+ 185 0028 9C93      		st X,r25
+ 115:../../os/nil/src/chevt.c ****     }
+ 186               		.loc 1 115 7 is_stmt 1 view .LVU59
+ 119:../../os/nil/src/chevt.c **** }
+ 187               		.loc 1 119 3 view .LVU60
+ 119:../../os/nil/src/chevt.c **** }
+ 188               		.loc 1 119 3 view .LVU61
+ 189               	.LBB67:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 190               		.loc 2 438 20 view .LVU62
+ 191               	.LBB66:
+ 192               		.loc 2 440 3 view .LVU63
+ 193               	/* #APP */
+ 194               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 195 002a 7894      		sei
+ 196               	 ;  0 "" 2
+ 197               	/* #NOAPP */
+ 198               	.LBE66:
+ 199               	.LBE67:
+ 119:../../os/nil/src/chevt.c **** }
+ 200               		.loc 1 119 16 discriminator 1 view .LVU64
+ 201               	/* epilogue start */
+ 202               		.loc 1 120 1 is_stmt 0 view .LVU65
+ 203 002c 0895      		ret
+ 204               		.cfi_endproc
+ 205               	.LFE99:
+ 207               		.section	.text.chEvtGetAndClearEventsI,"ax",@progbits
+ 208               	.global	chEvtGetAndClearEventsI
+ 210               	chEvtGetAndClearEventsI:
+ 211               	.LVL7:
+ 212               	.LFB100:
+ 121:../../os/nil/src/chevt.c **** 
+ 122:../../os/nil/src/chevt.c **** /**
+ 123:../../os/nil/src/chevt.c ****  * @brief   Clears the pending events specified in the events mask.
+ 124:../../os/nil/src/chevt.c ****  *
+ 125:../../os/nil/src/chevt.c ****  * @param[in] events    the events to be cleared
+ 126:../../os/nil/src/chevt.c ****  * @return              The mask of pending events that were cleared.
+ 127:../../os/nil/src/chevt.c ****  *
+ 128:../../os/nil/src/chevt.c ****  * @iclass
+ 129:../../os/nil/src/chevt.c ****  */
+ 130:../../os/nil/src/chevt.c **** eventmask_t chEvtGetAndClearEventsI(eventmask_t events) {
+ 213               		.loc 1 130 57 is_stmt 1 view -0
+ 214               		.cfi_startproc
+ 215               	/* prologue: function */
+ 216               	/* frame size = 0 */
+ 217               	/* stack size = 0 */
+ 218               	.L__stack_usage = 0
+ 131:../../os/nil/src/chevt.c ****   eventmask_t m;
+ 219               		.loc 1 131 3 view .LVU67
+ 132:../../os/nil/src/chevt.c **** 
+ 133:../../os/nil/src/chevt.c ****   m = chThdGetSelfX()->epmask & events;
+ 220               		.loc 1 133 3 view .LVU68
+ 221               		.loc 1 133 7 is_stmt 0 view .LVU69
+ 222 0000 E091 0000 		lds r30,nil
+ 223 0004 F091 0000 		lds r31,nil+1
+ 224               		.loc 1 133 22 view .LVU70
+ 225 0008 2781      		ldd r18,Z+7
+ 226               	.LVL8:
+ 134:../../os/nil/src/chevt.c ****   chThdGetSelfX()->epmask &= ~events;
+ 227               		.loc 1 134 3 is_stmt 1 view .LVU71
+ 228               		.loc 1 134 27 is_stmt 0 view .LVU72
+ 229 000a 982F      		mov r25,r24
+ 230 000c 9095      		com r25
+ 231 000e 9223      		and r25,r18
+ 232 0010 9783      		std Z+7,r25
+ 135:../../os/nil/src/chevt.c **** 
+ 136:../../os/nil/src/chevt.c ****   return m;
+ 233               		.loc 1 136 3 is_stmt 1 view .LVU73
+ 137:../../os/nil/src/chevt.c **** }
+ 234               		.loc 1 137 1 is_stmt 0 view .LVU74
+ 235 0012 8223      		and r24,r18
+ 236               	.LVL9:
+ 237               	/* epilogue start */
+ 238               		.loc 1 137 1 view .LVU75
+ 239 0014 0895      		ret
+ 240               		.cfi_endproc
+ 241               	.LFE100:
+ 243               		.section	.text.chEvtGetAndClearEvents,"ax",@progbits
+ 244               	.global	chEvtGetAndClearEvents
+ 246               	chEvtGetAndClearEvents:
+ 247               	.LVL10:
+ 248               	.LFB101:
+ 138:../../os/nil/src/chevt.c **** 
+ 139:../../os/nil/src/chevt.c **** /**
+ 140:../../os/nil/src/chevt.c ****  * @brief   Clears the pending events specified in the events mask.
+ 141:../../os/nil/src/chevt.c ****  *
+ 142:../../os/nil/src/chevt.c ****  * @param[in] events    the events to be cleared
+ 143:../../os/nil/src/chevt.c ****  * @return              The mask of pending events that were cleared.
+ 144:../../os/nil/src/chevt.c ****  *
+ 145:../../os/nil/src/chevt.c ****  * @api
+ 146:../../os/nil/src/chevt.c ****  */
+ 147:../../os/nil/src/chevt.c **** eventmask_t chEvtGetAndClearEvents(eventmask_t events) {
+ 249               		.loc 1 147 56 is_stmt 1 view -0
+ 250               		.cfi_startproc
+ 251               	/* prologue: function */
+ 252               	/* frame size = 0 */
+ 253               	/* stack size = 0 */
+ 254               	.L__stack_usage = 0
+ 148:../../os/nil/src/chevt.c ****   eventmask_t m;
+ 255               		.loc 1 148 3 view .LVU77
+ 149:../../os/nil/src/chevt.c **** 
+ 150:../../os/nil/src/chevt.c ****   chSysLock();
+ 256               		.loc 1 150 3 view .LVU78
+ 257               	.LBB68:
+ 258               	.LBI68:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 259               		.loc 2 428 20 view .LVU79
+ 260               	.LBB69:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 261               		.loc 2 430 3 view .LVU80
+ 262               	/* #APP */
+ 263               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 264 0000 F894      		cli
+ 265               	 ;  0 "" 2
+ 266               	/* #NOAPP */
+ 267               	.LBE69:
+ 268               	.LBE68:
+ 269               		.loc 1 150 3 discriminator 1 view .LVU81
+ 270               		.loc 1 150 14 discriminator 1 view .LVU82
+ 151:../../os/nil/src/chevt.c ****   m = chEvtGetAndClearEventsI(events);
+ 271               		.loc 1 151 3 view .LVU83
+ 272               	.LVL11:
+ 273               	.LBB70:
+ 274               	.LBI70:
+ 130:../../os/nil/src/chevt.c ****   eventmask_t m;
+ 275               		.loc 1 130 13 view .LVU84
+ 276               	.LBB71:
+ 131:../../os/nil/src/chevt.c **** 
+ 277               		.loc 1 131 3 view .LVU85
+ 133:../../os/nil/src/chevt.c ****   chThdGetSelfX()->epmask &= ~events;
+ 278               		.loc 1 133 3 view .LVU86
+ 133:../../os/nil/src/chevt.c ****   chThdGetSelfX()->epmask &= ~events;
+ 279               		.loc 1 133 7 is_stmt 0 view .LVU87
+ 280 0002 E091 0000 		lds r30,nil
+ 281 0006 F091 0000 		lds r31,nil+1
+ 133:../../os/nil/src/chevt.c ****   chThdGetSelfX()->epmask &= ~events;
+ 282               		.loc 1 133 22 view .LVU88
+ 283 000a 2781      		ldd r18,Z+7
+ 284               	.LVL12:
+ 134:../../os/nil/src/chevt.c **** 
+ 285               		.loc 1 134 3 is_stmt 1 view .LVU89
+ 134:../../os/nil/src/chevt.c **** 
+ 286               		.loc 1 134 27 is_stmt 0 view .LVU90
+ 287 000c 982F      		mov r25,r24
+ 288 000e 9095      		com r25
+ 289 0010 9223      		and r25,r18
+ 290 0012 9783      		std Z+7,r25
+ 136:../../os/nil/src/chevt.c **** }
+ 291               		.loc 1 136 3 is_stmt 1 view .LVU91
+ 292               	.LVL13:
+ 136:../../os/nil/src/chevt.c **** }
+ 293               		.loc 1 136 3 is_stmt 0 view .LVU92
+ 294               	.LBE71:
+ 295               	.LBE70:
+ 152:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 296               		.loc 1 152 3 is_stmt 1 view .LVU93
+ 297               		.loc 1 152 3 view .LVU94
+ 298               	.LBB72:
+ 299               	.LBI72:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 300               		.loc 2 438 20 view .LVU95
+ 301               	.LBB73:
+ 302               		.loc 2 440 3 view .LVU96
+ 303               	/* #APP */
+ 304               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 305 0014 7894      		sei
+ 306               	 ;  0 "" 2
+ 307               	/* #NOAPP */
+ 308               	.LBE73:
+ 309               	.LBE72:
+ 310               		.loc 1 152 16 discriminator 1 view .LVU97
+ 153:../../os/nil/src/chevt.c **** 
+ 154:../../os/nil/src/chevt.c ****   return m;
+ 311               		.loc 1 154 3 view .LVU98
+ 155:../../os/nil/src/chevt.c **** }
+ 312               		.loc 1 155 1 is_stmt 0 view .LVU99
+ 313 0016 8223      		and r24,r18
+ 314               	.LVL14:
+ 315               	/* epilogue start */
+ 316               		.loc 1 155 1 view .LVU100
+ 317 0018 0895      		ret
+ 318               		.cfi_endproc
+ 319               	.LFE101:
+ 321               		.section	.text.chEvtAddEvents,"ax",@progbits
+ 322               	.global	chEvtAddEvents
+ 324               	chEvtAddEvents:
+ 325               	.LVL15:
+ 326               	.LFB102:
+ 156:../../os/nil/src/chevt.c **** 
+ 157:../../os/nil/src/chevt.c **** /**
+ 158:../../os/nil/src/chevt.c ****  * @brief   Adds (OR) a set of events to the current thread, this is
+ 159:../../os/nil/src/chevt.c ****  *          @b much faster than using @p chEvtBroadcast() or @p chEvtSignal().
+ 160:../../os/nil/src/chevt.c ****  *
+ 161:../../os/nil/src/chevt.c ****  * @param[in] events    the events to be added
+ 162:../../os/nil/src/chevt.c ****  * @return              The mask of currently pending events.
+ 163:../../os/nil/src/chevt.c ****  *
+ 164:../../os/nil/src/chevt.c ****  * @api
+ 165:../../os/nil/src/chevt.c ****  */
+ 166:../../os/nil/src/chevt.c **** eventmask_t chEvtAddEvents(eventmask_t events) {
+ 327               		.loc 1 166 48 is_stmt 1 view -0
+ 328               		.cfi_startproc
+ 329               	/* prologue: function */
+ 330               	/* frame size = 0 */
+ 331               	/* stack size = 0 */
+ 332               	.L__stack_usage = 0
+ 167:../../os/nil/src/chevt.c ****   eventmask_t newevt;
+ 333               		.loc 1 167 3 view .LVU102
+ 168:../../os/nil/src/chevt.c **** 
+ 169:../../os/nil/src/chevt.c ****   chSysLock();
+ 334               		.loc 1 169 3 view .LVU103
+ 335               	.LBB74:
+ 336               	.LBI74:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 337               		.loc 2 428 20 view .LVU104
+ 338               	.LBB75:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 339               		.loc 2 430 3 view .LVU105
+ 340               	/* #APP */
+ 341               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 342 0000 F894      		cli
+ 343               	 ;  0 "" 2
+ 344               	/* #NOAPP */
+ 345               	.LBE75:
+ 346               	.LBE74:
+ 347               		.loc 1 169 3 discriminator 1 view .LVU106
+ 348               		.loc 1 169 14 discriminator 1 view .LVU107
+ 170:../../os/nil/src/chevt.c ****   newevt = chEvtAddEventsI(events);
+ 349               		.loc 1 170 3 view .LVU108
+ 350               		.loc 1 170 12 is_stmt 0 view .LVU109
+ 351 0002 E091 0000 		lds r30,nil
+ 352 0006 F091 0000 		lds r31,nil+1
+ 353 000a 9781      		ldd r25,Z+7
+ 354 000c 892B      		or r24,r25
+ 355               	.LVL16:
+ 356               		.loc 1 170 12 view .LVU110
+ 357 000e 8783      		std Z+7,r24
+ 358               	.LVL17:
+ 171:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 359               		.loc 1 171 3 is_stmt 1 view .LVU111
+ 360               		.loc 1 171 3 view .LVU112
+ 361               	.LBB76:
+ 362               	.LBI76:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 363               		.loc 2 438 20 view .LVU113
+ 364               	.LBB77:
+ 365               		.loc 2 440 3 view .LVU114
+ 366               	/* #APP */
+ 367               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 368 0010 7894      		sei
+ 369               	 ;  0 "" 2
+ 370               	/* #NOAPP */
+ 371               	.LBE77:
+ 372               	.LBE76:
+ 373               		.loc 1 171 16 discriminator 1 view .LVU115
+ 172:../../os/nil/src/chevt.c **** 
+ 173:../../os/nil/src/chevt.c ****   return newevt;
+ 374               		.loc 1 173 3 view .LVU116
+ 375               	/* epilogue start */
+ 174:../../os/nil/src/chevt.c **** }
+ 376               		.loc 1 174 1 is_stmt 0 view .LVU117
+ 377 0012 0895      		ret
+ 378               		.cfi_endproc
+ 379               	.LFE102:
+ 381               		.section	.text.chEvtBroadcastFlagsI,"ax",@progbits
+ 382               	.global	chEvtBroadcastFlagsI
+ 384               	chEvtBroadcastFlagsI:
+ 385               	.LVL18:
+ 386               	.LFB103:
+ 175:../../os/nil/src/chevt.c **** 
+ 176:../../os/nil/src/chevt.c **** /**
+ 177:../../os/nil/src/chevt.c ****  * @brief   Signals all the Event Listeners registered on the specified Event
+ 178:../../os/nil/src/chevt.c ****  *          Source.
+ 179:../../os/nil/src/chevt.c ****  * @details This function variants ORs the specified event flags to all the
+ 180:../../os/nil/src/chevt.c ****  *          threads registered on the @p event_source_t in addition to the
+ 181:../../os/nil/src/chevt.c ****  *          event flags specified by the threads themselves in the
+ 182:../../os/nil/src/chevt.c ****  *          @p event_listener_t objects.
+ 183:../../os/nil/src/chevt.c ****  * @post    This function does not reschedule so a call to a rescheduling
+ 184:../../os/nil/src/chevt.c ****  *          function must be performed before unlocking the kernel. Note that
+ 185:../../os/nil/src/chevt.c ****  *          interrupt handlers always reschedule on exit so an explicit
+ 186:../../os/nil/src/chevt.c ****  *          reschedule must not be performed in ISRs.
+ 187:../../os/nil/src/chevt.c ****  *
+ 188:../../os/nil/src/chevt.c ****  * @param[in] esp       pointer to the @p event_source_t structure
+ 189:../../os/nil/src/chevt.c ****  * @param[in] flags     the flags set to be added to the listener flags mask
+ 190:../../os/nil/src/chevt.c ****  *
+ 191:../../os/nil/src/chevt.c ****  * @iclass
+ 192:../../os/nil/src/chevt.c ****  */
+ 193:../../os/nil/src/chevt.c **** void chEvtBroadcastFlagsI(event_source_t *esp, eventflags_t flags) {
+ 387               		.loc 1 193 68 is_stmt 1 view -0
+ 388               		.cfi_startproc
+ 389               		.loc 1 193 68 is_stmt 0 view .LVU119
+ 390 0000 FF92      		push r15
+ 391               	.LCFI0:
+ 392               		.cfi_def_cfa_offset 3
+ 393               		.cfi_offset 15, -2
+ 394 0002 0F93      		push r16
+ 395               	.LCFI1:
+ 396               		.cfi_def_cfa_offset 4
+ 397               		.cfi_offset 16, -3
+ 398 0004 1F93      		push r17
+ 399               	.LCFI2:
+ 400               		.cfi_def_cfa_offset 5
+ 401               		.cfi_offset 17, -4
+ 402 0006 CF93      		push r28
+ 403               	.LCFI3:
+ 404               		.cfi_def_cfa_offset 6
+ 405               		.cfi_offset 28, -5
+ 406 0008 DF93      		push r29
+ 407               	.LCFI4:
+ 408               		.cfi_def_cfa_offset 7
+ 409               		.cfi_offset 29, -6
+ 410               	/* prologue: function */
+ 411               	/* frame size = 0 */
+ 412               	/* stack size = 5 */
+ 413               	.L__stack_usage = 5
+ 414 000a 8C01      		movw r16,r24
+ 415 000c F62E      		mov r15,r22
+ 194:../../os/nil/src/chevt.c ****   event_listener_t *elp;
+ 416               		.loc 1 194 3 is_stmt 1 view .LVU120
+ 195:../../os/nil/src/chevt.c **** 
+ 196:../../os/nil/src/chevt.c ****   chDbgCheckClassI();
+ 417               		.loc 1 196 21 view .LVU121
+ 197:../../os/nil/src/chevt.c ****   chDbgCheck(esp != NULL);
+ 418               		.loc 1 197 3 view .LVU122
+ 419               		.loc 1 197 3 view .LVU123
+ 420               		.loc 1 197 3 discriminator 5 view .LVU124
+ 198:../../os/nil/src/chevt.c **** 
+ 199:../../os/nil/src/chevt.c ****   elp = esp->next;
+ 421               		.loc 1 199 3 view .LVU125
+ 422               		.loc 1 199 7 is_stmt 0 view .LVU126
+ 423 000e FC01      		movw r30,r24
+ 424 0010 C081      		ld r28,Z
+ 425 0012 D181      		ldd r29,Z+1
+ 426               	.LVL19:
+ 200:../../os/nil/src/chevt.c ****   /*lint -save -e9087 -e740 [11.3, 1.3] Cast required by list handling.*/
+ 201:../../os/nil/src/chevt.c ****   while (elp != (event_listener_t *)esp) {
+ 427               		.loc 1 201 3 is_stmt 1 view .LVU127
+ 428               		.loc 1 201 14 view .LVU128
+ 429 0014 8C17      		cp r24,r28
+ 430 0016 9D07      		cpc r25,r29
+ 431 0018 01F0      		breq .L12
+ 432               	.LVL20:
+ 433               	.L19:
+ 202:../../os/nil/src/chevt.c ****   /*lint -restore*/
+ 203:../../os/nil/src/chevt.c ****     elp->flags |= flags;
+ 434               		.loc 1 203 5 view .LVU129
+ 435               		.loc 1 203 16 is_stmt 0 view .LVU130
+ 436 001a 8D81      		ldd r24,Y+5
+ 437 001c 8F29      		or r24,r15
+ 438 001e 8D83      		std Y+5,r24
+ 204:../../os/nil/src/chevt.c ****     /* When flags == 0 the thread will always be signaled because the
+ 205:../../os/nil/src/chevt.c ****        source does not emit any flag.*/
+ 206:../../os/nil/src/chevt.c ****     if ((flags == (eventflags_t)0) ||
+ 439               		.loc 1 206 5 is_stmt 1 view .LVU131
+ 440               		.loc 1 206 8 is_stmt 0 view .LVU132
+ 441 0020 F114      		cp r15, __zero_reg__
+ 442 0022 01F0      		breq .L14
+ 207:../../os/nil/src/chevt.c ****         ((flags & elp->wflags) != (eventflags_t)0)) {
+ 443               		.loc 1 207 32 view .LVU133
+ 444 0024 8E81      		ldd r24,Y+6
+ 445 0026 8F21      		and r24,r15
+ 206:../../os/nil/src/chevt.c ****         ((flags & elp->wflags) != (eventflags_t)0)) {
+ 446               		.loc 1 206 36 discriminator 1 view .LVU134
+ 447 0028 8111      		cpse r24,__zero_reg__
+ 448 002a 00C0      		rjmp .L14
+ 449               	.L24:
+ 208:../../os/nil/src/chevt.c ****       chEvtSignalI(elp->listener, elp->events);
+ 209:../../os/nil/src/chevt.c ****     }
+ 210:../../os/nil/src/chevt.c ****     elp = elp->next;
+ 450               		.loc 1 210 5 is_stmt 1 view .LVU135
+ 451               		.loc 1 210 9 is_stmt 0 view .LVU136
+ 452 002c 0990      		ld __tmp_reg__,Y+
+ 453 002e D881      		ld r29,Y
+ 454 0030 C02D      		mov r28,__tmp_reg__
+ 455               	.LVL21:
+ 201:../../os/nil/src/chevt.c ****   /*lint -restore*/
+ 456               		.loc 1 201 14 is_stmt 1 view .LVU137
+ 457 0032 C017      		cp r28,r16
+ 458 0034 D107      		cpc r29,r17
+ 459 0036 01F0      		breq .L12
+ 203:../../os/nil/src/chevt.c ****     /* When flags == 0 the thread will always be signaled because the
+ 460               		.loc 1 203 5 view .LVU138
+ 203:../../os/nil/src/chevt.c ****     /* When flags == 0 the thread will always be signaled because the
+ 461               		.loc 1 203 16 is_stmt 0 view .LVU139
+ 462 0038 8D81      		ldd r24,Y+5
+ 463 003a 8F29      		or r24,r15
+ 464 003c 8D83      		std Y+5,r24
+ 206:../../os/nil/src/chevt.c ****         ((flags & elp->wflags) != (eventflags_t)0)) {
+ 465               		.loc 1 206 5 is_stmt 1 view .LVU140
+ 207:../../os/nil/src/chevt.c ****       chEvtSignalI(elp->listener, elp->events);
+ 466               		.loc 1 207 32 is_stmt 0 view .LVU141
+ 467 003e 8E81      		ldd r24,Y+6
+ 468 0040 8F21      		and r24,r15
+ 206:../../os/nil/src/chevt.c ****         ((flags & elp->wflags) != (eventflags_t)0)) {
+ 469               		.loc 1 206 36 discriminator 1 view .LVU142
+ 470 0042 8115      		cp r24, __zero_reg__
+ 471 0044 01F0      		breq .L24
+ 472               	.L14:
+ 208:../../os/nil/src/chevt.c ****     }
+ 473               		.loc 1 208 7 is_stmt 1 view .LVU143
+ 474 0046 EA81      		ldd r30,Y+2
+ 475 0048 FB81      		ldd r31,Y+3
+ 476               	.LVL22:
+ 477               	.LBB82:
+ 478               	.LBI82:
+ 211:../../os/nil/src/chevt.c ****   }
+ 212:../../os/nil/src/chevt.c **** }
+ 213:../../os/nil/src/chevt.c **** 
+ 214:../../os/nil/src/chevt.c **** /**
+ 215:../../os/nil/src/chevt.c ****  * @brief   Returns the flags associated to an @p event_listener_t.
+ 216:../../os/nil/src/chevt.c ****  * @details The flags are returned and the @p event_listener_t flags mask is
+ 217:../../os/nil/src/chevt.c ****  *          cleared.
+ 218:../../os/nil/src/chevt.c ****  *
+ 219:../../os/nil/src/chevt.c ****  * @param[in] elp       pointer to the @p event_listener_t structure
+ 220:../../os/nil/src/chevt.c ****  * @return              The flags added to the listener by the associated
+ 221:../../os/nil/src/chevt.c ****  *                      event source.
+ 222:../../os/nil/src/chevt.c ****  *
+ 223:../../os/nil/src/chevt.c ****  * @api
+ 224:../../os/nil/src/chevt.c ****  */
+ 225:../../os/nil/src/chevt.c **** eventflags_t chEvtGetAndClearFlags(event_listener_t *elp) {
+ 226:../../os/nil/src/chevt.c ****   eventflags_t flags;
+ 227:../../os/nil/src/chevt.c **** 
+ 228:../../os/nil/src/chevt.c ****   chSysLock();
+ 229:../../os/nil/src/chevt.c ****   flags = elp->flags;
+ 230:../../os/nil/src/chevt.c ****   elp->flags = (eventflags_t)0;
+ 231:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 232:../../os/nil/src/chevt.c **** 
+ 233:../../os/nil/src/chevt.c ****   return flags & elp->wflags;
+ 234:../../os/nil/src/chevt.c **** }
+ 235:../../os/nil/src/chevt.c **** 
+ 236:../../os/nil/src/chevt.c **** /**
+ 237:../../os/nil/src/chevt.c ****  * @brief   Adds a set of event flags directly to the specified @p thread_t.
+ 238:../../os/nil/src/chevt.c ****  *
+ 239:../../os/nil/src/chevt.c ****  * @param[in] tp        the thread to be signaled
+ 240:../../os/nil/src/chevt.c ****  * @param[in] events    the event flags set to be ORed
+ 241:../../os/nil/src/chevt.c ****  *
+ 242:../../os/nil/src/chevt.c ****  * @api
+ 243:../../os/nil/src/chevt.c ****  */
+ 244:../../os/nil/src/chevt.c **** void chEvtSignal(thread_t *tp, eventmask_t events) {
+ 245:../../os/nil/src/chevt.c **** 
+ 246:../../os/nil/src/chevt.c ****   chSysLock();
+ 247:../../os/nil/src/chevt.c ****   chEvtSignalI(tp, events);
+ 248:../../os/nil/src/chevt.c ****   chSchRescheduleS();
+ 249:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 250:../../os/nil/src/chevt.c **** }
+ 251:../../os/nil/src/chevt.c **** 
+ 252:../../os/nil/src/chevt.c **** /**
+ 253:../../os/nil/src/chevt.c ****  * @brief   Adds a set of event flags directly to the specified @p thread_t.
+ 254:../../os/nil/src/chevt.c ****  * @post    This function does not reschedule so a call to a rescheduling
+ 255:../../os/nil/src/chevt.c ****  *          function must be performed before unlocking the kernel. Note that
+ 256:../../os/nil/src/chevt.c ****  *          interrupt handlers always reschedule on exit so an explicit
+ 257:../../os/nil/src/chevt.c ****  *          reschedule must not be performed in ISRs.
+ 258:../../os/nil/src/chevt.c ****  *
+ 259:../../os/nil/src/chevt.c ****  * @param[in] tp        the thread to be signaled
+ 260:../../os/nil/src/chevt.c ****  * @param[in] events    the event flags set to be ORed
+ 261:../../os/nil/src/chevt.c ****  *
+ 262:../../os/nil/src/chevt.c ****  * @iclass
+ 263:../../os/nil/src/chevt.c ****  */
+ 264:../../os/nil/src/chevt.c **** void chEvtSignalI(thread_t *tp, eventmask_t events) {
+ 479               		.loc 1 264 6 view .LVU144
+ 480               	.LBB83:
+ 265:../../os/nil/src/chevt.c **** 
+ 266:../../os/nil/src/chevt.c ****   chDbgCheckClassI();
+ 481               		.loc 1 266 21 view .LVU145
+ 267:../../os/nil/src/chevt.c ****   chDbgCheck(tp != NULL);
+ 482               		.loc 1 267 3 view .LVU146
+ 483               		.loc 1 267 3 view .LVU147
+ 484               		.loc 1 267 3 discriminator 5 view .LVU148
+ 268:../../os/nil/src/chevt.c **** 
+ 269:../../os/nil/src/chevt.c ****   tp->epmask |= events;
+ 485               		.loc 1 269 3 view .LVU149
+ 486               		.loc 1 269 14 is_stmt 0 view .LVU150
+ 487 004a 9C81      		ldd r25,Y+4
+ 488 004c 8781      		ldd r24,Z+7
+ 489 004e 982B      		or r25,r24
+ 490 0050 9783      		std Z+7,r25
+ 491               	.LVL23:
+ 270:../../os/nil/src/chevt.c ****   if ((NIL_THD_IS_WTOREVT(tp) &&
+ 492               		.loc 1 270 3 is_stmt 1 view .LVU151
+ 493               		.loc 1 270 8 is_stmt 0 view .LVU152
+ 494 0052 8281      		ldd r24,Z+2
+ 495               		.loc 1 270 6 view .LVU153
+ 496 0054 8630      		cpi r24,lo8(6)
+ 497 0056 01F0      		breq .L25
+ 271:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) != (eventmask_t)0)) ||
+ 498               		.loc 1 271 58 view .LVU154
+ 499 0058 8730      		cpi r24,lo8(7)
+ 500 005a 01F0      		breq .L26
+ 501               	.LVL24:
+ 502               	.L18:
+ 503               		.loc 1 271 58 view .LVU155
+ 504               	.LBE83:
+ 505               	.LBE82:
+ 210:../../os/nil/src/chevt.c ****   }
+ 506               		.loc 1 210 5 is_stmt 1 view .LVU156
+ 210:../../os/nil/src/chevt.c ****   }
+ 507               		.loc 1 210 9 is_stmt 0 view .LVU157
+ 508 005c 0990      		ld __tmp_reg__,Y+
+ 509 005e D881      		ld r29,Y
+ 510 0060 C02D      		mov r28,__tmp_reg__
+ 511               	.LVL25:
+ 201:../../os/nil/src/chevt.c ****   /*lint -restore*/
+ 512               		.loc 1 201 14 is_stmt 1 view .LVU158
+ 513 0062 0C17      		cp r16,r28
+ 514 0064 1D07      		cpc r17,r29
+ 515 0066 01F4      		brne .L19
+ 516               	.L12:
+ 517               	/* epilogue start */
+ 212:../../os/nil/src/chevt.c **** 
+ 518               		.loc 1 212 1 is_stmt 0 view .LVU159
+ 519 0068 DF91      		pop r29
+ 520 006a CF91      		pop r28
+ 521               	.LVL26:
+ 212:../../os/nil/src/chevt.c **** 
+ 522               		.loc 1 212 1 view .LVU160
+ 523 006c 1F91      		pop r17
+ 524 006e 0F91      		pop r16
+ 525               	.LVL27:
+ 212:../../os/nil/src/chevt.c **** 
+ 526               		.loc 1 212 1 view .LVU161
+ 527 0070 FF90      		pop r15
+ 528               	.LVL28:
+ 212:../../os/nil/src/chevt.c **** 
+ 529               		.loc 1 212 1 view .LVU162
+ 530 0072 0895      		ret
+ 531               	.LVL29:
+ 532               	.L25:
+ 533               	.LBB87:
+ 534               	.LBB86:
+ 535               		.loc 1 271 38 view .LVU163
+ 536 0074 8381      		ldd r24,Z+3
+ 537 0076 9823      		and r25,r24
+ 270:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) != (eventmask_t)0)) ||
+ 538               		.loc 1 270 31 discriminator 1 view .LVU164
+ 539 0078 9115      		cp r25, __zero_reg__
+ 540 007a 01F0      		breq .L18
+ 541               	.L17:
+ 542               	.LVL30:
+ 543               	.LBB84:
+ 544               	.LBI84:
+ 264:../../os/nil/src/chevt.c **** 
+ 545               		.loc 1 264 6 is_stmt 1 view .LVU165
+ 546               	.LBB85:
+ 272:../../os/nil/src/chevt.c ****       (NIL_THD_IS_WTANDEVT(tp) &&
+ 273:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) == tp->u1.ewmask))) {
+ 274:../../os/nil/src/chevt.c ****     (void) chSchReadyI(tp, MSG_OK);
+ 547               		.loc 1 274 5 view .LVU166
+ 548               		.loc 1 274 12 is_stmt 0 view .LVU167
+ 549 007c 60E0      		ldi r22,0
+ 550 007e 70E0      		ldi r23,0
+ 551 0080 CF01      		movw r24,r30
+ 552 0082 0E94 0000 		call chSchReadyI
+ 553               	.LVL31:
+ 275:../../os/nil/src/chevt.c ****   }
+ 276:../../os/nil/src/chevt.c **** }
+ 554               		.loc 1 276 1 view .LVU168
+ 555 0086 00C0      		rjmp .L18
+ 556               	.LVL32:
+ 557               	.L26:
+ 558               		.loc 1 276 1 view .LVU169
+ 559               	.LBE85:
+ 560               	.LBE84:
+ 273:../../os/nil/src/chevt.c ****     (void) chSchReadyI(tp, MSG_OK);
+ 561               		.loc 1 273 29 view .LVU170
+ 562 0088 8381      		ldd r24,Z+3
+ 273:../../os/nil/src/chevt.c ****     (void) chSchReadyI(tp, MSG_OK);
+ 563               		.loc 1 273 38 view .LVU171
+ 564 008a 9823      		and r25,r24
+ 272:../../os/nil/src/chevt.c ****       (NIL_THD_IS_WTANDEVT(tp) &&
+ 565               		.loc 1 272 32 view .LVU172
+ 566 008c 8913      		cpse r24,r25
+ 567 008e 00C0      		rjmp .L18
+ 568 0090 00C0      		rjmp .L17
+ 569               	.LBE86:
+ 570               	.LBE87:
+ 571               		.cfi_endproc
+ 572               	.LFE103:
+ 574               		.section	.text.chEvtGetAndClearFlags,"ax",@progbits
+ 575               	.global	chEvtGetAndClearFlags
+ 577               	chEvtGetAndClearFlags:
+ 578               	.LVL33:
+ 579               	.LFB104:
+ 225:../../os/nil/src/chevt.c ****   eventflags_t flags;
+ 580               		.loc 1 225 59 is_stmt 1 view -0
+ 581               		.cfi_startproc
+ 582               	/* prologue: function */
+ 583               	/* frame size = 0 */
+ 584               	/* stack size = 0 */
+ 585               	.L__stack_usage = 0
+ 225:../../os/nil/src/chevt.c ****   eventflags_t flags;
+ 586               		.loc 1 225 59 is_stmt 0 view .LVU174
+ 587 0000 FC01      		movw r30,r24
+ 226:../../os/nil/src/chevt.c **** 
+ 588               		.loc 1 226 3 is_stmt 1 view .LVU175
+ 228:../../os/nil/src/chevt.c ****   flags = elp->flags;
+ 589               		.loc 1 228 3 view .LVU176
+ 590               	.LBB88:
+ 591               	.LBI88:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 592               		.loc 2 428 20 view .LVU177
+ 593               	.LBB89:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 594               		.loc 2 430 3 view .LVU178
+ 595               	/* #APP */
+ 596               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 597 0002 F894      		cli
+ 598               	 ;  0 "" 2
+ 599               	/* #NOAPP */
+ 600               	.LBE89:
+ 601               	.LBE88:
+ 228:../../os/nil/src/chevt.c ****   flags = elp->flags;
+ 602               		.loc 1 228 3 discriminator 1 view .LVU179
+ 228:../../os/nil/src/chevt.c ****   flags = elp->flags;
+ 603               		.loc 1 228 14 discriminator 1 view .LVU180
+ 229:../../os/nil/src/chevt.c ****   elp->flags = (eventflags_t)0;
+ 604               		.loc 1 229 3 view .LVU181
+ 229:../../os/nil/src/chevt.c ****   elp->flags = (eventflags_t)0;
+ 605               		.loc 1 229 9 is_stmt 0 view .LVU182
+ 606 0004 9581      		ldd r25,Z+5
+ 607               	.LVL34:
+ 230:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 608               		.loc 1 230 3 is_stmt 1 view .LVU183
+ 230:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 609               		.loc 1 230 14 is_stmt 0 view .LVU184
+ 610 0006 1582      		std Z+5,__zero_reg__
+ 231:../../os/nil/src/chevt.c **** 
+ 611               		.loc 1 231 3 is_stmt 1 view .LVU185
+ 231:../../os/nil/src/chevt.c **** 
+ 612               		.loc 1 231 3 view .LVU186
+ 613               	.LBB90:
+ 614               	.LBI90:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 615               		.loc 2 438 20 view .LVU187
+ 616               	.LBB91:
+ 617               		.loc 2 440 3 view .LVU188
+ 618               	/* #APP */
+ 619               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 620 0008 7894      		sei
+ 621               	 ;  0 "" 2
+ 622               	/* #NOAPP */
+ 623               	.LBE91:
+ 624               	.LBE90:
+ 231:../../os/nil/src/chevt.c **** 
+ 625               		.loc 1 231 16 discriminator 1 view .LVU189
+ 233:../../os/nil/src/chevt.c **** }
+ 626               		.loc 1 233 3 view .LVU190
+ 233:../../os/nil/src/chevt.c **** }
+ 627               		.loc 1 233 16 is_stmt 0 view .LVU191
+ 628 000a 8681      		ldd r24,Z+6
+ 629               	.LVL35:
+ 234:../../os/nil/src/chevt.c **** 
+ 630               		.loc 1 234 1 view .LVU192
+ 631 000c 8923      		and r24,r25
+ 632               	/* epilogue start */
+ 633 000e 0895      		ret
+ 634               		.cfi_endproc
+ 635               	.LFE104:
+ 637               		.section	.text.chEvtSignal,"ax",@progbits
+ 638               	.global	chEvtSignal
+ 640               	chEvtSignal:
+ 641               	.LVL36:
+ 642               	.LFB105:
+ 244:../../os/nil/src/chevt.c **** 
+ 643               		.loc 1 244 52 is_stmt 1 view -0
+ 644               		.cfi_startproc
+ 645               	/* prologue: function */
+ 646               	/* frame size = 0 */
+ 647               	/* stack size = 0 */
+ 648               	.L__stack_usage = 0
+ 244:../../os/nil/src/chevt.c **** 
+ 649               		.loc 1 244 52 is_stmt 0 view .LVU194
+ 650 0000 FC01      		movw r30,r24
+ 246:../../os/nil/src/chevt.c ****   chEvtSignalI(tp, events);
+ 651               		.loc 1 246 3 is_stmt 1 view .LVU195
+ 652               	.LBB100:
+ 653               	.LBI100:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 654               		.loc 2 428 20 view .LVU196
+ 655               	.LBB101:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 656               		.loc 2 430 3 view .LVU197
+ 657               	/* #APP */
+ 658               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 659 0002 F894      		cli
+ 660               	 ;  0 "" 2
+ 661               	/* #NOAPP */
+ 662               	.LBE101:
+ 663               	.LBE100:
+ 246:../../os/nil/src/chevt.c ****   chEvtSignalI(tp, events);
+ 664               		.loc 1 246 3 discriminator 1 view .LVU198
+ 246:../../os/nil/src/chevt.c ****   chEvtSignalI(tp, events);
+ 665               		.loc 1 246 14 discriminator 1 view .LVU199
+ 247:../../os/nil/src/chevt.c ****   chSchRescheduleS();
+ 666               		.loc 1 247 3 view .LVU200
+ 667               	.LVL37:
+ 668               	.LBB102:
+ 669               	.LBI102:
+ 264:../../os/nil/src/chevt.c **** 
+ 670               		.loc 1 264 6 view .LVU201
+ 671               	.LBB103:
+ 266:../../os/nil/src/chevt.c ****   chDbgCheck(tp != NULL);
+ 672               		.loc 1 266 21 view .LVU202
+ 267:../../os/nil/src/chevt.c **** 
+ 673               		.loc 1 267 3 view .LVU203
+ 267:../../os/nil/src/chevt.c **** 
+ 674               		.loc 1 267 3 view .LVU204
+ 267:../../os/nil/src/chevt.c **** 
+ 675               		.loc 1 267 3 discriminator 5 view .LVU205
+ 269:../../os/nil/src/chevt.c ****   if ((NIL_THD_IS_WTOREVT(tp) &&
+ 676               		.loc 1 269 3 view .LVU206
+ 269:../../os/nil/src/chevt.c ****   if ((NIL_THD_IS_WTOREVT(tp) &&
+ 677               		.loc 1 269 14 is_stmt 0 view .LVU207
+ 678 0004 8781      		ldd r24,Z+7
+ 679               	.LVL38:
+ 269:../../os/nil/src/chevt.c ****   if ((NIL_THD_IS_WTOREVT(tp) &&
+ 680               		.loc 1 269 14 view .LVU208
+ 681 0006 682B      		or r22,r24
+ 682               	.LVL39:
+ 269:../../os/nil/src/chevt.c ****   if ((NIL_THD_IS_WTOREVT(tp) &&
+ 683               		.loc 1 269 14 view .LVU209
+ 684 0008 6783      		std Z+7,r22
+ 270:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) != (eventmask_t)0)) ||
+ 685               		.loc 1 270 3 is_stmt 1 view .LVU210
+ 270:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) != (eventmask_t)0)) ||
+ 686               		.loc 1 270 8 is_stmt 0 view .LVU211
+ 687 000a 8281      		ldd r24,Z+2
+ 270:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) != (eventmask_t)0)) ||
+ 688               		.loc 1 270 6 view .LVU212
+ 689 000c 8630      		cpi r24,lo8(6)
+ 690 000e 01F0      		breq .L33
+ 271:../../os/nil/src/chevt.c ****       (NIL_THD_IS_WTANDEVT(tp) &&
+ 691               		.loc 1 271 58 view .LVU213
+ 692 0010 8730      		cpi r24,lo8(7)
+ 693 0012 01F0      		breq .L34
+ 694               	.L31:
+ 695               	.LVL40:
+ 271:../../os/nil/src/chevt.c ****       (NIL_THD_IS_WTANDEVT(tp) &&
+ 696               		.loc 1 271 58 view .LVU214
+ 697               	.LBE103:
+ 698               	.LBE102:
+ 248:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 699               		.loc 1 248 3 is_stmt 1 view .LVU215
+ 700 0014 0E94 0000 		call chSchRescheduleS
+ 701               	.LVL41:
+ 249:../../os/nil/src/chevt.c **** }
+ 702               		.loc 1 249 3 view .LVU216
+ 249:../../os/nil/src/chevt.c **** }
+ 703               		.loc 1 249 3 view .LVU217
+ 704               	.LBB110:
+ 705               	.LBI110:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 706               		.loc 2 438 20 view .LVU218
+ 707               	.LBB111:
+ 708               		.loc 2 440 3 view .LVU219
+ 709               	/* #APP */
+ 710               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 711 0018 7894      		sei
+ 712               	 ;  0 "" 2
+ 713               	/* #NOAPP */
+ 714               	.LBE111:
+ 715               	.LBE110:
+ 249:../../os/nil/src/chevt.c **** }
+ 716               		.loc 1 249 16 discriminator 1 view .LVU220
+ 717               	/* epilogue start */
+ 250:../../os/nil/src/chevt.c **** 
+ 718               		.loc 1 250 1 is_stmt 0 view .LVU221
+ 719 001a 0895      		ret
+ 720               	.LVL42:
+ 721               	.L34:
+ 722               	.LBB113:
+ 723               	.LBB108:
+ 273:../../os/nil/src/chevt.c ****     (void) chSchReadyI(tp, MSG_OK);
+ 724               		.loc 1 273 29 view .LVU222
+ 725 001c 8381      		ldd r24,Z+3
+ 273:../../os/nil/src/chevt.c ****     (void) chSchReadyI(tp, MSG_OK);
+ 726               		.loc 1 273 38 view .LVU223
+ 727 001e 6823      		and r22,r24
+ 272:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) == tp->u1.ewmask))) {
+ 728               		.loc 1 272 32 view .LVU224
+ 729 0020 8613      		cpse r24,r22
+ 730 0022 00C0      		rjmp .L31
+ 731               	.LVL43:
+ 732               	.LBB104:
+ 733               	.LBI104:
+ 264:../../os/nil/src/chevt.c **** 
+ 734               		.loc 1 264 6 is_stmt 1 view .LVU225
+ 735               	.LBB105:
+ 274:../../os/nil/src/chevt.c ****   }
+ 736               		.loc 1 274 5 view .LVU226
+ 274:../../os/nil/src/chevt.c ****   }
+ 737               		.loc 1 274 12 is_stmt 0 view .LVU227
+ 738 0024 60E0      		ldi r22,0
+ 739 0026 70E0      		ldi r23,0
+ 740 0028 CF01      		movw r24,r30
+ 741 002a 0E94 0000 		call chSchReadyI
+ 742               	.LVL44:
+ 743               	.L35:
+ 274:../../os/nil/src/chevt.c ****   }
+ 744               		.loc 1 274 12 view .LVU228
+ 745               	.LBE105:
+ 746               	.LBE104:
+ 747               	.LBE108:
+ 748               	.LBE113:
+ 248:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 749               		.loc 1 248 3 is_stmt 1 view .LVU229
+ 750 002e 0E94 0000 		call chSchRescheduleS
+ 751               	.LVL45:
+ 249:../../os/nil/src/chevt.c **** }
+ 752               		.loc 1 249 3 view .LVU230
+ 249:../../os/nil/src/chevt.c **** }
+ 753               		.loc 1 249 3 view .LVU231
+ 754               	.LBB114:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 755               		.loc 2 438 20 view .LVU232
+ 756               	.LBB112:
+ 757               		.loc 2 440 3 view .LVU233
+ 758               	/* #APP */
+ 759               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 760 0032 7894      		sei
+ 761               	 ;  0 "" 2
+ 762               	/* #NOAPP */
+ 763               	.LBE112:
+ 764               	.LBE114:
+ 249:../../os/nil/src/chevt.c **** }
+ 765               		.loc 1 249 16 discriminator 1 view .LVU234
+ 766               	/* epilogue start */
+ 250:../../os/nil/src/chevt.c **** 
+ 767               		.loc 1 250 1 is_stmt 0 view .LVU235
+ 768 0034 0895      		ret
+ 769               	.LVL46:
+ 770               	.L33:
+ 771               	.LBB115:
+ 772               	.LBB109:
+ 271:../../os/nil/src/chevt.c ****       (NIL_THD_IS_WTANDEVT(tp) &&
+ 773               		.loc 1 271 38 view .LVU236
+ 774 0036 8381      		ldd r24,Z+3
+ 775 0038 6823      		and r22,r24
+ 270:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) != (eventmask_t)0)) ||
+ 776               		.loc 1 270 31 discriminator 1 view .LVU237
+ 777 003a 6115      		cp r22, __zero_reg__
+ 778 003c 01F0      		breq .L31
+ 779               	.LVL47:
+ 780               	.LBB107:
+ 264:../../os/nil/src/chevt.c **** 
+ 781               		.loc 1 264 6 is_stmt 1 view .LVU238
+ 782               	.LBB106:
+ 274:../../os/nil/src/chevt.c ****   }
+ 783               		.loc 1 274 5 view .LVU239
+ 274:../../os/nil/src/chevt.c ****   }
+ 784               		.loc 1 274 12 is_stmt 0 view .LVU240
+ 785 003e 60E0      		ldi r22,0
+ 786 0040 70E0      		ldi r23,0
+ 787 0042 CF01      		movw r24,r30
+ 788 0044 0E94 0000 		call chSchReadyI
+ 789               	.LVL48:
+ 274:../../os/nil/src/chevt.c ****   }
+ 790               		.loc 1 274 12 view .LVU241
+ 791 0048 00C0      		rjmp .L35
+ 792               	.LBE106:
+ 793               	.LBE107:
+ 794               	.LBE109:
+ 795               	.LBE115:
+ 796               		.cfi_endproc
+ 797               	.LFE105:
+ 799               		.section	.text.chEvtSignalI,"ax",@progbits
+ 800               	.global	chEvtSignalI
+ 802               	chEvtSignalI:
+ 803               	.LVL49:
+ 804               	.LFB106:
+ 264:../../os/nil/src/chevt.c **** 
+ 805               		.loc 1 264 53 is_stmt 1 view -0
+ 806               		.cfi_startproc
+ 807               	/* prologue: function */
+ 808               	/* frame size = 0 */
+ 809               	/* stack size = 0 */
+ 810               	.L__stack_usage = 0
+ 264:../../os/nil/src/chevt.c **** 
+ 811               		.loc 1 264 53 is_stmt 0 view .LVU243
+ 812 0000 FC01      		movw r30,r24
+ 266:../../os/nil/src/chevt.c ****   chDbgCheck(tp != NULL);
+ 813               		.loc 1 266 21 is_stmt 1 view .LVU244
+ 267:../../os/nil/src/chevt.c **** 
+ 814               		.loc 1 267 3 view .LVU245
+ 267:../../os/nil/src/chevt.c **** 
+ 815               		.loc 1 267 3 view .LVU246
+ 267:../../os/nil/src/chevt.c **** 
+ 816               		.loc 1 267 3 discriminator 5 view .LVU247
+ 269:../../os/nil/src/chevt.c ****   if ((NIL_THD_IS_WTOREVT(tp) &&
+ 817               		.loc 1 269 3 view .LVU248
+ 269:../../os/nil/src/chevt.c ****   if ((NIL_THD_IS_WTOREVT(tp) &&
+ 818               		.loc 1 269 14 is_stmt 0 view .LVU249
+ 819 0002 8781      		ldd r24,Z+7
+ 820               	.LVL50:
+ 269:../../os/nil/src/chevt.c ****   if ((NIL_THD_IS_WTOREVT(tp) &&
+ 821               		.loc 1 269 14 view .LVU250
+ 822 0004 682B      		or r22,r24
+ 823               	.LVL51:
+ 269:../../os/nil/src/chevt.c ****   if ((NIL_THD_IS_WTOREVT(tp) &&
+ 824               		.loc 1 269 14 view .LVU251
+ 825 0006 6783      		std Z+7,r22
+ 270:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) != (eventmask_t)0)) ||
+ 826               		.loc 1 270 3 is_stmt 1 view .LVU252
+ 270:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) != (eventmask_t)0)) ||
+ 827               		.loc 1 270 8 is_stmt 0 view .LVU253
+ 828 0008 8281      		ldd r24,Z+2
+ 270:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) != (eventmask_t)0)) ||
+ 829               		.loc 1 270 6 view .LVU254
+ 830 000a 8630      		cpi r24,lo8(6)
+ 831 000c 01F0      		breq .L40
+ 271:../../os/nil/src/chevt.c ****       (NIL_THD_IS_WTANDEVT(tp) &&
+ 832               		.loc 1 271 58 view .LVU255
+ 833 000e 8730      		cpi r24,lo8(7)
+ 834 0010 01F0      		breq .L41
+ 835               	.L36:
+ 836               	/* epilogue start */
+ 837               		.loc 1 276 1 view .LVU256
+ 838 0012 0895      		ret
+ 839               	.L41:
+ 273:../../os/nil/src/chevt.c ****     (void) chSchReadyI(tp, MSG_OK);
+ 840               		.loc 1 273 29 view .LVU257
+ 841 0014 8381      		ldd r24,Z+3
+ 273:../../os/nil/src/chevt.c ****     (void) chSchReadyI(tp, MSG_OK);
+ 842               		.loc 1 273 38 view .LVU258
+ 843 0016 6823      		and r22,r24
+ 272:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) == tp->u1.ewmask))) {
+ 844               		.loc 1 272 32 view .LVU259
+ 845 0018 8613      		cpse r24,r22
+ 846 001a 00C0      		rjmp .L36
+ 847               	.L38:
+ 848               	.LVL52:
+ 849               	.LBB118:
+ 850               	.LBI118:
+ 264:../../os/nil/src/chevt.c **** 
+ 851               		.loc 1 264 6 is_stmt 1 view .LVU260
+ 852               	.LBB119:
+ 274:../../os/nil/src/chevt.c ****   }
+ 853               		.loc 1 274 5 view .LVU261
+ 274:../../os/nil/src/chevt.c ****   }
+ 854               		.loc 1 274 12 is_stmt 0 view .LVU262
+ 855 001c 60E0      		ldi r22,0
+ 856 001e 70E0      		ldi r23,0
+ 857 0020 CF01      		movw r24,r30
+ 858 0022 0C94 0000 		jmp chSchReadyI
+ 859               	.LVL53:
+ 860               	.L40:
+ 274:../../os/nil/src/chevt.c ****   }
+ 861               		.loc 1 274 12 view .LVU263
+ 862               	.LBE119:
+ 863               	.LBE118:
+ 271:../../os/nil/src/chevt.c ****       (NIL_THD_IS_WTANDEVT(tp) &&
+ 864               		.loc 1 271 38 view .LVU264
+ 865 0026 8381      		ldd r24,Z+3
+ 866 0028 6823      		and r22,r24
+ 270:../../os/nil/src/chevt.c ****        ((tp->epmask & tp->u1.ewmask) != (eventmask_t)0)) ||
+ 867               		.loc 1 270 31 discriminator 1 view .LVU265
+ 868 002a 6111      		cpse r22,__zero_reg__
+ 869 002c 00C0      		rjmp .L38
+ 870 002e 0895      		ret
+ 871               		.cfi_endproc
+ 872               	.LFE106:
+ 874               		.section	.text.chEvtBroadcastFlags,"ax",@progbits
+ 875               	.global	chEvtBroadcastFlags
+ 877               	chEvtBroadcastFlags:
+ 878               	.LVL54:
+ 879               	.LFB107:
+ 277:../../os/nil/src/chevt.c **** 
+ 278:../../os/nil/src/chevt.c **** /**
+ 279:../../os/nil/src/chevt.c ****  * @brief   Signals all the Event Listeners registered on the specified Event
+ 280:../../os/nil/src/chevt.c ****  *          Source.
+ 281:../../os/nil/src/chevt.c ****  * @details This function variants ORs the specified event flags to all the
+ 282:../../os/nil/src/chevt.c ****  *          threads registered on the @p event_source_t in addition to the
+ 283:../../os/nil/src/chevt.c ****  *          event flags specified by the threads themselves in the
+ 284:../../os/nil/src/chevt.c ****  *          @p event_listener_t objects.
+ 285:../../os/nil/src/chevt.c ****  *
+ 286:../../os/nil/src/chevt.c ****  * @param[in] esp       pointer to the @p event_source_t structure
+ 287:../../os/nil/src/chevt.c ****  * @param[in] flags     the flags set to be added to the listener flags mask
+ 288:../../os/nil/src/chevt.c ****  *
+ 289:../../os/nil/src/chevt.c ****  * @api
+ 290:../../os/nil/src/chevt.c ****  */
+ 291:../../os/nil/src/chevt.c **** void chEvtBroadcastFlags(event_source_t *esp, eventflags_t flags) {
+ 880               		.loc 1 291 67 is_stmt 1 view -0
+ 881               		.cfi_startproc
+ 882               	/* prologue: function */
+ 883               	/* frame size = 0 */
+ 884               	/* stack size = 0 */
+ 885               	.L__stack_usage = 0
+ 292:../../os/nil/src/chevt.c **** 
+ 293:../../os/nil/src/chevt.c ****   chSysLock();
+ 886               		.loc 1 293 3 view .LVU267
+ 887               	.LBB120:
+ 888               	.LBI120:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 889               		.loc 2 428 20 view .LVU268
+ 890               	.LBB121:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 891               		.loc 2 430 3 view .LVU269
+ 892               	/* #APP */
+ 893               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 894 0000 F894      		cli
+ 895               	 ;  0 "" 2
+ 896               	/* #NOAPP */
+ 897               	.LBE121:
+ 898               	.LBE120:
+ 899               		.loc 1 293 3 discriminator 1 view .LVU270
+ 900               		.loc 1 293 14 discriminator 1 view .LVU271
+ 294:../../os/nil/src/chevt.c ****   chEvtBroadcastFlagsI(esp, flags);
+ 901               		.loc 1 294 3 view .LVU272
+ 902 0002 0E94 0000 		call chEvtBroadcastFlagsI
+ 903               	.LVL55:
+ 295:../../os/nil/src/chevt.c ****   chSchRescheduleS();
+ 904               		.loc 1 295 3 view .LVU273
+ 905 0006 0E94 0000 		call chSchRescheduleS
+ 906               	.LVL56:
+ 296:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 907               		.loc 1 296 3 view .LVU274
+ 908               		.loc 1 296 3 view .LVU275
+ 909               	.LBB122:
+ 910               	.LBI122:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 911               		.loc 2 438 20 view .LVU276
+ 912               	.LBB123:
+ 913               		.loc 2 440 3 view .LVU277
+ 914               	/* #APP */
+ 915               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 916 000a 7894      		sei
+ 917               	 ;  0 "" 2
+ 918               	/* #NOAPP */
+ 919               	.LBE123:
+ 920               	.LBE122:
+ 921               		.loc 1 296 16 discriminator 1 view .LVU278
+ 922               	/* epilogue start */
+ 297:../../os/nil/src/chevt.c **** }
+ 923               		.loc 1 297 1 is_stmt 0 view .LVU279
+ 924 000c 0895      		ret
+ 925               		.cfi_endproc
+ 926               	.LFE107:
+ 928               		.section	.text.chEvtGetAndClearFlagsI,"ax",@progbits
+ 929               	.global	chEvtGetAndClearFlagsI
+ 931               	chEvtGetAndClearFlagsI:
+ 932               	.LVL57:
+ 933               	.LFB108:
+ 298:../../os/nil/src/chevt.c **** 
+ 299:../../os/nil/src/chevt.c **** /**
+ 300:../../os/nil/src/chevt.c ****  * @brief   Returns the unmasked flags associated to an @p event_listener_t.
+ 301:../../os/nil/src/chevt.c ****  * @details The flags are returned and the @p event_listener_t flags mask is
+ 302:../../os/nil/src/chevt.c ****  *          cleared.
+ 303:../../os/nil/src/chevt.c ****  *
+ 304:../../os/nil/src/chevt.c ****  * @param[in] elp       pointer to the @p event_listener_t structure
+ 305:../../os/nil/src/chevt.c ****  * @return              The flags added to the listener by the associated
+ 306:../../os/nil/src/chevt.c ****  *                      event source.
+ 307:../../os/nil/src/chevt.c ****  *
+ 308:../../os/nil/src/chevt.c ****  * @iclass
+ 309:../../os/nil/src/chevt.c ****  */
+ 310:../../os/nil/src/chevt.c **** eventflags_t chEvtGetAndClearFlagsI(event_listener_t *elp) {
+ 934               		.loc 1 310 60 is_stmt 1 view -0
+ 935               		.cfi_startproc
+ 936               	/* prologue: function */
+ 937               	/* frame size = 0 */
+ 938               	/* stack size = 0 */
+ 939               	.L__stack_usage = 0
+ 940               		.loc 1 310 60 is_stmt 0 view .LVU281
+ 941 0000 FC01      		movw r30,r24
+ 311:../../os/nil/src/chevt.c ****   eventflags_t flags;
+ 942               		.loc 1 311 3 is_stmt 1 view .LVU282
+ 312:../../os/nil/src/chevt.c **** 
+ 313:../../os/nil/src/chevt.c ****   flags = elp->flags;
+ 943               		.loc 1 313 3 view .LVU283
+ 944               		.loc 1 313 9 is_stmt 0 view .LVU284
+ 945 0002 9581      		ldd r25,Z+5
+ 946               	.LVL58:
+ 314:../../os/nil/src/chevt.c ****   elp->flags = (eventflags_t)0;
+ 947               		.loc 1 314 3 is_stmt 1 view .LVU285
+ 948               		.loc 1 314 14 is_stmt 0 view .LVU286
+ 949 0004 1582      		std Z+5,__zero_reg__
+ 315:../../os/nil/src/chevt.c **** 
+ 316:../../os/nil/src/chevt.c ****   return flags & elp->wflags;
+ 950               		.loc 1 316 3 is_stmt 1 view .LVU287
+ 951               		.loc 1 316 16 is_stmt 0 view .LVU288
+ 952 0006 8681      		ldd r24,Z+6
+ 953               	.LVL59:
+ 317:../../os/nil/src/chevt.c **** }
+ 954               		.loc 1 317 1 view .LVU289
+ 955 0008 8923      		and r24,r25
+ 956               	/* epilogue start */
+ 957 000a 0895      		ret
+ 958               		.cfi_endproc
+ 959               	.LFE108:
+ 961               		.section	.text.chEvtDispatch,"ax",@progbits
+ 962               	.global	chEvtDispatch
+ 964               	chEvtDispatch:
+ 965               	.LVL60:
+ 966               	.LFB109:
+ 318:../../os/nil/src/chevt.c **** 
+ 319:../../os/nil/src/chevt.c **** /**
+ 320:../../os/nil/src/chevt.c ****  * @brief   Invokes the event handlers associated to an event flags mask.
+ 321:../../os/nil/src/chevt.c ****  *
+ 322:../../os/nil/src/chevt.c ****  * @param[in] events    mask of events to be dispatched
+ 323:../../os/nil/src/chevt.c ****  * @param[in] handlers  an array of @p evhandler_t. The array must have size
+ 324:../../os/nil/src/chevt.c ****  *                      equal to the number of bits in eventmask_t.
+ 325:../../os/nil/src/chevt.c ****  *
+ 326:../../os/nil/src/chevt.c ****  * @api
+ 327:../../os/nil/src/chevt.c ****  */
+ 328:../../os/nil/src/chevt.c **** void chEvtDispatch(const evhandler_t *handlers, eventmask_t events) {
+ 967               		.loc 1 328 69 is_stmt 1 view -0
+ 968               		.cfi_startproc
+ 969               		.loc 1 328 69 is_stmt 0 view .LVU291
+ 970 0000 BF92      		push r11
+ 971               	.LCFI5:
+ 972               		.cfi_def_cfa_offset 3
+ 973               		.cfi_offset 11, -2
+ 974 0002 CF92      		push r12
+ 975               	.LCFI6:
+ 976               		.cfi_def_cfa_offset 4
+ 977               		.cfi_offset 12, -3
+ 978 0004 DF92      		push r13
+ 979               	.LCFI7:
+ 980               		.cfi_def_cfa_offset 5
+ 981               		.cfi_offset 13, -4
+ 982 0006 EF92      		push r14
+ 983               	.LCFI8:
+ 984               		.cfi_def_cfa_offset 6
+ 985               		.cfi_offset 14, -5
+ 986 0008 FF92      		push r15
+ 987               	.LCFI9:
+ 988               		.cfi_def_cfa_offset 7
+ 989               		.cfi_offset 15, -6
+ 990 000a 0F93      		push r16
+ 991               	.LCFI10:
+ 992               		.cfi_def_cfa_offset 8
+ 993               		.cfi_offset 16, -7
+ 994 000c 1F93      		push r17
+ 995               	.LCFI11:
+ 996               		.cfi_def_cfa_offset 9
+ 997               		.cfi_offset 17, -8
+ 998 000e CF93      		push r28
+ 999               	.LCFI12:
+ 1000               		.cfi_def_cfa_offset 10
+ 1001               		.cfi_offset 28, -9
+ 1002 0010 DF93      		push r29
+ 1003               	.LCFI13:
+ 1004               		.cfi_def_cfa_offset 11
+ 1005               		.cfi_offset 29, -10
+ 1006               	/* prologue: function */
+ 1007               	/* frame size = 0 */
+ 1008               	/* stack size = 9 */
+ 1009               	.L__stack_usage = 9
+ 1010 0012 B62E      		mov r11,r22
+ 329:../../os/nil/src/chevt.c ****   eventid_t eid;
+ 1011               		.loc 1 329 3 is_stmt 1 view .LVU292
+ 330:../../os/nil/src/chevt.c **** 
+ 331:../../os/nil/src/chevt.c ****   chDbgCheck(handlers != NULL);
+ 1012               		.loc 1 331 3 view .LVU293
+ 1013               		.loc 1 331 3 view .LVU294
+ 1014               		.loc 1 331 3 discriminator 5 view .LVU295
+ 332:../../os/nil/src/chevt.c **** 
+ 333:../../os/nil/src/chevt.c ****   eid = (eventid_t)0;
+ 1015               		.loc 1 333 3 view .LVU296
+ 1016               	.LVL61:
+ 334:../../os/nil/src/chevt.c ****   while (events != (eventmask_t)0) {
+ 1017               		.loc 1 334 3 view .LVU297
+ 1018               		.loc 1 334 17 view .LVU298
+ 1019 0014 6115      		cp r22, __zero_reg__
+ 1020 0016 01F0      		breq .L44
+ 1021 0018 EC01      		movw r28,r24
+ 333:../../os/nil/src/chevt.c ****   while (events != (eventmask_t)0) {
+ 1022               		.loc 1 333 7 is_stmt 0 view .LVU299
+ 1023 001a C12C      		mov r12,__zero_reg__
+ 1024 001c D12C      		mov r13,__zero_reg__
+ 1025 001e 7601      		movw r14,r12
+ 1026 0020 462F      		mov r20,r22
+ 1027 0022 50E0      		ldi r21,0
+ 335:../../os/nil/src/chevt.c ****     if ((events & EVENT_MASK(eid)) != (eventmask_t)0) {
+ 336:../../os/nil/src/chevt.c ****       chDbgAssert(handlers[eid] != NULL, "null handler");
+ 337:../../os/nil/src/chevt.c ****       events &= ~EVENT_MASK(eid);
+ 1028               		.loc 1 337 18 view .LVU300
+ 1029 0024 01E0      		ldi r16,lo8(1)
+ 1030 0026 10E0      		ldi r17,0
+ 1031               	.LVL62:
+ 1032               	.L47:
+ 335:../../os/nil/src/chevt.c ****     if ((events & EVENT_MASK(eid)) != (eventmask_t)0) {
+ 1033               		.loc 1 335 5 is_stmt 1 view .LVU301
+ 335:../../os/nil/src/chevt.c ****     if ((events & EVENT_MASK(eid)) != (eventmask_t)0) {
+ 1034               		.loc 1 335 36 is_stmt 0 view .LVU302
+ 1035 0028 9A01      		movw r18,r20
+ 1036 002a 0C2C      		mov r0,r12
+ 1037 002c 00C0      		rjmp 2f
+ 1038               		1:
+ 1039 002e 3595      		asr r19
+ 1040 0030 2795      		ror r18
+ 1041               		2:
+ 1042 0032 0A94      		dec r0
+ 1043 0034 02F4      		brpl 1b
+ 335:../../os/nil/src/chevt.c ****     if ((events & EVENT_MASK(eid)) != (eventmask_t)0) {
+ 1044               		.loc 1 335 8 view .LVU303
+ 1045 0036 20FF      		sbrs r18,0
+ 1046 0038 00C0      		rjmp .L46
+ 336:../../os/nil/src/chevt.c ****       events &= ~EVENT_MASK(eid);
+ 1047               		.loc 1 336 7 is_stmt 1 view .LVU304
+ 336:../../os/nil/src/chevt.c ****       events &= ~EVENT_MASK(eid);
+ 1048               		.loc 1 336 7 view .LVU305
+ 336:../../os/nil/src/chevt.c ****       events &= ~EVENT_MASK(eid);
+ 1049               		.loc 1 336 7 discriminator 5 view .LVU306
+ 1050               		.loc 1 337 7 view .LVU307
+ 1051               		.loc 1 337 18 is_stmt 0 view .LVU308
+ 1052 003a 9801      		movw r18,r16
+ 1053 003c 0C2C      		mov r0,r12
+ 1054 003e 00C0      		rjmp 2f
+ 1055               		1:
+ 1056 0040 220F      		lsl r18
+ 1057 0042 331F      		rol r19
+ 1058               		2:
+ 1059 0044 0A94      		dec r0
+ 1060 0046 02F4      		brpl 1b
+ 1061 0048 C901      		movw r24,r18
+ 1062               		.loc 1 337 14 view .LVU309
+ 1063 004a 8095      		com r24
+ 1064 004c B822      		and r11,r24
+ 1065               	.LVL63:
+ 338:../../os/nil/src/chevt.c ****       handlers[eid](eid);
+ 1066               		.loc 1 338 7 is_stmt 1 view .LVU310
+ 1067 004e E991      		ld r30,Y+
+ 1068 0050 F991      		ld r31,Y+
+ 1069 0052 C701      		movw r24,r14
+ 1070 0054 B601      		movw r22,r12
+ 1071 0056 0995      		icall
+ 1072               	.LVL64:
+ 339:../../os/nil/src/chevt.c ****     }
+ 340:../../os/nil/src/chevt.c ****     eid++;
+ 1073               		.loc 1 340 5 view .LVU311
+ 1074               		.loc 1 340 8 is_stmt 0 view .LVU312
+ 1075 0058 3FEF      		ldi r19,-1
+ 1076 005a C31A      		sub r12,r19
+ 1077 005c D30A      		sbc r13,r19
+ 1078 005e E30A      		sbc r14,r19
+ 1079 0060 F30A      		sbc r15,r19
+ 1080               	.LVL65:
+ 334:../../os/nil/src/chevt.c ****     if ((events & EVENT_MASK(eid)) != (eventmask_t)0) {
+ 1081               		.loc 1 334 17 is_stmt 1 view .LVU313
+ 1082 0062 B114      		cp r11, __zero_reg__
+ 1083 0064 01F0      		breq .L44
+ 1084 0066 4B2D      		mov r20,r11
+ 1085 0068 50E0      		ldi r21,0
+ 1086 006a 00C0      		rjmp .L47
+ 1087               	.L46:
+ 1088               		.loc 1 340 5 view .LVU314
+ 1089               		.loc 1 340 8 is_stmt 0 view .LVU315
+ 1090 006c 8FEF      		ldi r24,-1
+ 1091 006e C81A      		sub r12,r24
+ 1092 0070 D80A      		sbc r13,r24
+ 1093 0072 E80A      		sbc r14,r24
+ 1094 0074 F80A      		sbc r15,r24
+ 1095               	.LVL66:
+ 334:../../os/nil/src/chevt.c ****     if ((events & EVENT_MASK(eid)) != (eventmask_t)0) {
+ 1096               		.loc 1 334 17 is_stmt 1 view .LVU316
+ 1097 0076 2296      		adiw r28,2
+ 334:../../os/nil/src/chevt.c ****     if ((events & EVENT_MASK(eid)) != (eventmask_t)0) {
+ 1098               		.loc 1 334 17 is_stmt 0 view .LVU317
+ 1099 0078 00C0      		rjmp .L47
+ 1100               	.LVL67:
+ 1101               	.L44:
+ 1102               	/* epilogue start */
+ 341:../../os/nil/src/chevt.c ****   }
+ 342:../../os/nil/src/chevt.c **** }
+ 1103               		.loc 1 342 1 view .LVU318
+ 1104 007a DF91      		pop r29
+ 1105 007c CF91      		pop r28
+ 1106 007e 1F91      		pop r17
+ 1107 0080 0F91      		pop r16
+ 1108 0082 FF90      		pop r15
+ 1109 0084 EF90      		pop r14
+ 1110 0086 DF90      		pop r13
+ 1111 0088 CF90      		pop r12
+ 1112 008a BF90      		pop r11
+ 1113               	.LVL68:
+ 1114               		.loc 1 342 1 view .LVU319
+ 1115 008c 0895      		ret
+ 1116               		.cfi_endproc
+ 1117               	.LFE109:
+ 1119               		.section	.text.chEvtWaitOneTimeout,"ax",@progbits
+ 1120               	.global	chEvtWaitOneTimeout
+ 1122               	chEvtWaitOneTimeout:
+ 1123               	.LVL69:
+ 1124               	.LFB110:
+ 343:../../os/nil/src/chevt.c **** 
+ 344:../../os/nil/src/chevt.c **** /**
+ 345:../../os/nil/src/chevt.c ****  * @brief   Waits for exactly one of the specified events.
+ 346:../../os/nil/src/chevt.c ****  * @details The function waits for one event among those specified in
+ 347:../../os/nil/src/chevt.c ****  *          @p events to become pending then the event is cleared and returned.
+ 348:../../os/nil/src/chevt.c ****  * @note    One and only one event is served in the function, the one with the
+ 349:../../os/nil/src/chevt.c ****  *          lowest event id. The function is meant to be invoked into a loop
+ 350:../../os/nil/src/chevt.c ****  *          in order to serve all the pending events.<br>
+ 351:../../os/nil/src/chevt.c ****  *          This means that Event Listeners with a lower event identifier have
+ 352:../../os/nil/src/chevt.c ****  *          an higher priority.
+ 353:../../os/nil/src/chevt.c ****  *
+ 354:../../os/nil/src/chevt.c ****  * @param[in] events    events that the function should wait
+ 355:../../os/nil/src/chevt.c ****  *                      for, @p ALL_EVENTS enables all the events
+ 356:../../os/nil/src/chevt.c ****  * @param[in] timeout   the number of ticks before the operation timeouts,
+ 357:../../os/nil/src/chevt.c ****  *                      the following special values are allowed:
+ 358:../../os/nil/src/chevt.c ****  *                      - @a TIME_IMMEDIATE immediate timeout.
+ 359:../../os/nil/src/chevt.c ****  *                      - @a TIME_INFINITE no timeout.
+ 360:../../os/nil/src/chevt.c ****  *                      .
+ 361:../../os/nil/src/chevt.c ****  * @return              The mask of the lowest event id served and cleared.
+ 362:../../os/nil/src/chevt.c ****  * @retval 0            if the operation has timed out.
+ 363:../../os/nil/src/chevt.c ****  *
+ 364:../../os/nil/src/chevt.c ****  * @api
+ 365:../../os/nil/src/chevt.c ****  */
+ 366:../../os/nil/src/chevt.c **** eventmask_t chEvtWaitOneTimeout(eventmask_t events, sysinterval_t timeout) {
+ 1125               		.loc 1 366 76 is_stmt 1 view -0
+ 1126               		.cfi_startproc
+ 1127               		.loc 1 366 76 is_stmt 0 view .LVU321
+ 1128 0000 0F93      		push r16
+ 1129               	.LCFI14:
+ 1130               		.cfi_def_cfa_offset 3
+ 1131               		.cfi_offset 16, -2
+ 1132 0002 1F93      		push r17
+ 1133               	.LCFI15:
+ 1134               		.cfi_def_cfa_offset 4
+ 1135               		.cfi_offset 17, -3
+ 1136 0004 CF93      		push r28
+ 1137               	.LCFI16:
+ 1138               		.cfi_def_cfa_offset 5
+ 1139               		.cfi_offset 28, -4
+ 1140 0006 DF93      		push r29
+ 1141               	.LCFI17:
+ 1142               		.cfi_def_cfa_offset 6
+ 1143               		.cfi_offset 29, -5
+ 1144               	/* prologue: function */
+ 1145               	/* frame size = 0 */
+ 1146               	/* stack size = 4 */
+ 1147               	.L__stack_usage = 4
+ 1148 0008 D82F      		mov r29,r24
+ 367:../../os/nil/src/chevt.c ****   thread_t *ctp = nil.current;
+ 1149               		.loc 1 367 3 is_stmt 1 view .LVU322
+ 1150               		.loc 1 367 13 is_stmt 0 view .LVU323
+ 1151 000a 0091 0000 		lds r16,nil
+ 1152 000e 1091 0000 		lds r17,nil+1
+ 1153               	.LVL70:
+ 368:../../os/nil/src/chevt.c ****   eventmask_t m;
+ 1154               		.loc 1 368 3 is_stmt 1 view .LVU324
+ 369:../../os/nil/src/chevt.c **** 
+ 370:../../os/nil/src/chevt.c ****   chSysLock();
+ 1155               		.loc 1 370 3 view .LVU325
+ 1156               	.LBB124:
+ 1157               	.LBI124:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 1158               		.loc 2 428 20 view .LVU326
+ 1159               	.LBB125:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 1160               		.loc 2 430 3 view .LVU327
+ 1161               	/* #APP */
+ 1162               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 1163 0012 F894      		cli
+ 1164               	 ;  0 "" 2
+ 1165               	/* #NOAPP */
+ 1166               	.LBE125:
+ 1167               	.LBE124:
+ 1168               		.loc 1 370 3 discriminator 1 view .LVU328
+ 1169               		.loc 1 370 14 discriminator 1 view .LVU329
+ 371:../../os/nil/src/chevt.c ****   m = ctp->epmask & events;
+ 1170               		.loc 1 371 3 view .LVU330
+ 1171               		.loc 1 371 10 is_stmt 0 view .LVU331
+ 1172 0014 F801      		movw r30,r16
+ 1173 0016 8781      		ldd r24,Z+7
+ 1174               	.LVL71:
+ 1175               		.loc 1 371 5 view .LVU332
+ 1176 0018 C82F      		mov r28,r24
+ 1177 001a CD23      		and r28,r29
+ 1178               	.LVL72:
+ 372:../../os/nil/src/chevt.c ****   if (m == (eventmask_t)0) {
+ 1179               		.loc 1 372 3 is_stmt 1 view .LVU333
+ 1180               		.loc 1 372 6 is_stmt 0 view .LVU334
+ 1181 001c C111      		cpse r28,__zero_reg__
+ 1182 001e 00C0      		rjmp .L56
+ 373:../../os/nil/src/chevt.c ****     if (TIME_IMMEDIATE == timeout) {
+ 1183               		.loc 1 373 5 is_stmt 1 view .LVU335
+ 1184               		.loc 1 373 8 is_stmt 0 view .LVU336
+ 1185 0020 6F3F      		cpi r22,-1
+ 1186 0022 7607      		cpc r23,r22
+ 1187 0024 01F0      		breq .L61
+ 374:../../os/nil/src/chevt.c ****       chSysUnlock();
+ 375:../../os/nil/src/chevt.c **** 
+ 376:../../os/nil/src/chevt.c ****       return (eventmask_t)0;
+ 377:../../os/nil/src/chevt.c ****     }
+ 378:../../os/nil/src/chevt.c ****     ctp->u1.ewmask = events;
+ 1188               		.loc 1 378 5 is_stmt 1 view .LVU337
+ 1189               		.loc 1 378 20 is_stmt 0 view .LVU338
+ 1190 0026 F801      		movw r30,r16
+ 1191 0028 D383      		std Z+3,r29
+ 379:../../os/nil/src/chevt.c ****     if (chSchGoSleepTimeoutS(NIL_STATE_WTOREVT, timeout) < MSG_OK) {
+ 1192               		.loc 1 379 5 is_stmt 1 view .LVU339
+ 1193               		.loc 1 379 9 is_stmt 0 view .LVU340
+ 1194 002a 86E0      		ldi r24,lo8(6)
+ 1195 002c 0E94 0000 		call chSchGoSleepTimeoutS
+ 1196               	.LVL73:
+ 1197               		.loc 1 379 8 discriminator 1 view .LVU341
+ 1198 0030 97FD      		sbrc r25,7
+ 1199 0032 00C0      		rjmp .L61
+ 380:../../os/nil/src/chevt.c ****       chSysUnlock();
+ 381:../../os/nil/src/chevt.c **** 
+ 382:../../os/nil/src/chevt.c ****       return (eventmask_t)0;
+ 383:../../os/nil/src/chevt.c ****     }
+ 384:../../os/nil/src/chevt.c ****     m = ctp->epmask & events;
+ 1200               		.loc 1 384 5 is_stmt 1 view .LVU342
+ 1201               		.loc 1 384 12 is_stmt 0 view .LVU343
+ 1202 0034 F801      		movw r30,r16
+ 1203 0036 8781      		ldd r24,Z+7
+ 1204               		.loc 1 384 7 view .LVU344
+ 1205 0038 C82F      		mov r28,r24
+ 1206               	.LVL74:
+ 1207               		.loc 1 384 7 view .LVU345
+ 1208 003a CD23      		and r28,r29
+ 1209               	.L56:
+ 1210               	.LVL75:
+ 385:../../os/nil/src/chevt.c ****   }
+ 386:../../os/nil/src/chevt.c ****   m ^= m & (m - (eventmask_t)1);
+ 1211               		.loc 1 386 3 is_stmt 1 view .LVU346
+ 1212               		.loc 1 386 5 is_stmt 0 view .LVU347
+ 1213 003c 9C2F      		mov r25,r28
+ 1214 003e 9195      		neg r25
+ 1215 0040 C923      		and r28,r25
+ 1216               	.LVL76:
+ 387:../../os/nil/src/chevt.c ****   ctp->epmask &= ~m;
+ 1217               		.loc 1 387 3 is_stmt 1 view .LVU348
+ 1218               		.loc 1 387 15 is_stmt 0 view .LVU349
+ 1219 0042 9C2F      		mov r25,r28
+ 1220 0044 9095      		com r25
+ 1221 0046 8923      		and r24,r25
+ 1222 0048 F801      		movw r30,r16
+ 1223 004a 8783      		std Z+7,r24
+ 1224               	.L61:
+ 388:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 1225               		.loc 1 388 3 is_stmt 1 view .LVU350
+ 1226               		.loc 1 388 3 view .LVU351
+ 1227               	.LBB126:
+ 1228               	.LBI126:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 1229               		.loc 2 438 20 view .LVU352
+ 1230               	.LBB127:
+ 1231               		.loc 2 440 3 view .LVU353
+ 1232               	/* #APP */
+ 1233               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 1234 004c 7894      		sei
+ 1235               	 ;  0 "" 2
+ 1236               	/* #NOAPP */
+ 1237               	.LBE127:
+ 1238               	.LBE126:
+ 1239               		.loc 1 388 16 discriminator 1 view .LVU354
+ 389:../../os/nil/src/chevt.c **** 
+ 390:../../os/nil/src/chevt.c ****   return m;
+ 1240               		.loc 1 390 3 view .LVU355
+ 391:../../os/nil/src/chevt.c **** }
+ 1241               		.loc 1 391 1 is_stmt 0 view .LVU356
+ 1242 004e 8C2F      		mov r24,r28
+ 1243               	/* epilogue start */
+ 1244 0050 DF91      		pop r29
+ 1245               	.LVL77:
+ 1246               		.loc 1 391 1 view .LVU357
+ 1247 0052 CF91      		pop r28
+ 1248               	.LVL78:
+ 1249               		.loc 1 391 1 view .LVU358
+ 1250 0054 1F91      		pop r17
+ 1251 0056 0F91      		pop r16
+ 1252               	.LVL79:
+ 1253               		.loc 1 391 1 view .LVU359
+ 1254 0058 0895      		ret
+ 1255               		.cfi_endproc
+ 1256               	.LFE110:
+ 1258               		.section	.text.chEvtWaitAnyTimeout,"ax",@progbits
+ 1259               	.global	chEvtWaitAnyTimeout
+ 1261               	chEvtWaitAnyTimeout:
+ 1262               	.LVL80:
+ 1263               	.LFB111:
+ 392:../../os/nil/src/chevt.c **** 
+ 393:../../os/nil/src/chevt.c **** /**
+ 394:../../os/nil/src/chevt.c ****  * @brief   Waits for any of the specified events.
+ 395:../../os/nil/src/chevt.c ****  * @details The function waits for any event among those specified in
+ 396:../../os/nil/src/chevt.c ****  *          @p mask to become pending then the events are cleared and
+ 397:../../os/nil/src/chevt.c ****  *          returned.
+ 398:../../os/nil/src/chevt.c ****  *
+ 399:../../os/nil/src/chevt.c ****  * @param[in] mask      mask of the event flags that the function should wait
+ 400:../../os/nil/src/chevt.c ****  *                      for, @p ALL_EVENTS enables all the events
+ 401:../../os/nil/src/chevt.c ****  * @param[in] timeout   the number of ticks before the operation timeouts,
+ 402:../../os/nil/src/chevt.c ****  *                      the following special values are allowed:
+ 403:../../os/nil/src/chevt.c ****  *                      - @a TIME_IMMEDIATE immediate timeout.
+ 404:../../os/nil/src/chevt.c ****  *                      - @a TIME_INFINITE no timeout.
+ 405:../../os/nil/src/chevt.c ****  *                      .
+ 406:../../os/nil/src/chevt.c ****  * @return              The mask of the served and cleared events.
+ 407:../../os/nil/src/chevt.c ****  * @retval 0            if the operation has timed out.
+ 408:../../os/nil/src/chevt.c ****  *
+ 409:../../os/nil/src/chevt.c ****  * @api
+ 410:../../os/nil/src/chevt.c ****  */
+ 411:../../os/nil/src/chevt.c **** eventmask_t chEvtWaitAnyTimeout(eventmask_t mask, sysinterval_t timeout) {
+ 1264               		.loc 1 411 74 is_stmt 1 view -0
+ 1265               		.cfi_startproc
+ 1266               		.loc 1 411 74 is_stmt 0 view .LVU361
+ 1267 0000 0F93      		push r16
+ 1268               	.LCFI18:
+ 1269               		.cfi_def_cfa_offset 3
+ 1270               		.cfi_offset 16, -2
+ 1271 0002 1F93      		push r17
+ 1272               	.LCFI19:
+ 1273               		.cfi_def_cfa_offset 4
+ 1274               		.cfi_offset 17, -3
+ 1275 0004 CF93      		push r28
+ 1276               	.LCFI20:
+ 1277               		.cfi_def_cfa_offset 5
+ 1278               		.cfi_offset 28, -4
+ 1279 0006 DF93      		push r29
+ 1280               	.LCFI21:
+ 1281               		.cfi_def_cfa_offset 6
+ 1282               		.cfi_offset 29, -5
+ 1283               	/* prologue: function */
+ 1284               	/* frame size = 0 */
+ 1285               	/* stack size = 4 */
+ 1286               	.L__stack_usage = 4
+ 1287 0008 C82F      		mov r28,r24
+ 412:../../os/nil/src/chevt.c ****   thread_t *ctp = nil.current;
+ 1288               		.loc 1 412 3 is_stmt 1 view .LVU362
+ 1289               		.loc 1 412 13 is_stmt 0 view .LVU363
+ 1290 000a 0091 0000 		lds r16,nil
+ 1291 000e 1091 0000 		lds r17,nil+1
+ 1292               	.LVL81:
+ 413:../../os/nil/src/chevt.c ****   eventmask_t m;
+ 1293               		.loc 1 413 3 is_stmt 1 view .LVU364
+ 414:../../os/nil/src/chevt.c **** 
+ 415:../../os/nil/src/chevt.c ****   chSysLock();
+ 1294               		.loc 1 415 3 view .LVU365
+ 1295               	.LBB128:
+ 1296               	.LBI128:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 1297               		.loc 2 428 20 view .LVU366
+ 1298               	.LBB129:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 1299               		.loc 2 430 3 view .LVU367
+ 1300               	/* #APP */
+ 1301               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 1302 0012 F894      		cli
+ 1303               	 ;  0 "" 2
+ 1304               	/* #NOAPP */
+ 1305               	.LBE129:
+ 1306               	.LBE128:
+ 1307               		.loc 1 415 3 discriminator 1 view .LVU368
+ 1308               		.loc 1 415 14 discriminator 1 view .LVU369
+ 416:../../os/nil/src/chevt.c ****   if ((m = (ctp->epmask & mask)) == (eventmask_t)0) {
+ 1309               		.loc 1 416 3 view .LVU370
+ 1310               		.loc 1 416 16 is_stmt 0 view .LVU371
+ 1311 0014 F801      		movw r30,r16
+ 1312 0016 8781      		ldd r24,Z+7
+ 1313               	.LVL82:
+ 1314               		.loc 1 416 10 view .LVU372
+ 1315 0018 D82F      		mov r29,r24
+ 1316 001a DC23      		and r29,r28
+ 1317               	.LVL83:
+ 1318               		.loc 1 416 6 view .LVU373
+ 1319 001c D111      		cpse r29,__zero_reg__
+ 1320 001e 00C0      		rjmp .L63
+ 417:../../os/nil/src/chevt.c ****     if (TIME_IMMEDIATE == timeout) {
+ 1321               		.loc 1 417 5 is_stmt 1 view .LVU374
+ 1322               		.loc 1 417 8 is_stmt 0 view .LVU375
+ 1323 0020 6F3F      		cpi r22,-1
+ 1324 0022 7607      		cpc r23,r22
+ 1325 0024 01F0      		breq .L68
+ 418:../../os/nil/src/chevt.c ****       chSysUnlock();
+ 419:../../os/nil/src/chevt.c **** 
+ 420:../../os/nil/src/chevt.c ****       return (eventmask_t)0;
+ 421:../../os/nil/src/chevt.c ****     }
+ 422:../../os/nil/src/chevt.c ****     ctp->u1.ewmask = mask;
+ 1326               		.loc 1 422 5 is_stmt 1 view .LVU376
+ 1327               		.loc 1 422 20 is_stmt 0 view .LVU377
+ 1328 0026 F801      		movw r30,r16
+ 1329 0028 C383      		std Z+3,r28
+ 423:../../os/nil/src/chevt.c ****     if (chSchGoSleepTimeoutS(NIL_STATE_WTOREVT, timeout) < MSG_OK) {
+ 1330               		.loc 1 423 5 is_stmt 1 view .LVU378
+ 1331               		.loc 1 423 9 is_stmt 0 view .LVU379
+ 1332 002a 86E0      		ldi r24,lo8(6)
+ 1333 002c 0E94 0000 		call chSchGoSleepTimeoutS
+ 1334               	.LVL84:
+ 1335               		.loc 1 423 8 discriminator 1 view .LVU380
+ 1336 0030 97FD      		sbrc r25,7
+ 1337 0032 00C0      		rjmp .L68
+ 424:../../os/nil/src/chevt.c ****       chSysUnlock();
+ 425:../../os/nil/src/chevt.c **** 
+ 426:../../os/nil/src/chevt.c ****       return (eventmask_t)0;
+ 427:../../os/nil/src/chevt.c ****     }
+ 428:../../os/nil/src/chevt.c ****     m = ctp->epmask & mask;
+ 1338               		.loc 1 428 5 is_stmt 1 view .LVU381
+ 1339               		.loc 1 428 12 is_stmt 0 view .LVU382
+ 1340 0034 F801      		movw r30,r16
+ 1341 0036 8781      		ldd r24,Z+7
+ 1342               		.loc 1 428 7 view .LVU383
+ 1343 0038 D82F      		mov r29,r24
+ 1344               	.LVL85:
+ 1345               		.loc 1 428 7 view .LVU384
+ 1346 003a DC23      		and r29,r28
+ 1347               	.L63:
+ 1348               	.LVL86:
+ 429:../../os/nil/src/chevt.c ****   }
+ 430:../../os/nil/src/chevt.c ****   ctp->epmask &= ~m;
+ 1349               		.loc 1 430 3 is_stmt 1 view .LVU385
+ 1350               		.loc 1 430 15 is_stmt 0 view .LVU386
+ 1351 003c 9D2F      		mov r25,r29
+ 1352 003e 9095      		com r25
+ 1353 0040 8923      		and r24,r25
+ 1354 0042 F801      		movw r30,r16
+ 1355 0044 8783      		std Z+7,r24
+ 1356               	.L68:
+ 431:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 1357               		.loc 1 431 3 is_stmt 1 view .LVU387
+ 1358               		.loc 1 431 3 view .LVU388
+ 1359               	.LBB130:
+ 1360               	.LBI130:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 1361               		.loc 2 438 20 view .LVU389
+ 1362               	.LBB131:
+ 1363               		.loc 2 440 3 view .LVU390
+ 1364               	/* #APP */
+ 1365               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 1366 0046 7894      		sei
+ 1367               	 ;  0 "" 2
+ 1368               	/* #NOAPP */
+ 1369               	.LBE131:
+ 1370               	.LBE130:
+ 1371               		.loc 1 431 16 discriminator 1 view .LVU391
+ 432:../../os/nil/src/chevt.c **** 
+ 433:../../os/nil/src/chevt.c ****   return m;
+ 1372               		.loc 1 433 3 view .LVU392
+ 434:../../os/nil/src/chevt.c **** }
+ 1373               		.loc 1 434 1 is_stmt 0 view .LVU393
+ 1374 0048 8D2F      		mov r24,r29
+ 1375               	/* epilogue start */
+ 1376 004a DF91      		pop r29
+ 1377               	.LVL87:
+ 1378               		.loc 1 434 1 view .LVU394
+ 1379 004c CF91      		pop r28
+ 1380               	.LVL88:
+ 1381               		.loc 1 434 1 view .LVU395
+ 1382 004e 1F91      		pop r17
+ 1383 0050 0F91      		pop r16
+ 1384               	.LVL89:
+ 1385               		.loc 1 434 1 view .LVU396
+ 1386 0052 0895      		ret
+ 1387               		.cfi_endproc
+ 1388               	.LFE111:
+ 1390               		.section	.text.chEvtWaitAllTimeout,"ax",@progbits
+ 1391               	.global	chEvtWaitAllTimeout
+ 1393               	chEvtWaitAllTimeout:
+ 1394               	.LVL90:
+ 1395               	.LFB112:
+ 435:../../os/nil/src/chevt.c **** 
+ 436:../../os/nil/src/chevt.c **** /**
+ 437:../../os/nil/src/chevt.c ****  * @brief   Waits for all the specified events.
+ 438:../../os/nil/src/chevt.c ****  * @details The function waits for all the events specified in @p mask to
+ 439:../../os/nil/src/chevt.c ****  *          become pending then the events are cleared and returned.
+ 440:../../os/nil/src/chevt.c ****  *
+ 441:../../os/nil/src/chevt.c ****  * @param[in] mask      mask of the event flags that the function should wait
+ 442:../../os/nil/src/chevt.c ****  *                      for, @p ALL_EVENTS enables all the events
+ 443:../../os/nil/src/chevt.c ****  * @param[in] timeout   the number of ticks before the operation timeouts,
+ 444:../../os/nil/src/chevt.c ****  *                      the following special values are allowed:
+ 445:../../os/nil/src/chevt.c ****  *                      - @a TIME_IMMEDIATE immediate timeout.
+ 446:../../os/nil/src/chevt.c ****  *                      - @a TIME_INFINITE no timeout.
+ 447:../../os/nil/src/chevt.c ****  *                      .
+ 448:../../os/nil/src/chevt.c ****  * @return              The mask of the served and cleared events.
+ 449:../../os/nil/src/chevt.c ****  * @retval 0            if the operation has timed out.
+ 450:../../os/nil/src/chevt.c ****  *
+ 451:../../os/nil/src/chevt.c ****  * @api
+ 452:../../os/nil/src/chevt.c ****  */
+ 453:../../os/nil/src/chevt.c **** eventmask_t chEvtWaitAllTimeout(eventmask_t mask, sysinterval_t timeout) {
+ 1396               		.loc 1 453 74 is_stmt 1 view -0
+ 1397               		.cfi_startproc
+ 1398               		.loc 1 453 74 is_stmt 0 view .LVU398
+ 1399 0000 0F93      		push r16
+ 1400               	.LCFI22:
+ 1401               		.cfi_def_cfa_offset 3
+ 1402               		.cfi_offset 16, -2
+ 1403 0002 1F93      		push r17
+ 1404               	.LCFI23:
+ 1405               		.cfi_def_cfa_offset 4
+ 1406               		.cfi_offset 17, -3
+ 1407 0004 CF93      		push r28
+ 1408               	.LCFI24:
+ 1409               		.cfi_def_cfa_offset 5
+ 1410               		.cfi_offset 28, -4
+ 1411               	/* prologue: function */
+ 1412               	/* frame size = 0 */
+ 1413               	/* stack size = 3 */
+ 1414               	.L__stack_usage = 3
+ 1415 0006 C82F      		mov r28,r24
+ 454:../../os/nil/src/chevt.c ****   thread_t *ctp = nil.current;
+ 1416               		.loc 1 454 3 is_stmt 1 view .LVU399
+ 1417               		.loc 1 454 13 is_stmt 0 view .LVU400
+ 1418 0008 0091 0000 		lds r16,nil
+ 1419 000c 1091 0000 		lds r17,nil+1
+ 1420               	.LVL91:
+ 455:../../os/nil/src/chevt.c **** 
+ 456:../../os/nil/src/chevt.c ****   chSysLock();
+ 1421               		.loc 1 456 3 is_stmt 1 view .LVU401
+ 1422               	.LBB132:
+ 1423               	.LBI132:
+ 428:../../os/common/ports/AVR/chcore.h **** 
+ 1424               		.loc 2 428 20 view .LVU402
+ 1425               	.LBB133:
+ 430:../../os/common/ports/AVR/chcore.h **** }
+ 1426               		.loc 2 430 3 view .LVU403
+ 1427               	/* #APP */
+ 1428               	 ;  430 "../../os/common/ports/AVR/chcore.h" 1
+ 1429 0010 F894      		cli
+ 1430               	 ;  0 "" 2
+ 1431               	/* #NOAPP */
+ 1432               	.LBE133:
+ 1433               	.LBE132:
+ 1434               		.loc 1 456 3 discriminator 1 view .LVU404
+ 1435               		.loc 1 456 14 discriminator 1 view .LVU405
+ 457:../../os/nil/src/chevt.c ****   if ((ctp->epmask & mask) != mask) {
+ 1436               		.loc 1 457 3 view .LVU406
+ 1437               		.loc 1 457 11 is_stmt 0 view .LVU407
+ 1438 0012 F801      		movw r30,r16
+ 1439 0014 8781      		ldd r24,Z+7
+ 1440               	.LVL92:
+ 1441               		.loc 1 457 28 view .LVU408
+ 1442 0016 982F      		mov r25,r24
+ 1443 0018 9C23      		and r25,r28
+ 1444               		.loc 1 457 6 view .LVU409
+ 1445 001a 9C17      		cp r25,r28
+ 1446 001c 01F0      		breq .L70
+ 458:../../os/nil/src/chevt.c ****     if (TIME_IMMEDIATE == timeout) {
+ 1447               		.loc 1 458 5 is_stmt 1 view .LVU410
+ 1448               		.loc 1 458 8 is_stmt 0 view .LVU411
+ 1449 001e 6F3F      		cpi r22,-1
+ 1450 0020 7607      		cpc r23,r22
+ 1451 0022 01F0      		breq .L73
+ 459:../../os/nil/src/chevt.c ****       chSysUnlock();
+ 460:../../os/nil/src/chevt.c **** 
+ 461:../../os/nil/src/chevt.c ****       return (eventmask_t)0;
+ 462:../../os/nil/src/chevt.c ****     }
+ 463:../../os/nil/src/chevt.c ****     ctp->u1.ewmask = mask;
+ 1452               		.loc 1 463 5 is_stmt 1 view .LVU412
+ 1453               		.loc 1 463 20 is_stmt 0 view .LVU413
+ 1454 0024 F801      		movw r30,r16
+ 1455 0026 C383      		std Z+3,r28
+ 464:../../os/nil/src/chevt.c ****     if (chSchGoSleepTimeoutS(NIL_STATE_WTANDEVT, timeout) < MSG_OK) {
+ 1456               		.loc 1 464 5 is_stmt 1 view .LVU414
+ 1457               		.loc 1 464 9 is_stmt 0 view .LVU415
+ 1458 0028 87E0      		ldi r24,lo8(7)
+ 1459 002a 0E94 0000 		call chSchGoSleepTimeoutS
+ 1460               	.LVL93:
+ 1461               		.loc 1 464 8 discriminator 1 view .LVU416
+ 1462 002e 97FD      		sbrc r25,7
+ 1463 0030 00C0      		rjmp .L73
+ 465:../../os/nil/src/chevt.c ****       chSysUnlock();
+ 466:../../os/nil/src/chevt.c **** 
+ 467:../../os/nil/src/chevt.c ****       return (eventmask_t)0;
+ 468:../../os/nil/src/chevt.c ****     }
+ 469:../../os/nil/src/chevt.c ****   }
+ 470:../../os/nil/src/chevt.c ****   ctp->epmask &= ~mask;
+ 1464               		.loc 1 470 6 view .LVU417
+ 1465 0032 F801      		movw r30,r16
+ 1466 0034 8781      		ldd r24,Z+7
+ 1467               	.L70:
+ 1468               		.loc 1 470 3 is_stmt 1 view .LVU418
+ 1469               		.loc 1 470 15 is_stmt 0 view .LVU419
+ 1470 0036 9C2F      		mov r25,r28
+ 1471 0038 9095      		com r25
+ 1472 003a 8923      		and r24,r25
+ 1473 003c F801      		movw r30,r16
+ 1474 003e 8783      		std Z+7,r24
+ 471:../../os/nil/src/chevt.c ****   chSysUnlock();
+ 1475               		.loc 1 471 3 is_stmt 1 view .LVU420
+ 1476               		.loc 1 471 3 view .LVU421
+ 1477               	.LBB134:
+ 1478               	.LBI134:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 1479               		.loc 2 438 20 view .LVU422
+ 1480               	.LBB135:
+ 1481               		.loc 2 440 3 view .LVU423
+ 1482               	/* #APP */
+ 1483               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 1484 0040 7894      		sei
+ 1485               	 ;  0 "" 2
+ 1486               	/* #NOAPP */
+ 1487               	.LBE135:
+ 1488               	.LBE134:
+ 1489               		.loc 1 471 16 discriminator 1 view .LVU424
+ 472:../../os/nil/src/chevt.c **** 
+ 473:../../os/nil/src/chevt.c ****   return mask;
+ 1490               		.loc 1 473 3 view .LVU425
+ 1491               		.loc 1 473 10 is_stmt 0 view .LVU426
+ 1492 0042 8C2F      		mov r24,r28
+ 1493               	/* epilogue start */
+ 474:../../os/nil/src/chevt.c **** }
+ 1494               		.loc 1 474 1 view .LVU427
+ 1495 0044 CF91      		pop r28
+ 1496               	.LVL94:
+ 1497               		.loc 1 474 1 view .LVU428
+ 1498 0046 1F91      		pop r17
+ 1499 0048 0F91      		pop r16
+ 1500               	.LVL95:
+ 1501               		.loc 1 474 1 view .LVU429
+ 1502 004a 0895      		ret
+ 1503               	.LVL96:
+ 1504               	.L73:
+ 465:../../os/nil/src/chevt.c **** 
+ 1505               		.loc 1 465 7 is_stmt 1 view .LVU430
+ 465:../../os/nil/src/chevt.c **** 
+ 1506               		.loc 1 465 7 view .LVU431
+ 1507               	.LBB136:
+ 1508               	.LBI136:
+ 438:../../os/common/ports/AVR/chcore.h **** 
+ 1509               		.loc 2 438 20 view .LVU432
+ 1510               	.LBB137:
+ 1511               		.loc 2 440 3 view .LVU433
+ 1512               	/* #APP */
+ 1513               	 ;  440 "../../os/common/ports/AVR/chcore.h" 1
+ 1514 004c 7894      		sei
+ 1515               	 ;  0 "" 2
+ 1516               	/* #NOAPP */
+ 1517               	.LBE137:
+ 1518               	.LBE136:
+ 465:../../os/nil/src/chevt.c **** 
+ 1519               		.loc 1 465 20 discriminator 1 view .LVU434
+ 467:../../os/nil/src/chevt.c ****     }
+ 1520               		.loc 1 467 7 view .LVU435
+ 461:../../os/nil/src/chevt.c ****     }
+ 1521               		.loc 1 461 14 is_stmt 0 view .LVU436
+ 1522 004e 80E0      		ldi r24,0
+ 1523               	/* epilogue start */
+ 1524               		.loc 1 474 1 view .LVU437
+ 1525 0050 CF91      		pop r28
+ 1526               	.LVL97:
+ 1527               		.loc 1 474 1 view .LVU438
+ 1528 0052 1F91      		pop r17
+ 1529 0054 0F91      		pop r16
+ 1530               	.LVL98:
+ 1531               		.loc 1 474 1 view .LVU439
+ 1532 0056 0895      		ret
+ 1533               		.cfi_endproc
+ 1534               	.LFE112:
+ 1536               		.text
+ 1537               	.Letext0:
+ 1538               		.file 3 "/usr/avr/include/stdint.h"
+ 1539               		.file 4 "../../os/common/ports/AVR/compilers/GCC/chtypes.h"
+ 1540               		.file 5 "../../os/nil/include/ch.h"
+ 1541               		.file 6 "../../os/nil/include/chevt.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 chevt.c
+     /tmp/ccl2I1iI.s:2      *ABS*:0000003e __SP_H__
+     /tmp/ccl2I1iI.s:3      *ABS*:0000003d __SP_L__
+     /tmp/ccl2I1iI.s:4      *ABS*:0000003f __SREG__
+     /tmp/ccl2I1iI.s:5      *ABS*:00000000 __tmp_reg__
+     /tmp/ccl2I1iI.s:6      *ABS*:00000001 __zero_reg__
+     /tmp/ccl2I1iI.s:14     .text.chEvtRegisterMaskWithFlags:00000000 chEvtRegisterMaskWithFlags
+     /tmp/ccl2I1iI.s:17     .text.chEvtRegisterMaskWithFlags:00000000 .Loc.0
+     /tmp/ccl2I1iI.s:18     .text.chEvtRegisterMaskWithFlags:00000000 L0
+     /tmp/ccl2I1iI.s:23     .text.chEvtRegisterMaskWithFlags:00000000 .Loc.1
+     /tmp/ccl2I1iI.s:26     .text.chEvtRegisterMaskWithFlags:00000004 .Loc.2
+     /tmp/ccl2I1iI.s:27     .text.chEvtRegisterMaskWithFlags:00000004 .Loc.3
+     /tmp/ccl2I1iI.s:28     .text.chEvtRegisterMaskWithFlags:00000004 .Loc.4
+     /tmp/ccl2I1iI.s:29     .text.chEvtRegisterMaskWithFlags:00000004 .Loc.5
+     /tmp/ccl2I1iI.s:33     .text.chEvtRegisterMaskWithFlags:00000004 .Loc.6
+     /tmp/ccl2I1iI.s:35     .text.chEvtRegisterMaskWithFlags:00000004 .Loc.7
+     /tmp/ccl2I1iI.s:43     .text.chEvtRegisterMaskWithFlags:00000006 .Loc.8
+     /tmp/ccl2I1iI.s:44     .text.chEvtRegisterMaskWithFlags:00000006 .Loc.9
+     /tmp/ccl2I1iI.s:45     .text.chEvtRegisterMaskWithFlags:00000006 .Loc.10
+     /tmp/ccl2I1iI.s:46     .text.chEvtRegisterMaskWithFlags:00000006 .Loc.11
+     /tmp/ccl2I1iI.s:51     .text.chEvtRegisterMaskWithFlags:0000000c .Loc.12
+     /tmp/ccl2I1iI.s:54     .text.chEvtRegisterMaskWithFlags:00000010 .Loc.13
+     /tmp/ccl2I1iI.s:55     .text.chEvtRegisterMaskWithFlags:00000010 .Loc.14
+     /tmp/ccl2I1iI.s:58     .text.chEvtRegisterMaskWithFlags:00000014 .Loc.15
+     /tmp/ccl2I1iI.s:59     .text.chEvtRegisterMaskWithFlags:00000014 .Loc.16
+     /tmp/ccl2I1iI.s:64     .text.chEvtRegisterMaskWithFlags:00000020 .Loc.17
+     /tmp/ccl2I1iI.s:65     .text.chEvtRegisterMaskWithFlags:00000020 .Loc.18
+     /tmp/ccl2I1iI.s:67     .text.chEvtRegisterMaskWithFlags:00000022 .Loc.19
+     /tmp/ccl2I1iI.s:68     .text.chEvtRegisterMaskWithFlags:00000022 .Loc.20
+     /tmp/ccl2I1iI.s:70     .text.chEvtRegisterMaskWithFlags:00000024 .Loc.21
+     /tmp/ccl2I1iI.s:71     .text.chEvtRegisterMaskWithFlags:00000024 .Loc.22
+     /tmp/ccl2I1iI.s:73     .text.chEvtRegisterMaskWithFlags:00000026 .Loc.23
+     /tmp/ccl2I1iI.s:74     .text.chEvtRegisterMaskWithFlags:00000026 .Loc.24
+     /tmp/ccl2I1iI.s:77     .text.chEvtRegisterMaskWithFlags:00000026 .Loc.25
+     /tmp/ccl2I1iI.s:79     .text.chEvtRegisterMaskWithFlags:00000026 .Loc.26
+     /tmp/ccl2I1iI.s:87     .text.chEvtRegisterMaskWithFlags:00000028 .Loc.27
+     /tmp/ccl2I1iI.s:89     .text.chEvtRegisterMaskWithFlags:00000028 .Loc.28
+     /tmp/ccl2I1iI.s:91     .text.chEvtRegisterMaskWithFlags:0000002a L0
+     /tmp/ccl2I1iI.s:97     .text.chEvtUnregister:00000000 chEvtUnregister
+     /tmp/ccl2I1iI.s:100    .text.chEvtUnregister:00000000 .Loc.29
+     /tmp/ccl2I1iI.s:101    .text.chEvtUnregister:00000000 L0
+     /tmp/ccl2I1iI.s:106    .text.chEvtUnregister:00000000 .Loc.30
+     /tmp/ccl2I1iI.s:109    .text.chEvtUnregister:00000004 .Loc.31
+     /tmp/ccl2I1iI.s:110    .text.chEvtUnregister:00000004 .Loc.32
+     /tmp/ccl2I1iI.s:111    .text.chEvtUnregister:00000004 .Loc.33
+     /tmp/ccl2I1iI.s:112    .text.chEvtUnregister:00000004 .Loc.34
+     /tmp/ccl2I1iI.s:113    .text.chEvtUnregister:00000004 .Loc.35
+     /tmp/ccl2I1iI.s:115    .text.chEvtUnregister:00000004 .Loc.36
+     /tmp/ccl2I1iI.s:118    .text.chEvtUnregister:00000004 .Loc.37
+     /tmp/ccl2I1iI.s:120    .text.chEvtUnregister:00000004 .Loc.38
+     /tmp/ccl2I1iI.s:128    .text.chEvtUnregister:00000006 .Loc.39
+     /tmp/ccl2I1iI.s:129    .text.chEvtUnregister:00000006 .Loc.40
+     /tmp/ccl2I1iI.s:130    .text.chEvtUnregister:00000006 .Loc.41
+     /tmp/ccl2I1iI.s:131    .text.chEvtUnregister:00000006 .Loc.42
+     /tmp/ccl2I1iI.s:135    .text.chEvtUnregister:00000008 .Loc.43
+     /tmp/ccl2I1iI.s:139    .text.chEvtUnregister:0000000a .Loc.44
+     /tmp/ccl2I1iI.s:142    .text.chEvtUnregister:0000000a .Loc.45
+     /tmp/ccl2I1iI.s:143    .text.chEvtUnregister:0000000a .Loc.46
+     /tmp/ccl2I1iI.s:149    .text.chEvtUnregister:00000010 .Loc.47
+     /tmp/ccl2I1iI.s:151    .text.chEvtUnregister:00000012 .Loc.48
+     /tmp/ccl2I1iI.s:156    .text.chEvtUnregister:00000018 .Loc.49
+     /tmp/ccl2I1iI.s:160    .text.chEvtUnregister:0000001e .Loc.50
+     /tmp/ccl2I1iI.s:161    .text.chEvtUnregister:0000001e .Loc.51
+     /tmp/ccl2I1iI.s:164    .text.chEvtUnregister:0000001e .Loc.52
+     /tmp/ccl2I1iI.s:166    .text.chEvtUnregister:0000001e .Loc.53
+     /tmp/ccl2I1iI.s:174    .text.chEvtUnregister:00000020 .Loc.54
+     /tmp/ccl2I1iI.s:176    .text.chEvtUnregister:00000020 .Loc.55
+     /tmp/ccl2I1iI.s:179    .text.chEvtUnregister:00000022 .Loc.56
+     /tmp/ccl2I1iI.s:180    .text.chEvtUnregister:00000022 .Loc.57
+     /tmp/ccl2I1iI.s:183    .text.chEvtUnregister:00000026 .Loc.58
+     /tmp/ccl2I1iI.s:186    .text.chEvtUnregister:0000002a .Loc.59
+     /tmp/ccl2I1iI.s:187    .text.chEvtUnregister:0000002a .Loc.60
+     /tmp/ccl2I1iI.s:188    .text.chEvtUnregister:0000002a .Loc.61
+     /tmp/ccl2I1iI.s:190    .text.chEvtUnregister:0000002a .Loc.62
+     /tmp/ccl2I1iI.s:192    .text.chEvtUnregister:0000002a .Loc.63
+     /tmp/ccl2I1iI.s:200    .text.chEvtUnregister:0000002c .Loc.64
+     /tmp/ccl2I1iI.s:202    .text.chEvtUnregister:0000002c .Loc.65
+     /tmp/ccl2I1iI.s:204    .text.chEvtUnregister:0000002e L0
+     /tmp/ccl2I1iI.s:210    .text.chEvtGetAndClearEventsI:00000000 chEvtGetAndClearEventsI
+     /tmp/ccl2I1iI.s:213    .text.chEvtGetAndClearEventsI:00000000 .Loc.66
+     /tmp/ccl2I1iI.s:214    .text.chEvtGetAndClearEventsI:00000000 L0
+     /tmp/ccl2I1iI.s:219    .text.chEvtGetAndClearEventsI:00000000 .Loc.67
+     /tmp/ccl2I1iI.s:220    .text.chEvtGetAndClearEventsI:00000000 .Loc.68
+     /tmp/ccl2I1iI.s:221    .text.chEvtGetAndClearEventsI:00000000 .Loc.69
+     /tmp/ccl2I1iI.s:224    .text.chEvtGetAndClearEventsI:00000008 .Loc.70
+     /tmp/ccl2I1iI.s:227    .text.chEvtGetAndClearEventsI:0000000a .Loc.71
+     /tmp/ccl2I1iI.s:228    .text.chEvtGetAndClearEventsI:0000000a .Loc.72
+     /tmp/ccl2I1iI.s:233    .text.chEvtGetAndClearEventsI:00000012 .Loc.73
+     /tmp/ccl2I1iI.s:234    .text.chEvtGetAndClearEventsI:00000012 .Loc.74
+     /tmp/ccl2I1iI.s:238    .text.chEvtGetAndClearEventsI:00000014 .Loc.75
+     /tmp/ccl2I1iI.s:240    .text.chEvtGetAndClearEventsI:00000016 L0
+     /tmp/ccl2I1iI.s:246    .text.chEvtGetAndClearEvents:00000000 chEvtGetAndClearEvents
+     /tmp/ccl2I1iI.s:249    .text.chEvtGetAndClearEvents:00000000 .Loc.76
+     /tmp/ccl2I1iI.s:250    .text.chEvtGetAndClearEvents:00000000 L0
+     /tmp/ccl2I1iI.s:255    .text.chEvtGetAndClearEvents:00000000 .Loc.77
+     /tmp/ccl2I1iI.s:256    .text.chEvtGetAndClearEvents:00000000 .Loc.78
+     /tmp/ccl2I1iI.s:259    .text.chEvtGetAndClearEvents:00000000 .Loc.79
+     /tmp/ccl2I1iI.s:261    .text.chEvtGetAndClearEvents:00000000 .Loc.80
+     /tmp/ccl2I1iI.s:269    .text.chEvtGetAndClearEvents:00000002 .Loc.81
+     /tmp/ccl2I1iI.s:270    .text.chEvtGetAndClearEvents:00000002 .Loc.82
+     /tmp/ccl2I1iI.s:271    .text.chEvtGetAndClearEvents:00000002 .Loc.83
+     /tmp/ccl2I1iI.s:275    .text.chEvtGetAndClearEvents:00000002 .Loc.84
+     /tmp/ccl2I1iI.s:277    .text.chEvtGetAndClearEvents:00000002 .Loc.85
+     /tmp/ccl2I1iI.s:278    .text.chEvtGetAndClearEvents:00000002 .Loc.86
+     /tmp/ccl2I1iI.s:279    .text.chEvtGetAndClearEvents:00000002 .Loc.87
+     /tmp/ccl2I1iI.s:282    .text.chEvtGetAndClearEvents:0000000a .Loc.88
+     /tmp/ccl2I1iI.s:285    .text.chEvtGetAndClearEvents:0000000c .Loc.89
+     /tmp/ccl2I1iI.s:286    .text.chEvtGetAndClearEvents:0000000c .Loc.90
+     /tmp/ccl2I1iI.s:291    .text.chEvtGetAndClearEvents:00000014 .Loc.91
+     /tmp/ccl2I1iI.s:293    .text.chEvtGetAndClearEvents:00000014 .Loc.92
+     /tmp/ccl2I1iI.s:296    .text.chEvtGetAndClearEvents:00000014 .Loc.93
+     /tmp/ccl2I1iI.s:297    .text.chEvtGetAndClearEvents:00000014 .Loc.94
+     /tmp/ccl2I1iI.s:300    .text.chEvtGetAndClearEvents:00000014 .Loc.95
+     /tmp/ccl2I1iI.s:302    .text.chEvtGetAndClearEvents:00000014 .Loc.96
+     /tmp/ccl2I1iI.s:310    .text.chEvtGetAndClearEvents:00000016 .Loc.97
+     /tmp/ccl2I1iI.s:311    .text.chEvtGetAndClearEvents:00000016 .Loc.98
+     /tmp/ccl2I1iI.s:312    .text.chEvtGetAndClearEvents:00000016 .Loc.99
+     /tmp/ccl2I1iI.s:316    .text.chEvtGetAndClearEvents:00000018 .Loc.100
+     /tmp/ccl2I1iI.s:318    .text.chEvtGetAndClearEvents:0000001a L0
+     /tmp/ccl2I1iI.s:324    .text.chEvtAddEvents:00000000 chEvtAddEvents
+     /tmp/ccl2I1iI.s:327    .text.chEvtAddEvents:00000000 .Loc.101
+     /tmp/ccl2I1iI.s:328    .text.chEvtAddEvents:00000000 L0
+     /tmp/ccl2I1iI.s:333    .text.chEvtAddEvents:00000000 .Loc.102
+     /tmp/ccl2I1iI.s:334    .text.chEvtAddEvents:00000000 .Loc.103
+     /tmp/ccl2I1iI.s:337    .text.chEvtAddEvents:00000000 .Loc.104
+     /tmp/ccl2I1iI.s:339    .text.chEvtAddEvents:00000000 .Loc.105
+     /tmp/ccl2I1iI.s:347    .text.chEvtAddEvents:00000002 .Loc.106
+     /tmp/ccl2I1iI.s:348    .text.chEvtAddEvents:00000002 .Loc.107
+     /tmp/ccl2I1iI.s:349    .text.chEvtAddEvents:00000002 .Loc.108
+     /tmp/ccl2I1iI.s:350    .text.chEvtAddEvents:00000002 .Loc.109
+     /tmp/ccl2I1iI.s:356    .text.chEvtAddEvents:0000000e .Loc.110
+     /tmp/ccl2I1iI.s:359    .text.chEvtAddEvents:00000010 .Loc.111
+     /tmp/ccl2I1iI.s:360    .text.chEvtAddEvents:00000010 .Loc.112
+     /tmp/ccl2I1iI.s:363    .text.chEvtAddEvents:00000010 .Loc.113
+     /tmp/ccl2I1iI.s:365    .text.chEvtAddEvents:00000010 .Loc.114
+     /tmp/ccl2I1iI.s:373    .text.chEvtAddEvents:00000012 .Loc.115
+     /tmp/ccl2I1iI.s:374    .text.chEvtAddEvents:00000012 .Loc.116
+     /tmp/ccl2I1iI.s:376    .text.chEvtAddEvents:00000012 .Loc.117
+     /tmp/ccl2I1iI.s:378    .text.chEvtAddEvents:00000014 L0
+     /tmp/ccl2I1iI.s:384    .text.chEvtBroadcastFlagsI:00000000 chEvtBroadcastFlagsI
+     /tmp/ccl2I1iI.s:387    .text.chEvtBroadcastFlagsI:00000000 .Loc.118
+     /tmp/ccl2I1iI.s:388    .text.chEvtBroadcastFlagsI:00000000 L0
+     /tmp/ccl2I1iI.s:389    .text.chEvtBroadcastFlagsI:00000000 .Loc.119
+     /tmp/ccl2I1iI.s:416    .text.chEvtBroadcastFlagsI:0000000e .Loc.120
+     /tmp/ccl2I1iI.s:417    .text.chEvtBroadcastFlagsI:0000000e .Loc.121
+     /tmp/ccl2I1iI.s:418    .text.chEvtBroadcastFlagsI:0000000e .Loc.122
+     /tmp/ccl2I1iI.s:419    .text.chEvtBroadcastFlagsI:0000000e .Loc.123
+     /tmp/ccl2I1iI.s:420    .text.chEvtBroadcastFlagsI:0000000e .Loc.124
+     /tmp/ccl2I1iI.s:421    .text.chEvtBroadcastFlagsI:0000000e .Loc.125
+     /tmp/ccl2I1iI.s:422    .text.chEvtBroadcastFlagsI:0000000e .Loc.126
+     /tmp/ccl2I1iI.s:427    .text.chEvtBroadcastFlagsI:00000014 .Loc.127
+     /tmp/ccl2I1iI.s:428    .text.chEvtBroadcastFlagsI:00000014 .Loc.128
+     /tmp/ccl2I1iI.s:434    .text.chEvtBroadcastFlagsI:0000001a .Loc.129
+     /tmp/ccl2I1iI.s:435    .text.chEvtBroadcastFlagsI:0000001a .Loc.130
+     /tmp/ccl2I1iI.s:439    .text.chEvtBroadcastFlagsI:00000020 .Loc.131
+     /tmp/ccl2I1iI.s:440    .text.chEvtBroadcastFlagsI:00000020 .Loc.132
+     /tmp/ccl2I1iI.s:443    .text.chEvtBroadcastFlagsI:00000024 .Loc.133
+     /tmp/ccl2I1iI.s:446    .text.chEvtBroadcastFlagsI:00000028 .Loc.134
+     /tmp/ccl2I1iI.s:450    .text.chEvtBroadcastFlagsI:0000002c .Loc.135
+     /tmp/ccl2I1iI.s:451    .text.chEvtBroadcastFlagsI:0000002c .Loc.136
+     /tmp/ccl2I1iI.s:456    .text.chEvtBroadcastFlagsI:00000032 .Loc.137
+     /tmp/ccl2I1iI.s:460    .text.chEvtBroadcastFlagsI:00000038 .Loc.138
+     /tmp/ccl2I1iI.s:461    .text.chEvtBroadcastFlagsI:00000038 .Loc.139
+     /tmp/ccl2I1iI.s:465    .text.chEvtBroadcastFlagsI:0000003e .Loc.140
+     /tmp/ccl2I1iI.s:466    .text.chEvtBroadcastFlagsI:0000003e .Loc.141
+     /tmp/ccl2I1iI.s:469    .text.chEvtBroadcastFlagsI:00000042 .Loc.142
+     /tmp/ccl2I1iI.s:473    .text.chEvtBroadcastFlagsI:00000046 .Loc.143
+     /tmp/ccl2I1iI.s:479    .text.chEvtBroadcastFlagsI:0000004a .Loc.144
+     /tmp/ccl2I1iI.s:481    .text.chEvtBroadcastFlagsI:0000004a .Loc.145
+     /tmp/ccl2I1iI.s:482    .text.chEvtBroadcastFlagsI:0000004a .Loc.146
+     /tmp/ccl2I1iI.s:483    .text.chEvtBroadcastFlagsI:0000004a .Loc.147
+     /tmp/ccl2I1iI.s:484    .text.chEvtBroadcastFlagsI:0000004a .Loc.148
+     /tmp/ccl2I1iI.s:485    .text.chEvtBroadcastFlagsI:0000004a .Loc.149
+     /tmp/ccl2I1iI.s:486    .text.chEvtBroadcastFlagsI:0000004a .Loc.150
+     /tmp/ccl2I1iI.s:492    .text.chEvtBroadcastFlagsI:00000052 .Loc.151
+     /tmp/ccl2I1iI.s:493    .text.chEvtBroadcastFlagsI:00000052 .Loc.152
+     /tmp/ccl2I1iI.s:495    .text.chEvtBroadcastFlagsI:00000054 .Loc.153
+     /tmp/ccl2I1iI.s:498    .text.chEvtBroadcastFlagsI:00000058 .Loc.154
+     /tmp/ccl2I1iI.s:503    .text.chEvtBroadcastFlagsI:0000005c .Loc.155
+     /tmp/ccl2I1iI.s:506    .text.chEvtBroadcastFlagsI:0000005c .Loc.156
+     /tmp/ccl2I1iI.s:507    .text.chEvtBroadcastFlagsI:0000005c .Loc.157
+     /tmp/ccl2I1iI.s:512    .text.chEvtBroadcastFlagsI:00000062 .Loc.158
+     /tmp/ccl2I1iI.s:518    .text.chEvtBroadcastFlagsI:00000068 .Loc.159
+     /tmp/ccl2I1iI.s:522    .text.chEvtBroadcastFlagsI:0000006c .Loc.160
+     /tmp/ccl2I1iI.s:526    .text.chEvtBroadcastFlagsI:00000070 .Loc.161
+     /tmp/ccl2I1iI.s:529    .text.chEvtBroadcastFlagsI:00000072 .Loc.162
+     /tmp/ccl2I1iI.s:535    .text.chEvtBroadcastFlagsI:00000074 .Loc.163
+     /tmp/ccl2I1iI.s:538    .text.chEvtBroadcastFlagsI:00000078 .Loc.164
+     /tmp/ccl2I1iI.s:545    .text.chEvtBroadcastFlagsI:0000007c .Loc.165
+     /tmp/ccl2I1iI.s:547    .text.chEvtBroadcastFlagsI:0000007c .Loc.166
+     /tmp/ccl2I1iI.s:548    .text.chEvtBroadcastFlagsI:0000007c .Loc.167
+     /tmp/ccl2I1iI.s:554    .text.chEvtBroadcastFlagsI:00000086 .Loc.168
+     /tmp/ccl2I1iI.s:558    .text.chEvtBroadcastFlagsI:00000088 .Loc.169
+     /tmp/ccl2I1iI.s:561    .text.chEvtBroadcastFlagsI:00000088 .Loc.170
+     /tmp/ccl2I1iI.s:563    .text.chEvtBroadcastFlagsI:0000008a .Loc.171
+     /tmp/ccl2I1iI.s:565    .text.chEvtBroadcastFlagsI:0000008c .Loc.172
+     /tmp/ccl2I1iI.s:571    .text.chEvtBroadcastFlagsI:00000092 L0
+     /tmp/ccl2I1iI.s:577    .text.chEvtGetAndClearFlags:00000000 chEvtGetAndClearFlags
+     /tmp/ccl2I1iI.s:580    .text.chEvtGetAndClearFlags:00000000 .Loc.173
+     /tmp/ccl2I1iI.s:581    .text.chEvtGetAndClearFlags:00000000 L0
+     /tmp/ccl2I1iI.s:586    .text.chEvtGetAndClearFlags:00000000 .Loc.174
+     /tmp/ccl2I1iI.s:588    .text.chEvtGetAndClearFlags:00000002 .Loc.175
+     /tmp/ccl2I1iI.s:589    .text.chEvtGetAndClearFlags:00000002 .Loc.176
+     /tmp/ccl2I1iI.s:592    .text.chEvtGetAndClearFlags:00000002 .Loc.177
+     /tmp/ccl2I1iI.s:594    .text.chEvtGetAndClearFlags:00000002 .Loc.178
+     /tmp/ccl2I1iI.s:602    .text.chEvtGetAndClearFlags:00000004 .Loc.179
+     /tmp/ccl2I1iI.s:603    .text.chEvtGetAndClearFlags:00000004 .Loc.180
+     /tmp/ccl2I1iI.s:604    .text.chEvtGetAndClearFlags:00000004 .Loc.181
+     /tmp/ccl2I1iI.s:605    .text.chEvtGetAndClearFlags:00000004 .Loc.182
+     /tmp/ccl2I1iI.s:608    .text.chEvtGetAndClearFlags:00000006 .Loc.183
+     /tmp/ccl2I1iI.s:609    .text.chEvtGetAndClearFlags:00000006 .Loc.184
+     /tmp/ccl2I1iI.s:611    .text.chEvtGetAndClearFlags:00000008 .Loc.185
+     /tmp/ccl2I1iI.s:612    .text.chEvtGetAndClearFlags:00000008 .Loc.186
+     /tmp/ccl2I1iI.s:615    .text.chEvtGetAndClearFlags:00000008 .Loc.187
+     /tmp/ccl2I1iI.s:617    .text.chEvtGetAndClearFlags:00000008 .Loc.188
+     /tmp/ccl2I1iI.s:625    .text.chEvtGetAndClearFlags:0000000a .Loc.189
+     /tmp/ccl2I1iI.s:626    .text.chEvtGetAndClearFlags:0000000a .Loc.190
+     /tmp/ccl2I1iI.s:627    .text.chEvtGetAndClearFlags:0000000a .Loc.191
+     /tmp/ccl2I1iI.s:630    .text.chEvtGetAndClearFlags:0000000c .Loc.192
+     /tmp/ccl2I1iI.s:634    .text.chEvtGetAndClearFlags:00000010 L0
+     /tmp/ccl2I1iI.s:640    .text.chEvtSignal:00000000 chEvtSignal
+     /tmp/ccl2I1iI.s:643    .text.chEvtSignal:00000000 .Loc.193
+     /tmp/ccl2I1iI.s:644    .text.chEvtSignal:00000000 L0
+     /tmp/ccl2I1iI.s:649    .text.chEvtSignal:00000000 .Loc.194
+     /tmp/ccl2I1iI.s:651    .text.chEvtSignal:00000002 .Loc.195
+     /tmp/ccl2I1iI.s:654    .text.chEvtSignal:00000002 .Loc.196
+     /tmp/ccl2I1iI.s:656    .text.chEvtSignal:00000002 .Loc.197
+     /tmp/ccl2I1iI.s:664    .text.chEvtSignal:00000004 .Loc.198
+     /tmp/ccl2I1iI.s:665    .text.chEvtSignal:00000004 .Loc.199
+     /tmp/ccl2I1iI.s:666    .text.chEvtSignal:00000004 .Loc.200
+     /tmp/ccl2I1iI.s:670    .text.chEvtSignal:00000004 .Loc.201
+     /tmp/ccl2I1iI.s:672    .text.chEvtSignal:00000004 .Loc.202
+     /tmp/ccl2I1iI.s:673    .text.chEvtSignal:00000004 .Loc.203
+     /tmp/ccl2I1iI.s:674    .text.chEvtSignal:00000004 .Loc.204
+     /tmp/ccl2I1iI.s:675    .text.chEvtSignal:00000004 .Loc.205
+     /tmp/ccl2I1iI.s:676    .text.chEvtSignal:00000004 .Loc.206
+     /tmp/ccl2I1iI.s:677    .text.chEvtSignal:00000004 .Loc.207
+     /tmp/ccl2I1iI.s:680    .text.chEvtSignal:00000006 .Loc.208
+     /tmp/ccl2I1iI.s:683    .text.chEvtSignal:00000008 .Loc.209
+     /tmp/ccl2I1iI.s:685    .text.chEvtSignal:0000000a .Loc.210
+     /tmp/ccl2I1iI.s:686    .text.chEvtSignal:0000000a .Loc.211
+     /tmp/ccl2I1iI.s:688    .text.chEvtSignal:0000000c .Loc.212
+     /tmp/ccl2I1iI.s:691    .text.chEvtSignal:00000010 .Loc.213
+     /tmp/ccl2I1iI.s:696    .text.chEvtSignal:00000014 .Loc.214
+     /tmp/ccl2I1iI.s:699    .text.chEvtSignal:00000014 .Loc.215
+     /tmp/ccl2I1iI.s:702    .text.chEvtSignal:00000018 .Loc.216
+     /tmp/ccl2I1iI.s:703    .text.chEvtSignal:00000018 .Loc.217
+     /tmp/ccl2I1iI.s:706    .text.chEvtSignal:00000018 .Loc.218
+     /tmp/ccl2I1iI.s:708    .text.chEvtSignal:00000018 .Loc.219
+     /tmp/ccl2I1iI.s:716    .text.chEvtSignal:0000001a .Loc.220
+     /tmp/ccl2I1iI.s:718    .text.chEvtSignal:0000001a .Loc.221
+     /tmp/ccl2I1iI.s:724    .text.chEvtSignal:0000001c .Loc.222
+     /tmp/ccl2I1iI.s:726    .text.chEvtSignal:0000001e .Loc.223
+     /tmp/ccl2I1iI.s:728    .text.chEvtSignal:00000020 .Loc.224
+     /tmp/ccl2I1iI.s:734    .text.chEvtSignal:00000024 .Loc.225
+     /tmp/ccl2I1iI.s:736    .text.chEvtSignal:00000024 .Loc.226
+     /tmp/ccl2I1iI.s:737    .text.chEvtSignal:00000024 .Loc.227
+     /tmp/ccl2I1iI.s:744    .text.chEvtSignal:0000002e .Loc.228
+     /tmp/ccl2I1iI.s:749    .text.chEvtSignal:0000002e .Loc.229
+     /tmp/ccl2I1iI.s:752    .text.chEvtSignal:00000032 .Loc.230
+     /tmp/ccl2I1iI.s:753    .text.chEvtSignal:00000032 .Loc.231
+     /tmp/ccl2I1iI.s:755    .text.chEvtSignal:00000032 .Loc.232
+     /tmp/ccl2I1iI.s:757    .text.chEvtSignal:00000032 .Loc.233
+     /tmp/ccl2I1iI.s:765    .text.chEvtSignal:00000034 .Loc.234
+     /tmp/ccl2I1iI.s:767    .text.chEvtSignal:00000034 .Loc.235
+     /tmp/ccl2I1iI.s:773    .text.chEvtSignal:00000036 .Loc.236
+     /tmp/ccl2I1iI.s:776    .text.chEvtSignal:0000003a .Loc.237
+     /tmp/ccl2I1iI.s:781    .text.chEvtSignal:0000003e .Loc.238
+     /tmp/ccl2I1iI.s:783    .text.chEvtSignal:0000003e .Loc.239
+     /tmp/ccl2I1iI.s:784    .text.chEvtSignal:0000003e .Loc.240
+     /tmp/ccl2I1iI.s:790    .text.chEvtSignal:00000048 .Loc.241
+     /tmp/ccl2I1iI.s:796    .text.chEvtSignal:0000004a L0
+     /tmp/ccl2I1iI.s:802    .text.chEvtSignalI:00000000 chEvtSignalI
+     /tmp/ccl2I1iI.s:805    .text.chEvtSignalI:00000000 .Loc.242
+     /tmp/ccl2I1iI.s:806    .text.chEvtSignalI:00000000 L0
+     /tmp/ccl2I1iI.s:811    .text.chEvtSignalI:00000000 .Loc.243
+     /tmp/ccl2I1iI.s:813    .text.chEvtSignalI:00000002 .Loc.244
+     /tmp/ccl2I1iI.s:814    .text.chEvtSignalI:00000002 .Loc.245
+     /tmp/ccl2I1iI.s:815    .text.chEvtSignalI:00000002 .Loc.246
+     /tmp/ccl2I1iI.s:816    .text.chEvtSignalI:00000002 .Loc.247
+     /tmp/ccl2I1iI.s:817    .text.chEvtSignalI:00000002 .Loc.248
+     /tmp/ccl2I1iI.s:818    .text.chEvtSignalI:00000002 .Loc.249
+     /tmp/ccl2I1iI.s:821    .text.chEvtSignalI:00000004 .Loc.250
+     /tmp/ccl2I1iI.s:824    .text.chEvtSignalI:00000006 .Loc.251
+     /tmp/ccl2I1iI.s:826    .text.chEvtSignalI:00000008 .Loc.252
+     /tmp/ccl2I1iI.s:827    .text.chEvtSignalI:00000008 .Loc.253
+     /tmp/ccl2I1iI.s:829    .text.chEvtSignalI:0000000a .Loc.254
+     /tmp/ccl2I1iI.s:832    .text.chEvtSignalI:0000000e .Loc.255
+     /tmp/ccl2I1iI.s:837    .text.chEvtSignalI:00000012 .Loc.256
+     /tmp/ccl2I1iI.s:840    .text.chEvtSignalI:00000014 .Loc.257
+     /tmp/ccl2I1iI.s:842    .text.chEvtSignalI:00000016 .Loc.258
+     /tmp/ccl2I1iI.s:844    .text.chEvtSignalI:00000018 .Loc.259
+     /tmp/ccl2I1iI.s:851    .text.chEvtSignalI:0000001c .Loc.260
+     /tmp/ccl2I1iI.s:853    .text.chEvtSignalI:0000001c .Loc.261
+     /tmp/ccl2I1iI.s:854    .text.chEvtSignalI:0000001c .Loc.262
+     /tmp/ccl2I1iI.s:861    .text.chEvtSignalI:00000026 .Loc.263
+     /tmp/ccl2I1iI.s:864    .text.chEvtSignalI:00000026 .Loc.264
+     /tmp/ccl2I1iI.s:867    .text.chEvtSignalI:0000002a .Loc.265
+     /tmp/ccl2I1iI.s:871    .text.chEvtSignalI:00000030 L0
+     /tmp/ccl2I1iI.s:877    .text.chEvtBroadcastFlags:00000000 chEvtBroadcastFlags
+     /tmp/ccl2I1iI.s:880    .text.chEvtBroadcastFlags:00000000 .Loc.266
+     /tmp/ccl2I1iI.s:881    .text.chEvtBroadcastFlags:00000000 L0
+     /tmp/ccl2I1iI.s:886    .text.chEvtBroadcastFlags:00000000 .Loc.267
+     /tmp/ccl2I1iI.s:889    .text.chEvtBroadcastFlags:00000000 .Loc.268
+     /tmp/ccl2I1iI.s:891    .text.chEvtBroadcastFlags:00000000 .Loc.269
+     /tmp/ccl2I1iI.s:899    .text.chEvtBroadcastFlags:00000002 .Loc.270
+     /tmp/ccl2I1iI.s:900    .text.chEvtBroadcastFlags:00000002 .Loc.271
+     /tmp/ccl2I1iI.s:901    .text.chEvtBroadcastFlags:00000002 .Loc.272
+     /tmp/ccl2I1iI.s:904    .text.chEvtBroadcastFlags:00000006 .Loc.273
+     /tmp/ccl2I1iI.s:907    .text.chEvtBroadcastFlags:0000000a .Loc.274
+     /tmp/ccl2I1iI.s:908    .text.chEvtBroadcastFlags:0000000a .Loc.275
+     /tmp/ccl2I1iI.s:911    .text.chEvtBroadcastFlags:0000000a .Loc.276
+     /tmp/ccl2I1iI.s:913    .text.chEvtBroadcastFlags:0000000a .Loc.277
+     /tmp/ccl2I1iI.s:921    .text.chEvtBroadcastFlags:0000000c .Loc.278
+     /tmp/ccl2I1iI.s:923    .text.chEvtBroadcastFlags:0000000c .Loc.279
+     /tmp/ccl2I1iI.s:925    .text.chEvtBroadcastFlags:0000000e L0
+     /tmp/ccl2I1iI.s:931    .text.chEvtGetAndClearFlagsI:00000000 chEvtGetAndClearFlagsI
+     /tmp/ccl2I1iI.s:934    .text.chEvtGetAndClearFlagsI:00000000 .Loc.280
+     /tmp/ccl2I1iI.s:935    .text.chEvtGetAndClearFlagsI:00000000 L0
+     /tmp/ccl2I1iI.s:940    .text.chEvtGetAndClearFlagsI:00000000 .Loc.281
+     /tmp/ccl2I1iI.s:942    .text.chEvtGetAndClearFlagsI:00000002 .Loc.282
+     /tmp/ccl2I1iI.s:943    .text.chEvtGetAndClearFlagsI:00000002 .Loc.283
+     /tmp/ccl2I1iI.s:944    .text.chEvtGetAndClearFlagsI:00000002 .Loc.284
+     /tmp/ccl2I1iI.s:947    .text.chEvtGetAndClearFlagsI:00000004 .Loc.285
+     /tmp/ccl2I1iI.s:948    .text.chEvtGetAndClearFlagsI:00000004 .Loc.286
+     /tmp/ccl2I1iI.s:950    .text.chEvtGetAndClearFlagsI:00000006 .Loc.287
+     /tmp/ccl2I1iI.s:951    .text.chEvtGetAndClearFlagsI:00000006 .Loc.288
+     /tmp/ccl2I1iI.s:954    .text.chEvtGetAndClearFlagsI:00000008 .Loc.289
+     /tmp/ccl2I1iI.s:958    .text.chEvtGetAndClearFlagsI:0000000c L0
+     /tmp/ccl2I1iI.s:964    .text.chEvtDispatch:00000000 chEvtDispatch
+     /tmp/ccl2I1iI.s:967    .text.chEvtDispatch:00000000 .Loc.290
+     /tmp/ccl2I1iI.s:968    .text.chEvtDispatch:00000000 L0
+     /tmp/ccl2I1iI.s:969    .text.chEvtDispatch:00000000 .Loc.291
+     /tmp/ccl2I1iI.s:1011   .text.chEvtDispatch:00000014 .Loc.292
+     /tmp/ccl2I1iI.s:1012   .text.chEvtDispatch:00000014 .Loc.293
+     /tmp/ccl2I1iI.s:1013   .text.chEvtDispatch:00000014 .Loc.294
+     /tmp/ccl2I1iI.s:1014   .text.chEvtDispatch:00000014 .Loc.295
+     /tmp/ccl2I1iI.s:1015   .text.chEvtDispatch:00000014 .Loc.296
+     /tmp/ccl2I1iI.s:1017   .text.chEvtDispatch:00000014 .Loc.297
+     /tmp/ccl2I1iI.s:1018   .text.chEvtDispatch:00000014 .Loc.298
+     /tmp/ccl2I1iI.s:1022   .text.chEvtDispatch:0000001a .Loc.299
+     /tmp/ccl2I1iI.s:1028   .text.chEvtDispatch:00000024 .Loc.300
+     /tmp/ccl2I1iI.s:1033   .text.chEvtDispatch:00000028 .Loc.301
+     /tmp/ccl2I1iI.s:1034   .text.chEvtDispatch:00000028 .Loc.302
+     /tmp/ccl2I1iI.s:1044   .text.chEvtDispatch:00000036 .Loc.303
+     /tmp/ccl2I1iI.s:1047   .text.chEvtDispatch:0000003a .Loc.304
+     /tmp/ccl2I1iI.s:1048   .text.chEvtDispatch:0000003a .Loc.305
+     /tmp/ccl2I1iI.s:1049   .text.chEvtDispatch:0000003a .Loc.306
+     /tmp/ccl2I1iI.s:1050   .text.chEvtDispatch:0000003a .Loc.307
+     /tmp/ccl2I1iI.s:1051   .text.chEvtDispatch:0000003a .Loc.308
+     /tmp/ccl2I1iI.s:1062   .text.chEvtDispatch:0000004a .Loc.309
+     /tmp/ccl2I1iI.s:1066   .text.chEvtDispatch:0000004e .Loc.310
+     /tmp/ccl2I1iI.s:1073   .text.chEvtDispatch:00000058 .Loc.311
+     /tmp/ccl2I1iI.s:1074   .text.chEvtDispatch:00000058 .Loc.312
+     /tmp/ccl2I1iI.s:1081   .text.chEvtDispatch:00000062 .Loc.313
+     /tmp/ccl2I1iI.s:1088   .text.chEvtDispatch:0000006c .Loc.314
+     /tmp/ccl2I1iI.s:1089   .text.chEvtDispatch:0000006c .Loc.315
+     /tmp/ccl2I1iI.s:1096   .text.chEvtDispatch:00000076 .Loc.316
+     /tmp/ccl2I1iI.s:1098   .text.chEvtDispatch:00000078 .Loc.317
+     /tmp/ccl2I1iI.s:1103   .text.chEvtDispatch:0000007a .Loc.318
+     /tmp/ccl2I1iI.s:1114   .text.chEvtDispatch:0000008c .Loc.319
+     /tmp/ccl2I1iI.s:1116   .text.chEvtDispatch:0000008e L0
+     /tmp/ccl2I1iI.s:1122   .text.chEvtWaitOneTimeout:00000000 chEvtWaitOneTimeout
+     /tmp/ccl2I1iI.s:1125   .text.chEvtWaitOneTimeout:00000000 .Loc.320
+     /tmp/ccl2I1iI.s:1126   .text.chEvtWaitOneTimeout:00000000 L0
+     /tmp/ccl2I1iI.s:1127   .text.chEvtWaitOneTimeout:00000000 .Loc.321
+     /tmp/ccl2I1iI.s:1149   .text.chEvtWaitOneTimeout:0000000a .Loc.322
+     /tmp/ccl2I1iI.s:1150   .text.chEvtWaitOneTimeout:0000000a .Loc.323
+     /tmp/ccl2I1iI.s:1154   .text.chEvtWaitOneTimeout:00000012 .Loc.324
+     /tmp/ccl2I1iI.s:1155   .text.chEvtWaitOneTimeout:00000012 .Loc.325
+     /tmp/ccl2I1iI.s:1158   .text.chEvtWaitOneTimeout:00000012 .Loc.326
+     /tmp/ccl2I1iI.s:1160   .text.chEvtWaitOneTimeout:00000012 .Loc.327
+     /tmp/ccl2I1iI.s:1168   .text.chEvtWaitOneTimeout:00000014 .Loc.328
+     /tmp/ccl2I1iI.s:1169   .text.chEvtWaitOneTimeout:00000014 .Loc.329
+     /tmp/ccl2I1iI.s:1170   .text.chEvtWaitOneTimeout:00000014 .Loc.330
+     /tmp/ccl2I1iI.s:1171   .text.chEvtWaitOneTimeout:00000014 .Loc.331
+     /tmp/ccl2I1iI.s:1175   .text.chEvtWaitOneTimeout:00000018 .Loc.332
+     /tmp/ccl2I1iI.s:1179   .text.chEvtWaitOneTimeout:0000001c .Loc.333
+     /tmp/ccl2I1iI.s:1180   .text.chEvtWaitOneTimeout:0000001c .Loc.334
+     /tmp/ccl2I1iI.s:1183   .text.chEvtWaitOneTimeout:00000020 .Loc.335
+     /tmp/ccl2I1iI.s:1184   .text.chEvtWaitOneTimeout:00000020 .Loc.336
+     /tmp/ccl2I1iI.s:1188   .text.chEvtWaitOneTimeout:00000026 .Loc.337
+     /tmp/ccl2I1iI.s:1189   .text.chEvtWaitOneTimeout:00000026 .Loc.338
+     /tmp/ccl2I1iI.s:1192   .text.chEvtWaitOneTimeout:0000002a .Loc.339
+     /tmp/ccl2I1iI.s:1193   .text.chEvtWaitOneTimeout:0000002a .Loc.340
+     /tmp/ccl2I1iI.s:1197   .text.chEvtWaitOneTimeout:00000030 .Loc.341
+     /tmp/ccl2I1iI.s:1200   .text.chEvtWaitOneTimeout:00000034 .Loc.342
+     /tmp/ccl2I1iI.s:1201   .text.chEvtWaitOneTimeout:00000034 .Loc.343
+     /tmp/ccl2I1iI.s:1204   .text.chEvtWaitOneTimeout:00000038 .Loc.344
+     /tmp/ccl2I1iI.s:1207   .text.chEvtWaitOneTimeout:0000003a .Loc.345
+     /tmp/ccl2I1iI.s:1211   .text.chEvtWaitOneTimeout:0000003c .Loc.346
+     /tmp/ccl2I1iI.s:1212   .text.chEvtWaitOneTimeout:0000003c .Loc.347
+     /tmp/ccl2I1iI.s:1217   .text.chEvtWaitOneTimeout:00000042 .Loc.348
+     /tmp/ccl2I1iI.s:1218   .text.chEvtWaitOneTimeout:00000042 .Loc.349
+     /tmp/ccl2I1iI.s:1225   .text.chEvtWaitOneTimeout:0000004c .Loc.350
+     /tmp/ccl2I1iI.s:1226   .text.chEvtWaitOneTimeout:0000004c .Loc.351
+     /tmp/ccl2I1iI.s:1229   .text.chEvtWaitOneTimeout:0000004c .Loc.352
+     /tmp/ccl2I1iI.s:1231   .text.chEvtWaitOneTimeout:0000004c .Loc.353
+     /tmp/ccl2I1iI.s:1239   .text.chEvtWaitOneTimeout:0000004e .Loc.354
+     /tmp/ccl2I1iI.s:1240   .text.chEvtWaitOneTimeout:0000004e .Loc.355
+     /tmp/ccl2I1iI.s:1241   .text.chEvtWaitOneTimeout:0000004e .Loc.356
+     /tmp/ccl2I1iI.s:1246   .text.chEvtWaitOneTimeout:00000052 .Loc.357
+     /tmp/ccl2I1iI.s:1249   .text.chEvtWaitOneTimeout:00000054 .Loc.358
+     /tmp/ccl2I1iI.s:1253   .text.chEvtWaitOneTimeout:00000058 .Loc.359
+     /tmp/ccl2I1iI.s:1255   .text.chEvtWaitOneTimeout:0000005a L0
+     /tmp/ccl2I1iI.s:1261   .text.chEvtWaitAnyTimeout:00000000 chEvtWaitAnyTimeout
+     /tmp/ccl2I1iI.s:1264   .text.chEvtWaitAnyTimeout:00000000 .Loc.360
+     /tmp/ccl2I1iI.s:1265   .text.chEvtWaitAnyTimeout:00000000 L0
+     /tmp/ccl2I1iI.s:1266   .text.chEvtWaitAnyTimeout:00000000 .Loc.361
+     /tmp/ccl2I1iI.s:1288   .text.chEvtWaitAnyTimeout:0000000a .Loc.362
+     /tmp/ccl2I1iI.s:1289   .text.chEvtWaitAnyTimeout:0000000a .Loc.363
+     /tmp/ccl2I1iI.s:1293   .text.chEvtWaitAnyTimeout:00000012 .Loc.364
+     /tmp/ccl2I1iI.s:1294   .text.chEvtWaitAnyTimeout:00000012 .Loc.365
+     /tmp/ccl2I1iI.s:1297   .text.chEvtWaitAnyTimeout:00000012 .Loc.366
+     /tmp/ccl2I1iI.s:1299   .text.chEvtWaitAnyTimeout:00000012 .Loc.367
+     /tmp/ccl2I1iI.s:1307   .text.chEvtWaitAnyTimeout:00000014 .Loc.368
+     /tmp/ccl2I1iI.s:1308   .text.chEvtWaitAnyTimeout:00000014 .Loc.369
+     /tmp/ccl2I1iI.s:1309   .text.chEvtWaitAnyTimeout:00000014 .Loc.370
+     /tmp/ccl2I1iI.s:1310   .text.chEvtWaitAnyTimeout:00000014 .Loc.371
+     /tmp/ccl2I1iI.s:1314   .text.chEvtWaitAnyTimeout:00000018 .Loc.372
+     /tmp/ccl2I1iI.s:1318   .text.chEvtWaitAnyTimeout:0000001c .Loc.373
+     /tmp/ccl2I1iI.s:1321   .text.chEvtWaitAnyTimeout:00000020 .Loc.374
+     /tmp/ccl2I1iI.s:1322   .text.chEvtWaitAnyTimeout:00000020 .Loc.375
+     /tmp/ccl2I1iI.s:1326   .text.chEvtWaitAnyTimeout:00000026 .Loc.376
+     /tmp/ccl2I1iI.s:1327   .text.chEvtWaitAnyTimeout:00000026 .Loc.377
+     /tmp/ccl2I1iI.s:1330   .text.chEvtWaitAnyTimeout:0000002a .Loc.378
+     /tmp/ccl2I1iI.s:1331   .text.chEvtWaitAnyTimeout:0000002a .Loc.379
+     /tmp/ccl2I1iI.s:1335   .text.chEvtWaitAnyTimeout:00000030 .Loc.380
+     /tmp/ccl2I1iI.s:1338   .text.chEvtWaitAnyTimeout:00000034 .Loc.381
+     /tmp/ccl2I1iI.s:1339   .text.chEvtWaitAnyTimeout:00000034 .Loc.382
+     /tmp/ccl2I1iI.s:1342   .text.chEvtWaitAnyTimeout:00000038 .Loc.383
+     /tmp/ccl2I1iI.s:1345   .text.chEvtWaitAnyTimeout:0000003a .Loc.384
+     /tmp/ccl2I1iI.s:1349   .text.chEvtWaitAnyTimeout:0000003c .Loc.385
+     /tmp/ccl2I1iI.s:1350   .text.chEvtWaitAnyTimeout:0000003c .Loc.386
+     /tmp/ccl2I1iI.s:1357   .text.chEvtWaitAnyTimeout:00000046 .Loc.387
+     /tmp/ccl2I1iI.s:1358   .text.chEvtWaitAnyTimeout:00000046 .Loc.388
+     /tmp/ccl2I1iI.s:1361   .text.chEvtWaitAnyTimeout:00000046 .Loc.389
+     /tmp/ccl2I1iI.s:1363   .text.chEvtWaitAnyTimeout:00000046 .Loc.390
+     /tmp/ccl2I1iI.s:1371   .text.chEvtWaitAnyTimeout:00000048 .Loc.391
+     /tmp/ccl2I1iI.s:1372   .text.chEvtWaitAnyTimeout:00000048 .Loc.392
+     /tmp/ccl2I1iI.s:1373   .text.chEvtWaitAnyTimeout:00000048 .Loc.393
+     /tmp/ccl2I1iI.s:1378   .text.chEvtWaitAnyTimeout:0000004c .Loc.394
+     /tmp/ccl2I1iI.s:1381   .text.chEvtWaitAnyTimeout:0000004e .Loc.395
+     /tmp/ccl2I1iI.s:1385   .text.chEvtWaitAnyTimeout:00000052 .Loc.396
+     /tmp/ccl2I1iI.s:1387   .text.chEvtWaitAnyTimeout:00000054 L0
+     /tmp/ccl2I1iI.s:1393   .text.chEvtWaitAllTimeout:00000000 chEvtWaitAllTimeout
+     /tmp/ccl2I1iI.s:1396   .text.chEvtWaitAllTimeout:00000000 .Loc.397
+     /tmp/ccl2I1iI.s:1397   .text.chEvtWaitAllTimeout:00000000 L0
+     /tmp/ccl2I1iI.s:1398   .text.chEvtWaitAllTimeout:00000000 .Loc.398
+     /tmp/ccl2I1iI.s:1416   .text.chEvtWaitAllTimeout:00000008 .Loc.399
+     /tmp/ccl2I1iI.s:1417   .text.chEvtWaitAllTimeout:00000008 .Loc.400
+     /tmp/ccl2I1iI.s:1421   .text.chEvtWaitAllTimeout:00000010 .Loc.401
+     /tmp/ccl2I1iI.s:1424   .text.chEvtWaitAllTimeout:00000010 .Loc.402
+     /tmp/ccl2I1iI.s:1426   .text.chEvtWaitAllTimeout:00000010 .Loc.403
+     /tmp/ccl2I1iI.s:1434   .text.chEvtWaitAllTimeout:00000012 .Loc.404
+     /tmp/ccl2I1iI.s:1435   .text.chEvtWaitAllTimeout:00000012 .Loc.405
+     /tmp/ccl2I1iI.s:1436   .text.chEvtWaitAllTimeout:00000012 .Loc.406
+     /tmp/ccl2I1iI.s:1437   .text.chEvtWaitAllTimeout:00000012 .Loc.407
+     /tmp/ccl2I1iI.s:1441   .text.chEvtWaitAllTimeout:00000016 .Loc.408
+     /tmp/ccl2I1iI.s:1444   .text.chEvtWaitAllTimeout:0000001a .Loc.409
+     /tmp/ccl2I1iI.s:1447   .text.chEvtWaitAllTimeout:0000001e .Loc.410
+     /tmp/ccl2I1iI.s:1448   .text.chEvtWaitAllTimeout:0000001e .Loc.411
+     /tmp/ccl2I1iI.s:1452   .text.chEvtWaitAllTimeout:00000024 .Loc.412
+     /tmp/ccl2I1iI.s:1453   .text.chEvtWaitAllTimeout:00000024 .Loc.413
+     /tmp/ccl2I1iI.s:1456   .text.chEvtWaitAllTimeout:00000028 .Loc.414
+     /tmp/ccl2I1iI.s:1457   .text.chEvtWaitAllTimeout:00000028 .Loc.415
+     /tmp/ccl2I1iI.s:1461   .text.chEvtWaitAllTimeout:0000002e .Loc.416
+     /tmp/ccl2I1iI.s:1464   .text.chEvtWaitAllTimeout:00000032 .Loc.417
+     /tmp/ccl2I1iI.s:1468   .text.chEvtWaitAllTimeout:00000036 .Loc.418
+     /tmp/ccl2I1iI.s:1469   .text.chEvtWaitAllTimeout:00000036 .Loc.419
+     /tmp/ccl2I1iI.s:1475   .text.chEvtWaitAllTimeout:00000040 .Loc.420
+     /tmp/ccl2I1iI.s:1476   .text.chEvtWaitAllTimeout:00000040 .Loc.421
+     /tmp/ccl2I1iI.s:1479   .text.chEvtWaitAllTimeout:00000040 .Loc.422
+     /tmp/ccl2I1iI.s:1481   .text.chEvtWaitAllTimeout:00000040 .Loc.423
+     /tmp/ccl2I1iI.s:1489   .text.chEvtWaitAllTimeout:00000042 .Loc.424
+     /tmp/ccl2I1iI.s:1490   .text.chEvtWaitAllTimeout:00000042 .Loc.425
+     /tmp/ccl2I1iI.s:1491   .text.chEvtWaitAllTimeout:00000042 .Loc.426
+     /tmp/ccl2I1iI.s:1494   .text.chEvtWaitAllTimeout:00000044 .Loc.427
+     /tmp/ccl2I1iI.s:1497   .text.chEvtWaitAllTimeout:00000046 .Loc.428
+     /tmp/ccl2I1iI.s:1501   .text.chEvtWaitAllTimeout:0000004a .Loc.429
+     /tmp/ccl2I1iI.s:1505   .text.chEvtWaitAllTimeout:0000004c .Loc.430
+     /tmp/ccl2I1iI.s:1506   .text.chEvtWaitAllTimeout:0000004c .Loc.431
+     /tmp/ccl2I1iI.s:1509   .text.chEvtWaitAllTimeout:0000004c .Loc.432
+     /tmp/ccl2I1iI.s:1511   .text.chEvtWaitAllTimeout:0000004c .Loc.433
+     /tmp/ccl2I1iI.s:1519   .text.chEvtWaitAllTimeout:0000004e .Loc.434
+     /tmp/ccl2I1iI.s:1520   .text.chEvtWaitAllTimeout:0000004e .Loc.435
+     /tmp/ccl2I1iI.s:1521   .text.chEvtWaitAllTimeout:0000004e .Loc.436
+     /tmp/ccl2I1iI.s:1524   .text.chEvtWaitAllTimeout:00000050 .Loc.437
+     /tmp/ccl2I1iI.s:1527   .text.chEvtWaitAllTimeout:00000052 .Loc.438
+     /tmp/ccl2I1iI.s:1531   .text.chEvtWaitAllTimeout:00000056 .Loc.439
+     /tmp/ccl2I1iI.s:1533   .text.chEvtWaitAllTimeout:00000058 L0
+     /tmp/ccl2I1iI.s:94     .text.chEvtRegisterMaskWithFlags:0000002a L0
+     /tmp/ccl2I1iI.s:207    .text.chEvtUnregister:0000002e L0
+     /tmp/ccl2I1iI.s:243    .text.chEvtGetAndClearEventsI:00000016 L0
+     /tmp/ccl2I1iI.s:321    .text.chEvtGetAndClearEvents:0000001a L0
+     /tmp/ccl2I1iI.s:381    .text.chEvtAddEvents:00000014 L0
+     /tmp/ccl2I1iI.s:574    .text.chEvtBroadcastFlagsI:00000092 L0
+     /tmp/ccl2I1iI.s:637    .text.chEvtGetAndClearFlags:00000010 L0
+     /tmp/ccl2I1iI.s:799    .text.chEvtSignal:0000004a L0
+     /tmp/ccl2I1iI.s:874    .text.chEvtSignalI:00000030 L0
+     /tmp/ccl2I1iI.s:928    .text.chEvtBroadcastFlags:0000000e L0
+     /tmp/ccl2I1iI.s:961    .text.chEvtGetAndClearFlagsI:0000000c L0
+     /tmp/ccl2I1iI.s:1119   .text.chEvtDispatch:0000008e L0
+     /tmp/ccl2I1iI.s:1258   .text.chEvtWaitOneTimeout:0000005a L0
+     /tmp/ccl2I1iI.s:1390   .text.chEvtWaitAnyTimeout:00000054 L0
+     /tmp/ccl2I1iI.s:1536   .text.chEvtWaitAllTimeout:00000058 L0
+                     .debug_frame:00000000 L0
+     /tmp/ccl2I1iI.s:148    .text.chEvtUnregister:00000010 .L4
+     /tmp/ccl2I1iI.s:178    .text.chEvtUnregister:00000022 .L8
+     /tmp/ccl2I1iI.s:138    .text.chEvtUnregister:0000000a .L6
+     /tmp/ccl2I1iI.s:516    .text.chEvtBroadcastFlagsI:00000068 .L12
+     /tmp/ccl2I1iI.s:472    .text.chEvtBroadcastFlagsI:00000046 .L14
+     /tmp/ccl2I1iI.s:449    .text.chEvtBroadcastFlagsI:0000002c .L24
+     /tmp/ccl2I1iI.s:532    .text.chEvtBroadcastFlagsI:00000074 .L25
+     /tmp/ccl2I1iI.s:557    .text.chEvtBroadcastFlagsI:00000088 .L26
+     /tmp/ccl2I1iI.s:433    .text.chEvtBroadcastFlagsI:0000001a .L19
+     /tmp/ccl2I1iI.s:502    .text.chEvtBroadcastFlagsI:0000005c .L18
+     /tmp/ccl2I1iI.s:541    .text.chEvtBroadcastFlagsI:0000007c .L17
+     /tmp/ccl2I1iI.s:770    .text.chEvtSignal:00000036 .L33
+     /tmp/ccl2I1iI.s:721    .text.chEvtSignal:0000001c .L34
+     /tmp/ccl2I1iI.s:694    .text.chEvtSignal:00000014 .L31
+     /tmp/ccl2I1iI.s:743    .text.chEvtSignal:0000002e .L35
+     /tmp/ccl2I1iI.s:860    .text.chEvtSignalI:00000026 .L40
+     /tmp/ccl2I1iI.s:839    .text.chEvtSignalI:00000014 .L41
+     /tmp/ccl2I1iI.s:835    .text.chEvtSignalI:00000012 .L36
+     /tmp/ccl2I1iI.s:847    .text.chEvtSignalI:0000001c .L38
+     /tmp/ccl2I1iI.s:1101   .text.chEvtDispatch:0000007a .L44
+     /tmp/ccl2I1iI.s:1041   .text.chEvtDispatch:00000032 .L21
+     /tmp/ccl2I1iI.s:1038   .text.chEvtDispatch:0000002e .L11
+     /tmp/ccl2I1iI.s:1087   .text.chEvtDispatch:0000006c .L46
+     /tmp/ccl2I1iI.s:1058   .text.chEvtDispatch:00000044 .L22
+     /tmp/ccl2I1iI.s:1055   .text.chEvtDispatch:00000040 .L12
+     /tmp/ccl2I1iI.s:1032   .text.chEvtDispatch:00000028 .L47
+     /tmp/ccl2I1iI.s:1209   .text.chEvtWaitOneTimeout:0000003c .L56
+     /tmp/ccl2I1iI.s:1224   .text.chEvtWaitOneTimeout:0000004c .L61
+     /tmp/ccl2I1iI.s:1347   .text.chEvtWaitAnyTimeout:0000003c .L63
+     /tmp/ccl2I1iI.s:1356   .text.chEvtWaitAnyTimeout:00000046 .L68
+     /tmp/ccl2I1iI.s:1467   .text.chEvtWaitAllTimeout:00000036 .L70
+     /tmp/ccl2I1iI.s:1504   .text.chEvtWaitAllTimeout:0000004c .L73
+     /tmp/ccl2I1iI.s:3511   .debug_abbrev:00000000 .Ldebug_abbrev0
+     /tmp/ccl2I1iI.s:6327   .debug_ranges:00000000 .Ldebug_ranges0
+     /tmp/ccl2I1iI.s:6399   .debug_line:00000000 .Ldebug_line0
+     /tmp/ccl2I1iI.s:1395   .text.chEvtWaitAllTimeout:00000000 .LFB112
+     /tmp/ccl2I1iI.s:1534   .text.chEvtWaitAllTimeout:00000058 .LFE112
+     /tmp/ccl2I1iI.s:4661   .debug_loc:00000000 .LLST49
+     /tmp/ccl2I1iI.s:4699   .debug_loc:00000046 .LLST50
+     /tmp/ccl2I1iI.s:4688   .debug_loc:0000003c .LVUS50
+     /tmp/ccl2I1iI.s:4736   .debug_loc:00000092 .LLST51
+     /tmp/ccl2I1iI.s:4731   .debug_loc:0000008e .LVUS51
+     /tmp/ccl2I1iI.s:4768   .debug_loc:000000c4 .LLST52
+     /tmp/ccl2I1iI.s:4761   .debug_loc:000000be .LVUS52
+     /tmp/ccl2I1iI.s:1423   .text.chEvtWaitAllTimeout:00000010 .LBI132
+     /tmp/ccl2I1iI.s:1422   .text.chEvtWaitAllTimeout:00000010 .LBB132
+     /tmp/ccl2I1iI.s:1433   .text.chEvtWaitAllTimeout:00000012 .LBE132
+     /tmp/ccl2I1iI.s:1478   .text.chEvtWaitAllTimeout:00000040 .LBI134
+     /tmp/ccl2I1iI.s:1477   .text.chEvtWaitAllTimeout:00000040 .LBB134
+     /tmp/ccl2I1iI.s:1488   .text.chEvtWaitAllTimeout:00000042 .LBE134
+     /tmp/ccl2I1iI.s:1508   .text.chEvtWaitAllTimeout:0000004c .LBI136
+     /tmp/ccl2I1iI.s:1507   .text.chEvtWaitAllTimeout:0000004c .LBB136
+     /tmp/ccl2I1iI.s:1518   .text.chEvtWaitAllTimeout:0000004e .LBE136
+     /tmp/ccl2I1iI.s:1460   .text.chEvtWaitAllTimeout:0000002e .LVL93
+     /tmp/ccl2I1iI.s:1263   .text.chEvtWaitAnyTimeout:00000000 .LFB111
+     /tmp/ccl2I1iI.s:1388   .text.chEvtWaitAnyTimeout:00000054 .LFE111
+     /tmp/ccl2I1iI.s:4798   .debug_loc:000000fc .LLST44
+     /tmp/ccl2I1iI.s:4838   .debug_loc:0000014b .LLST45
+     /tmp/ccl2I1iI.s:4831   .debug_loc:00000145 .LVUS45
+     /tmp/ccl2I1iI.s:4867   .debug_loc:00000181 .LLST46
+     /tmp/ccl2I1iI.s:4862   .debug_loc:0000017d .LVUS46
+     /tmp/ccl2I1iI.s:4895   .debug_loc:000001af .LLST47
+     /tmp/ccl2I1iI.s:4892   .debug_loc:000001ad .LVUS47
+     /tmp/ccl2I1iI.s:4914   .debug_loc:000001cd .LLST48
+     /tmp/ccl2I1iI.s:4907   .debug_loc:000001c7 .LVUS48
+     /tmp/ccl2I1iI.s:1296   .text.chEvtWaitAnyTimeout:00000012 .LBI128
+     /tmp/ccl2I1iI.s:1295   .text.chEvtWaitAnyTimeout:00000012 .LBB128
+     /tmp/ccl2I1iI.s:1306   .text.chEvtWaitAnyTimeout:00000014 .LBE128
+     /tmp/ccl2I1iI.s:1360   .text.chEvtWaitAnyTimeout:00000046 .LBI130
+     /tmp/ccl2I1iI.s:1359   .text.chEvtWaitAnyTimeout:00000046 .LBB130
+     /tmp/ccl2I1iI.s:1370   .text.chEvtWaitAnyTimeout:00000048 .LBE130
+     /tmp/ccl2I1iI.s:1334   .text.chEvtWaitAnyTimeout:00000030 .LVL84
+     /tmp/ccl2I1iI.s:1124   .text.chEvtWaitOneTimeout:00000000 .LFB110
+     /tmp/ccl2I1iI.s:1256   .text.chEvtWaitOneTimeout:0000005a .LFE110
+     /tmp/ccl2I1iI.s:4929   .debug_loc:000001f6 .LLST39
+     /tmp/ccl2I1iI.s:4969   .debug_loc:00000245 .LLST40
+     /tmp/ccl2I1iI.s:4962   .debug_loc:0000023f .LVUS40
+     /tmp/ccl2I1iI.s:4998   .debug_loc:0000027b .LLST41
+     /tmp/ccl2I1iI.s:4993   .debug_loc:00000277 .LVUS41
+     /tmp/ccl2I1iI.s:5026   .debug_loc:000002a9 .LLST42
+     /tmp/ccl2I1iI.s:5023   .debug_loc:000002a7 .LVUS42
+     /tmp/ccl2I1iI.s:5045   .debug_loc:000002c7 .LLST43
+     /tmp/ccl2I1iI.s:5038   .debug_loc:000002c1 .LVUS43
+     /tmp/ccl2I1iI.s:1157   .text.chEvtWaitOneTimeout:00000012 .LBI124
+     /tmp/ccl2I1iI.s:1156   .text.chEvtWaitOneTimeout:00000012 .LBB124
+     /tmp/ccl2I1iI.s:1167   .text.chEvtWaitOneTimeout:00000014 .LBE124
+     /tmp/ccl2I1iI.s:1228   .text.chEvtWaitOneTimeout:0000004c .LBI126
+     /tmp/ccl2I1iI.s:1227   .text.chEvtWaitOneTimeout:0000004c .LBB126
+     /tmp/ccl2I1iI.s:1238   .text.chEvtWaitOneTimeout:0000004e .LBE126
+     /tmp/ccl2I1iI.s:1196   .text.chEvtWaitOneTimeout:00000030 .LVL73
+     /tmp/ccl2I1iI.s:966    .text.chEvtDispatch:00000000 .LFB109
+     /tmp/ccl2I1iI.s:1117   .text.chEvtDispatch:0000008e .LFE109
+     /tmp/ccl2I1iI.s:5060   .debug_loc:000002f0 .LLST35
+     /tmp/ccl2I1iI.s:5128   .debug_loc:0000037e .LLST36
+     /tmp/ccl2I1iI.s:5123   .debug_loc:0000037a .LVUS36
+     /tmp/ccl2I1iI.s:5158   .debug_loc:000003ae .LLST37
+     /tmp/ccl2I1iI.s:5153   .debug_loc:000003aa .LVUS37
+     /tmp/ccl2I1iI.s:5174   .debug_loc:000003d0 .LLST38
+     /tmp/ccl2I1iI.s:5169   .debug_loc:000003cc .LVUS38
+     /tmp/ccl2I1iI.s:1072   .text.chEvtDispatch:00000058 .LVL64
+     /tmp/ccl2I1iI.s:933    .text.chEvtGetAndClearFlagsI:00000000 .LFB108
+     /tmp/ccl2I1iI.s:959    .text.chEvtGetAndClearFlagsI:0000000c .LFE108
+     /tmp/ccl2I1iI.s:5202   .debug_loc:000003fe .LLST33
+     /tmp/ccl2I1iI.s:5197   .debug_loc:000003fa .LVUS33
+     /tmp/ccl2I1iI.s:5226   .debug_loc:00000428 .LLST34
+     /tmp/ccl2I1iI.s:5223   .debug_loc:00000426 .LVUS34
+     /tmp/ccl2I1iI.s:879    .text.chEvtBroadcastFlags:00000000 .LFB107
+     /tmp/ccl2I1iI.s:926    .text.chEvtBroadcastFlags:0000000e .LFE107
+     /tmp/ccl2I1iI.s:5238   .debug_loc:0000043f .LLST31
+     /tmp/ccl2I1iI.s:5233   .debug_loc:0000043b .LVUS31
+     /tmp/ccl2I1iI.s:5268   .debug_loc:0000046f .LLST32
+     /tmp/ccl2I1iI.s:5263   .debug_loc:0000046b .LVUS32
+     /tmp/ccl2I1iI.s:888    .text.chEvtBroadcastFlags:00000000 .LBI120
+     /tmp/ccl2I1iI.s:887    .text.chEvtBroadcastFlags:00000000 .LBB120
+     /tmp/ccl2I1iI.s:898    .text.chEvtBroadcastFlags:00000002 .LBE120
+     /tmp/ccl2I1iI.s:910    .text.chEvtBroadcastFlags:0000000a .LBI122
+     /tmp/ccl2I1iI.s:909    .text.chEvtBroadcastFlags:0000000a .LBB122
+     /tmp/ccl2I1iI.s:920    .text.chEvtBroadcastFlags:0000000c .LBE122
+     /tmp/ccl2I1iI.s:903    .text.chEvtBroadcastFlags:00000006 .LVL55
+     /tmp/ccl2I1iI.s:906    .text.chEvtBroadcastFlags:0000000a .LVL56
+     /tmp/ccl2I1iI.s:642    .text.chEvtSignal:00000000 .LFB105
+     /tmp/ccl2I1iI.s:797    .text.chEvtSignal:0000004a .LFE105
+     /tmp/ccl2I1iI.s:5303   .debug_loc:000004a4 .LLST21
+     /tmp/ccl2I1iI.s:5288   .debug_loc:00000496 .LVUS21
+     /tmp/ccl2I1iI.s:5386   .debug_loc:0000052c .LLST22
+     /tmp/ccl2I1iI.s:5381   .debug_loc:00000528 .LVUS22
+     /tmp/ccl2I1iI.s:653    .text.chEvtSignal:00000002 .LBI100
+     /tmp/ccl2I1iI.s:652    .text.chEvtSignal:00000002 .LBB100
+     /tmp/ccl2I1iI.s:663    .text.chEvtSignal:00000004 .LBE100
+     /tmp/ccl2I1iI.s:669    .text.chEvtSignal:00000004 .LBI102
+     /tmp/ccl2I1iI.s:5419   .debug_loc:0000055f .LLST23
+     /tmp/ccl2I1iI.s:5406   .debug_loc:00000553 .LVUS23
+     /tmp/ccl2I1iI.s:5493   .debug_loc:000005d7 .LLST24
+     /tmp/ccl2I1iI.s:5484   .debug_loc:000005cf .LVUS24
+     /tmp/ccl2I1iI.s:733    .text.chEvtSignal:00000024 .LBI104
+     /tmp/ccl2I1iI.s:5544   .debug_loc:0000062a .LLST25
+     /tmp/ccl2I1iI.s:5539   .debug_loc:00000626 .LVUS25
+     /tmp/ccl2I1iI.s:5582   .debug_loc:00000662 .LLST26
+     /tmp/ccl2I1iI.s:5573   .debug_loc:0000065a .LVUS26
+     /tmp/ccl2I1iI.s:742    .text.chEvtSignal:0000002e .LVL44
+     /tmp/ccl2I1iI.s:789    .text.chEvtSignal:00000048 .LVL48
+     /tmp/ccl2I1iI.s:705    .text.chEvtSignal:00000018 .LBI110
+     /tmp/ccl2I1iI.s:701    .text.chEvtSignal:00000018 .LVL41
+     /tmp/ccl2I1iI.s:751    .text.chEvtSignal:00000032 .LVL45
+     /tmp/ccl2I1iI.s:579    .text.chEvtGetAndClearFlags:00000000 .LFB104
+     /tmp/ccl2I1iI.s:635    .text.chEvtGetAndClearFlags:00000010 .LFE104
+     /tmp/ccl2I1iI.s:5634   .debug_loc:000006b6 .LLST19
+     /tmp/ccl2I1iI.s:5629   .debug_loc:000006b2 .LVUS19
+     /tmp/ccl2I1iI.s:5658   .debug_loc:000006e0 .LLST20
+     /tmp/ccl2I1iI.s:5655   .debug_loc:000006de .LVUS20
+     /tmp/ccl2I1iI.s:591    .text.chEvtGetAndClearFlags:00000002 .LBI88
+     /tmp/ccl2I1iI.s:590    .text.chEvtGetAndClearFlags:00000002 .LBB88
+     /tmp/ccl2I1iI.s:601    .text.chEvtGetAndClearFlags:00000004 .LBE88
+     /tmp/ccl2I1iI.s:614    .text.chEvtGetAndClearFlags:00000008 .LBI90
+     /tmp/ccl2I1iI.s:613    .text.chEvtGetAndClearFlags:00000008 .LBB90
+     /tmp/ccl2I1iI.s:624    .text.chEvtGetAndClearFlags:0000000a .LBE90
+     /tmp/ccl2I1iI.s:386    .text.chEvtBroadcastFlagsI:00000000 .LFB103
+     /tmp/ccl2I1iI.s:572    .text.chEvtBroadcastFlagsI:00000092 .LFE103
+     /tmp/ccl2I1iI.s:5665   .debug_loc:000006f3 .LLST12
+     /tmp/ccl2I1iI.s:5713   .debug_loc:00000751 .LLST13
+     /tmp/ccl2I1iI.s:5704   .debug_loc:00000749 .LVUS13
+     /tmp/ccl2I1iI.s:5765   .debug_loc:000007a5 .LLST14
+     /tmp/ccl2I1iI.s:5756   .debug_loc:0000079d .LVUS14
+     /tmp/ccl2I1iI.s:5798   .debug_loc:000007e6 .LLST15
+     /tmp/ccl2I1iI.s:5793   .debug_loc:000007e2 .LVUS15
+     /tmp/ccl2I1iI.s:478    .text.chEvtBroadcastFlagsI:0000004a .LBI82
+     /tmp/ccl2I1iI.s:5826   .debug_loc:00000814 .LLST16
+     /tmp/ccl2I1iI.s:5819   .debug_loc:0000080e .LVUS16
+     /tmp/ccl2I1iI.s:5859   .debug_loc:0000084e .LLST17
+     /tmp/ccl2I1iI.s:5856   .debug_loc:0000084c .LVUS17
+     /tmp/ccl2I1iI.s:544    .text.chEvtBroadcastFlagsI:0000007c .LBI84
+     /tmp/ccl2I1iI.s:543    .text.chEvtBroadcastFlagsI:0000007c .LBB84
+     /tmp/ccl2I1iI.s:560    .text.chEvtBroadcastFlagsI:00000088 .LBE84
+     /tmp/ccl2I1iI.s:5870   .debug_loc:00000864 .LLST18
+     /tmp/ccl2I1iI.s:5867   .debug_loc:00000862 .LVUS18
+     /tmp/ccl2I1iI.s:553    .text.chEvtBroadcastFlagsI:00000086 .LVL31
+     /tmp/ccl2I1iI.s:326    .text.chEvtAddEvents:00000000 .LFB102
+     /tmp/ccl2I1iI.s:379    .text.chEvtAddEvents:00000014 .LFE102
+     /tmp/ccl2I1iI.s:5887   .debug_loc:00000880 .LLST10
+     /tmp/ccl2I1iI.s:5882   .debug_loc:0000087c .LVUS10
+     /tmp/ccl2I1iI.s:5910   .debug_loc:000008a9 .LLST11
+     /tmp/ccl2I1iI.s:5907   .debug_loc:000008a7 .LVUS11
+     /tmp/ccl2I1iI.s:336    .text.chEvtAddEvents:00000000 .LBI74
+     /tmp/ccl2I1iI.s:335    .text.chEvtAddEvents:00000000 .LBB74
+     /tmp/ccl2I1iI.s:346    .text.chEvtAddEvents:00000002 .LBE74
+     /tmp/ccl2I1iI.s:362    .text.chEvtAddEvents:00000010 .LBI76
+     /tmp/ccl2I1iI.s:361    .text.chEvtAddEvents:00000010 .LBB76
+     /tmp/ccl2I1iI.s:372    .text.chEvtAddEvents:00000012 .LBE76
+     /tmp/ccl2I1iI.s:248    .text.chEvtGetAndClearEvents:00000000 .LFB101
+     /tmp/ccl2I1iI.s:319    .text.chEvtGetAndClearEvents:0000001a .LFE101
+     /tmp/ccl2I1iI.s:5922   .debug_loc:000008c0 .LLST6
+     /tmp/ccl2I1iI.s:5917   .debug_loc:000008bc .LVUS6
+     /tmp/ccl2I1iI.s:5947   .debug_loc:000008eb .LLST7
+     /tmp/ccl2I1iI.s:5942   .debug_loc:000008e7 .LVUS7
+     /tmp/ccl2I1iI.s:258    .text.chEvtGetAndClearEvents:00000000 .LBI68
+     /tmp/ccl2I1iI.s:257    .text.chEvtGetAndClearEvents:00000000 .LBB68
+     /tmp/ccl2I1iI.s:268    .text.chEvtGetAndClearEvents:00000002 .LBE68
+     /tmp/ccl2I1iI.s:274    .text.chEvtGetAndClearEvents:00000002 .LBI70
+     /tmp/ccl2I1iI.s:273    .text.chEvtGetAndClearEvents:00000002 .LBB70
+     /tmp/ccl2I1iI.s:295    .text.chEvtGetAndClearEvents:00000014 .LBE70
+     /tmp/ccl2I1iI.s:5966   .debug_loc:00000910 .LLST8
+     /tmp/ccl2I1iI.s:5963   .debug_loc:0000090e .LVUS8
+     /tmp/ccl2I1iI.s:5976   .debug_loc:00000925 .LLST9
+     /tmp/ccl2I1iI.s:5973   .debug_loc:00000923 .LVUS9
+     /tmp/ccl2I1iI.s:299    .text.chEvtGetAndClearEvents:00000014 .LBI72
+     /tmp/ccl2I1iI.s:298    .text.chEvtGetAndClearEvents:00000014 .LBB72
+     /tmp/ccl2I1iI.s:309    .text.chEvtGetAndClearEvents:00000016 .LBE72
+     /tmp/ccl2I1iI.s:99     .text.chEvtUnregister:00000000 .LFB99
+     /tmp/ccl2I1iI.s:205    .text.chEvtUnregister:0000002e .LFE99
+     /tmp/ccl2I1iI.s:5993   .debug_loc:00000941 .LLST1
+     /tmp/ccl2I1iI.s:5988   .debug_loc:0000093d .LVUS1
+     /tmp/ccl2I1iI.s:6019   .debug_loc:0000096d .LLST2
+     /tmp/ccl2I1iI.s:6014   .debug_loc:00000969 .LVUS2
+     /tmp/ccl2I1iI.s:6049   .debug_loc:0000099d .LLST3
+     /tmp/ccl2I1iI.s:6040   .debug_loc:00000995 .LVUS3
+     /tmp/ccl2I1iI.s:117    .text.chEvtUnregister:00000004 .LBI60
+     /tmp/ccl2I1iI.s:163    .text.chEvtUnregister:0000001e .LBI64
+     /tmp/ccl2I1iI.s:16     .text.chEvtRegisterMaskWithFlags:00000000 .LFB98
+     /tmp/ccl2I1iI.s:92     .text.chEvtRegisterMaskWithFlags:0000002a .LFE98
+     /tmp/ccl2I1iI.s:6093   .debug_loc:000009e9 .LLST0
+     /tmp/ccl2I1iI.s:6088   .debug_loc:000009e5 .LVUS0
+     /tmp/ccl2I1iI.s:31     .text.chEvtRegisterMaskWithFlags:00000004 .LBI56
+     /tmp/ccl2I1iI.s:30     .text.chEvtRegisterMaskWithFlags:00000004 .LBB56
+     /tmp/ccl2I1iI.s:42     .text.chEvtRegisterMaskWithFlags:00000006 .LBE56
+     /tmp/ccl2I1iI.s:76     .text.chEvtRegisterMaskWithFlags:00000026 .LBI58
+     /tmp/ccl2I1iI.s:75     .text.chEvtRegisterMaskWithFlags:00000026 .LBB58
+     /tmp/ccl2I1iI.s:86     .text.chEvtRegisterMaskWithFlags:00000028 .LBE58
+     /tmp/ccl2I1iI.s:212    .text.chEvtGetAndClearEventsI:00000000 .LFB100
+     /tmp/ccl2I1iI.s:241    .text.chEvtGetAndClearEventsI:00000016 .LFE100
+     /tmp/ccl2I1iI.s:6119   .debug_loc:00000a15 .LLST4
+     /tmp/ccl2I1iI.s:6114   .debug_loc:00000a11 .LVUS4
+     /tmp/ccl2I1iI.s:6144   .debug_loc:00000a40 .LLST5
+     /tmp/ccl2I1iI.s:6139   .debug_loc:00000a3c .LVUS5
+     /tmp/ccl2I1iI.s:804    .text.chEvtSignalI:00000000 .LFB106
+     /tmp/ccl2I1iI.s:872    .text.chEvtSignalI:00000030 .LFE106
+     /tmp/ccl2I1iI.s:6169   .debug_loc:00000a6b .LLST27
+     /tmp/ccl2I1iI.s:6160   .debug_loc:00000a63 .LVUS27
+     /tmp/ccl2I1iI.s:6217   .debug_loc:00000abb .LLST28
+     /tmp/ccl2I1iI.s:6212   .debug_loc:00000ab7 .LVUS28
+     /tmp/ccl2I1iI.s:850    .text.chEvtSignalI:0000001c .LBI118
+     /tmp/ccl2I1iI.s:849    .text.chEvtSignalI:0000001c .LBB118
+     /tmp/ccl2I1iI.s:863    .text.chEvtSignalI:00000026 .LBE118
+     /tmp/ccl2I1iI.s:6240   .debug_loc:00000ae4 .LLST29
+     /tmp/ccl2I1iI.s:6237   .debug_loc:00000ae2 .LVUS29
+     /tmp/ccl2I1iI.s:6261   .debug_loc:00000b04 .LLST30
+     /tmp/ccl2I1iI.s:6256   .debug_loc:00000b00 .LVUS30
+     /tmp/ccl2I1iI.s:859    .text.chEvtSignalI:00000026 .LVL53
+     /tmp/ccl2I1iI.s:1400   .text.chEvtWaitAllTimeout:00000002 .LCFI22
+     /tmp/ccl2I1iI.s:1404   .text.chEvtWaitAllTimeout:00000004 .LCFI23
+     /tmp/ccl2I1iI.s:1408   .text.chEvtWaitAllTimeout:00000006 .LCFI24
+     /tmp/ccl2I1iI.s:1394   .text.chEvtWaitAllTimeout:00000000 .LVL90
+     /tmp/ccl2I1iI.s:1440   .text.chEvtWaitAllTimeout:00000016 .LVL92
+     /tmp/ccl2I1iI.s:1496   .text.chEvtWaitAllTimeout:00000046 .LVL94
+     /tmp/ccl2I1iI.s:1503   .text.chEvtWaitAllTimeout:0000004c .LVL96
+     /tmp/ccl2I1iI.s:1526   .text.chEvtWaitAllTimeout:00000052 .LVL97
+     /tmp/ccl2I1iI.s:1420   .text.chEvtWaitAllTimeout:00000010 .LVL91
+     /tmp/ccl2I1iI.s:1500   .text.chEvtWaitAllTimeout:0000004a .LVL95
+     /tmp/ccl2I1iI.s:1530   .text.chEvtWaitAllTimeout:00000056 .LVL98
+     /tmp/ccl2I1iI.s:1268   .text.chEvtWaitAnyTimeout:00000002 .LCFI18
+     /tmp/ccl2I1iI.s:1272   .text.chEvtWaitAnyTimeout:00000004 .LCFI19
+     /tmp/ccl2I1iI.s:1276   .text.chEvtWaitAnyTimeout:00000006 .LCFI20
+     /tmp/ccl2I1iI.s:1280   .text.chEvtWaitAnyTimeout:00000008 .LCFI21
+     /tmp/ccl2I1iI.s:1262   .text.chEvtWaitAnyTimeout:00000000 .LVL80
+     /tmp/ccl2I1iI.s:1313   .text.chEvtWaitAnyTimeout:00000018 .LVL82
+     /tmp/ccl2I1iI.s:1380   .text.chEvtWaitAnyTimeout:0000004e .LVL88
+     /tmp/ccl2I1iI.s:1292   .text.chEvtWaitAnyTimeout:00000012 .LVL81
+     /tmp/ccl2I1iI.s:1384   .text.chEvtWaitAnyTimeout:00000052 .LVL89
+     /tmp/ccl2I1iI.s:1317   .text.chEvtWaitAnyTimeout:0000001c .LVL83
+     /tmp/ccl2I1iI.s:1344   .text.chEvtWaitAnyTimeout:0000003a .LVL85
+     /tmp/ccl2I1iI.s:1348   .text.chEvtWaitAnyTimeout:0000003c .LVL86
+     /tmp/ccl2I1iI.s:1377   .text.chEvtWaitAnyTimeout:0000004c .LVL87
+     /tmp/ccl2I1iI.s:1129   .text.chEvtWaitOneTimeout:00000002 .LCFI14
+     /tmp/ccl2I1iI.s:1133   .text.chEvtWaitOneTimeout:00000004 .LCFI15
+     /tmp/ccl2I1iI.s:1137   .text.chEvtWaitOneTimeout:00000006 .LCFI16
+     /tmp/ccl2I1iI.s:1141   .text.chEvtWaitOneTimeout:00000008 .LCFI17
+     /tmp/ccl2I1iI.s:1123   .text.chEvtWaitOneTimeout:00000000 .LVL69
+     /tmp/ccl2I1iI.s:1174   .text.chEvtWaitOneTimeout:00000018 .LVL71
+     /tmp/ccl2I1iI.s:1245   .text.chEvtWaitOneTimeout:00000052 .LVL77
+     /tmp/ccl2I1iI.s:1153   .text.chEvtWaitOneTimeout:00000012 .LVL70
+     /tmp/ccl2I1iI.s:1252   .text.chEvtWaitOneTimeout:00000058 .LVL79
+     /tmp/ccl2I1iI.s:1178   .text.chEvtWaitOneTimeout:0000001c .LVL72
+     /tmp/ccl2I1iI.s:1206   .text.chEvtWaitOneTimeout:0000003a .LVL74
+     /tmp/ccl2I1iI.s:1210   .text.chEvtWaitOneTimeout:0000003c .LVL75
+     /tmp/ccl2I1iI.s:1248   .text.chEvtWaitOneTimeout:00000054 .LVL78
+     /tmp/ccl2I1iI.s:971    .text.chEvtDispatch:00000002 .LCFI5
+     /tmp/ccl2I1iI.s:975    .text.chEvtDispatch:00000004 .LCFI6
+     /tmp/ccl2I1iI.s:979    .text.chEvtDispatch:00000006 .LCFI7
+     /tmp/ccl2I1iI.s:983    .text.chEvtDispatch:00000008 .LCFI8
+     /tmp/ccl2I1iI.s:987    .text.chEvtDispatch:0000000a .LCFI9
+     /tmp/ccl2I1iI.s:991    .text.chEvtDispatch:0000000c .LCFI10
+     /tmp/ccl2I1iI.s:995    .text.chEvtDispatch:0000000e .LCFI11
+     /tmp/ccl2I1iI.s:999    .text.chEvtDispatch:00000010 .LCFI12
+     /tmp/ccl2I1iI.s:1003   .text.chEvtDispatch:00000012 .LCFI13
+     /tmp/ccl2I1iI.s:965    .text.chEvtDispatch:00000000 .LVL60
+     /tmp/ccl2I1iI.s:1031   .text.chEvtDispatch:00000028 .LVL62
+     /tmp/ccl2I1iI.s:1113   .text.chEvtDispatch:0000008c .LVL68
+     /tmp/ccl2I1iI.s:1016   .text.chEvtDispatch:00000014 .LVL61
+     /tmp/ccl2I1iI.s:1100   .text.chEvtDispatch:0000007a .LVL67
+     /tmp/ccl2I1iI.s:932    .text.chEvtGetAndClearFlagsI:00000000 .LVL57
+     /tmp/ccl2I1iI.s:953    .text.chEvtGetAndClearFlagsI:00000008 .LVL59
+     /tmp/ccl2I1iI.s:946    .text.chEvtGetAndClearFlagsI:00000004 .LVL58
+     /tmp/ccl2I1iI.s:878    .text.chEvtBroadcastFlags:00000000 .LVL54
+     /tmp/ccl2I1iI.s:641    .text.chEvtSignal:00000000 .LVL36
+     /tmp/ccl2I1iI.s:679    .text.chEvtSignal:00000006 .LVL38
+     /tmp/ccl2I1iI.s:720    .text.chEvtSignal:0000001c .LVL42
+     /tmp/ccl2I1iI.s:769    .text.chEvtSignal:00000036 .LVL46
+     /tmp/ccl2I1iI.s:682    .text.chEvtSignal:00000008 .LVL39
+     /tmp/ccl2I1iI.s:667    .text.chEvtSignal:00000004 .LVL37
+     /tmp/ccl2I1iI.s:695    .text.chEvtSignal:00000014 .LVL40
+     /tmp/ccl2I1iI.s:731    .text.chEvtSignal:00000024 .LVL43
+     /tmp/ccl2I1iI.s:779    .text.chEvtSignal:0000003e .LVL47
+     /tmp/ccl2I1iI.s:578    .text.chEvtGetAndClearFlags:00000000 .LVL33
+     /tmp/ccl2I1iI.s:629    .text.chEvtGetAndClearFlags:0000000c .LVL35
+     /tmp/ccl2I1iI.s:607    .text.chEvtGetAndClearFlags:00000006 .LVL34
+     /tmp/ccl2I1iI.s:391    .text.chEvtBroadcastFlagsI:00000002 .LCFI0
+     /tmp/ccl2I1iI.s:395    .text.chEvtBroadcastFlagsI:00000004 .LCFI1
+     /tmp/ccl2I1iI.s:399    .text.chEvtBroadcastFlagsI:00000006 .LCFI2
+     /tmp/ccl2I1iI.s:403    .text.chEvtBroadcastFlagsI:00000008 .LCFI3
+     /tmp/ccl2I1iI.s:407    .text.chEvtBroadcastFlagsI:0000000a .LCFI4
+     /tmp/ccl2I1iI.s:385    .text.chEvtBroadcastFlagsI:00000000 .LVL18
+     /tmp/ccl2I1iI.s:432    .text.chEvtBroadcastFlagsI:0000001a .LVL20
+     /tmp/ccl2I1iI.s:525    .text.chEvtBroadcastFlagsI:00000070 .LVL27
+     /tmp/ccl2I1iI.s:531    .text.chEvtBroadcastFlagsI:00000074 .LVL29
+     /tmp/ccl2I1iI.s:528    .text.chEvtBroadcastFlagsI:00000072 .LVL28
+     /tmp/ccl2I1iI.s:426    .text.chEvtBroadcastFlagsI:00000014 .LVL19
+     /tmp/ccl2I1iI.s:521    .text.chEvtBroadcastFlagsI:0000006c .LVL26
+     /tmp/ccl2I1iI.s:476    .text.chEvtBroadcastFlagsI:0000004a .LVL22
+     /tmp/ccl2I1iI.s:501    .text.chEvtBroadcastFlagsI:0000005c .LVL24
+     /tmp/ccl2I1iI.s:556    .text.chEvtBroadcastFlagsI:00000088 .LVL32
+     /tmp/ccl2I1iI.s:491    .text.chEvtBroadcastFlagsI:00000052 .LVL23
+     /tmp/ccl2I1iI.s:542    .text.chEvtBroadcastFlagsI:0000007c .LVL30
+     /tmp/ccl2I1iI.s:325    .text.chEvtAddEvents:00000000 .LVL15
+     /tmp/ccl2I1iI.s:355    .text.chEvtAddEvents:0000000e .LVL16
+     /tmp/ccl2I1iI.s:358    .text.chEvtAddEvents:00000010 .LVL17
+     /tmp/ccl2I1iI.s:247    .text.chEvtGetAndClearEvents:00000000 .LVL10
+     /tmp/ccl2I1iI.s:314    .text.chEvtGetAndClearEvents:00000018 .LVL14
+     /tmp/ccl2I1iI.s:292    .text.chEvtGetAndClearEvents:00000014 .LVL13
+     /tmp/ccl2I1iI.s:272    .text.chEvtGetAndClearEvents:00000002 .LVL11
+     /tmp/ccl2I1iI.s:284    .text.chEvtGetAndClearEvents:0000000c .LVL12
+     /tmp/ccl2I1iI.s:98     .text.chEvtUnregister:00000000 .LVL2
+     /tmp/ccl2I1iI.s:137    .text.chEvtUnregister:0000000a .LVL4
+     /tmp/ccl2I1iI.s:147    .text.chEvtUnregister:00000010 .LVL5
+     /tmp/ccl2I1iI.s:114    .text.chEvtUnregister:00000004 .LVL3
+     /tmp/ccl2I1iI.s:155    .text.chEvtUnregister:00000018 .LVL6
+     /tmp/ccl2I1iI.s:15     .text.chEvtRegisterMaskWithFlags:00000000 .LVL0
+     /tmp/ccl2I1iI.s:50     .text.chEvtRegisterMaskWithFlags:0000000c .LVL1
+     /tmp/ccl2I1iI.s:211    .text.chEvtGetAndClearEventsI:00000000 .LVL7
+     /tmp/ccl2I1iI.s:236    .text.chEvtGetAndClearEventsI:00000014 .LVL9
+     /tmp/ccl2I1iI.s:226    .text.chEvtGetAndClearEventsI:0000000a .LVL8
+     /tmp/ccl2I1iI.s:803    .text.chEvtSignalI:00000000 .LVL49
+     /tmp/ccl2I1iI.s:820    .text.chEvtSignalI:00000004 .LVL50
+     /tmp/ccl2I1iI.s:823    .text.chEvtSignalI:00000006 .LVL51
+     /tmp/ccl2I1iI.s:848    .text.chEvtSignalI:0000001c .LVL52
+     /tmp/ccl2I1iI.s:1543   .debug_info:00000000 .Ldebug_info0
+     /tmp/ccl2I1iI.s:116    .text.chEvtUnregister:00000004 .LBB60
+     /tmp/ccl2I1iI.s:127    .text.chEvtUnregister:00000006 .LBE60
+     /tmp/ccl2I1iI.s:133    .text.chEvtUnregister:00000008 .LBB63
+     /tmp/ccl2I1iI.s:141    .text.chEvtUnregister:0000000a .LBE63
+     /tmp/ccl2I1iI.s:162    .text.chEvtUnregister:0000001e .LBB64
+     /tmp/ccl2I1iI.s:173    .text.chEvtUnregister:00000020 .LBE64
+     /tmp/ccl2I1iI.s:189    .text.chEvtUnregister:0000002a .LBB67
+     /tmp/ccl2I1iI.s:199    .text.chEvtUnregister:0000002c .LBE67
+     /tmp/ccl2I1iI.s:477    .text.chEvtBroadcastFlagsI:0000004a .LBB82
+     /tmp/ccl2I1iI.s:505    .text.chEvtBroadcastFlagsI:0000005c .LBE82
+     /tmp/ccl2I1iI.s:533    .text.chEvtBroadcastFlagsI:00000074 .LBB87
+     /tmp/ccl2I1iI.s:570    .text.chEvtBroadcastFlagsI:00000092 .LBE87
+     /tmp/ccl2I1iI.s:668    .text.chEvtSignal:00000004 .LBB102
+     /tmp/ccl2I1iI.s:698    .text.chEvtSignal:00000014 .LBE102
+     /tmp/ccl2I1iI.s:722    .text.chEvtSignal:0000001c .LBB113
+     /tmp/ccl2I1iI.s:748    .text.chEvtSignal:0000002e .LBE113
+     /tmp/ccl2I1iI.s:771    .text.chEvtSignal:00000036 .LBB115
+     /tmp/ccl2I1iI.s:795    .text.chEvtSignal:0000004a .LBE115
+     /tmp/ccl2I1iI.s:732    .text.chEvtSignal:00000024 .LBB104
+     /tmp/ccl2I1iI.s:746    .text.chEvtSignal:0000002e .LBE104
+     /tmp/ccl2I1iI.s:780    .text.chEvtSignal:0000003e .LBB107
+     /tmp/ccl2I1iI.s:793    .text.chEvtSignal:0000004a .LBE107
+     /tmp/ccl2I1iI.s:704    .text.chEvtSignal:00000018 .LBB110
+     /tmp/ccl2I1iI.s:715    .text.chEvtSignal:0000001a .LBE110
+     /tmp/ccl2I1iI.s:754    .text.chEvtSignal:00000032 .LBB114
+     /tmp/ccl2I1iI.s:764    .text.chEvtSignal:00000034 .LBE114
+
+UNDEFINED SYMBOLS
+nil
+chSchReadyI
+chSchRescheduleS
+chSchGoSleepTimeoutS

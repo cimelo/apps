@@ -1,0 +1,692 @@
+   1               		.file	"hal_st.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               		.file 1 "../../os/hal/src/hal_st.c"
+  11               		.section	.text.stInit,"ax",@progbits
+  12               	.global	stInit
+  14               	stInit:
+  15               	.LFB146:
+   1:../../os/hal/src/hal_st.c **** /*
+   2:../../os/hal/src/hal_st.c ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
+   3:../../os/hal/src/hal_st.c **** 
+   4:../../os/hal/src/hal_st.c ****     Licensed under the Apache License, Version 2.0 (the "License");
+   5:../../os/hal/src/hal_st.c ****     you may not use this file except in compliance with the License.
+   6:../../os/hal/src/hal_st.c ****     You may obtain a copy of the License at
+   7:../../os/hal/src/hal_st.c **** 
+   8:../../os/hal/src/hal_st.c ****         http://www.apache.org/licenses/LICENSE-2.0
+   9:../../os/hal/src/hal_st.c **** 
+  10:../../os/hal/src/hal_st.c ****     Unless required by applicable law or agreed to in writing, software
+  11:../../os/hal/src/hal_st.c ****     distributed under the License is distributed on an "AS IS" BASIS,
+  12:../../os/hal/src/hal_st.c ****     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  13:../../os/hal/src/hal_st.c ****     See the License for the specific language governing permissions and
+  14:../../os/hal/src/hal_st.c ****     limitations under the License.
+  15:../../os/hal/src/hal_st.c **** */
+  16:../../os/hal/src/hal_st.c **** 
+  17:../../os/hal/src/hal_st.c **** /**
+  18:../../os/hal/src/hal_st.c ****  * @file    hal_st.c
+  19:../../os/hal/src/hal_st.c ****  * @brief   ST Driver code.
+  20:../../os/hal/src/hal_st.c ****  *
+  21:../../os/hal/src/hal_st.c ****  * @addtogroup ST
+  22:../../os/hal/src/hal_st.c ****  * @{
+  23:../../os/hal/src/hal_st.c ****  */
+  24:../../os/hal/src/hal_st.c **** 
+  25:../../os/hal/src/hal_st.c **** #include "hal.h"
+  26:../../os/hal/src/hal_st.c **** 
+  27:../../os/hal/src/hal_st.c **** #if (OSAL_ST_MODE != OSAL_ST_MODE_NONE) || defined(__DOXYGEN__)
+  28:../../os/hal/src/hal_st.c **** 
+  29:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  30:../../os/hal/src/hal_st.c **** /* Driver local definitions.                                                 */
+  31:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  32:../../os/hal/src/hal_st.c **** 
+  33:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  34:../../os/hal/src/hal_st.c **** /* Driver exported variables.                                                */
+  35:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  36:../../os/hal/src/hal_st.c **** 
+  37:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  38:../../os/hal/src/hal_st.c **** /* Driver local types.                                                       */
+  39:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  40:../../os/hal/src/hal_st.c **** 
+  41:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  42:../../os/hal/src/hal_st.c **** /* Driver local variables.                                                   */
+  43:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  44:../../os/hal/src/hal_st.c **** 
+  45:../../os/hal/src/hal_st.c **** /**
+  46:../../os/hal/src/hal_st.c ****  * @brief   Callback pointers for each alarm.
+  47:../../os/hal/src/hal_st.c ****  * @note    If some alarms have static callbacks defined in the LLD then
+  48:../../os/hal/src/hal_st.c ****  *          some of the pointers might be unused (never called through).
+  49:../../os/hal/src/hal_st.c ****  */
+  50:../../os/hal/src/hal_st.c **** #if (ST_LLD_NUM_ALARMS > 1) || defined(__DOXYGEN__)
+  51:../../os/hal/src/hal_st.c **** st_callback_t st_callbacks[ST_LLD_NUM_ALARMS];
+  52:../../os/hal/src/hal_st.c **** #endif
+  53:../../os/hal/src/hal_st.c **** 
+  54:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  55:../../os/hal/src/hal_st.c **** /* Driver local functions.                                                   */
+  56:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  57:../../os/hal/src/hal_st.c **** 
+  58:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  59:../../os/hal/src/hal_st.c **** /* Driver exported functions.                                                */
+  60:../../os/hal/src/hal_st.c **** /*===========================================================================*/
+  61:../../os/hal/src/hal_st.c **** 
+  62:../../os/hal/src/hal_st.c **** /**
+  63:../../os/hal/src/hal_st.c ****  * @brief   ST Driver initialization.
+  64:../../os/hal/src/hal_st.c ****  * @note    This function is implicitly invoked by @p halInit(), there is
+  65:../../os/hal/src/hal_st.c ****  *          no need to explicitly initialize the driver.
+  66:../../os/hal/src/hal_st.c ****  *
+  67:../../os/hal/src/hal_st.c ****  * @init
+  68:../../os/hal/src/hal_st.c ****  */
+  69:../../os/hal/src/hal_st.c **** void stInit(void) {
+  16               		.loc 1 69 19 view -0
+  17               		.cfi_startproc
+  18               	/* prologue: function */
+  19               	/* frame size = 0 */
+  20               	/* stack size = 0 */
+  21               	.L__stack_usage = 0
+  70:../../os/hal/src/hal_st.c **** #if ST_LLD_NUM_ALARMS > 1
+  71:../../os/hal/src/hal_st.c ****   unsigned i;
+  72:../../os/hal/src/hal_st.c **** 
+  73:../../os/hal/src/hal_st.c ****   for (i = 0U; i < (unsigned)ST_LLD_NUM_ALARMS; i++) {
+  74:../../os/hal/src/hal_st.c ****     st_callbacks[i] = NULL;
+  75:../../os/hal/src/hal_st.c ****   }
+  76:../../os/hal/src/hal_st.c **** #endif
+  77:../../os/hal/src/hal_st.c ****   st_lld_init();
+  22               		.loc 1 77 3 view .LVU1
+  23 0000 0C94 0000 		jmp st_lld_init
+  24               	.LVL0:
+  25               		.cfi_endproc
+  26               	.LFE146:
+  28               		.section	.text.stGetCounter,"ax",@progbits
+  29               	.global	stGetCounter
+  31               	stGetCounter:
+  32               	.LFB147:
+  78:../../os/hal/src/hal_st.c **** }
+  79:../../os/hal/src/hal_st.c **** 
+  80:../../os/hal/src/hal_st.c **** #if defined(ST_LLD_MULTICORE_SUPPORT) || defined(__DOXYGEN__)
+  81:../../os/hal/src/hal_st.c **** /**
+  82:../../os/hal/src/hal_st.c ****  * @brief   Enables an alarm interrupt on the invoking core.
+  83:../../os/hal/src/hal_st.c ****  * @note    Must be called before any other alarm-related function.
+  84:../../os/hal/src/hal_st.c ****  *
+  85:../../os/hal/src/hal_st.c ****  * @api
+  86:../../os/hal/src/hal_st.c ****  */
+  87:../../os/hal/src/hal_st.c **** void stBind(void) {
+  88:../../os/hal/src/hal_st.c **** 
+  89:../../os/hal/src/hal_st.c ****   st_lld_bind();
+  90:../../os/hal/src/hal_st.c **** }
+  91:../../os/hal/src/hal_st.c **** #endif /* defined(ST_LLD_MULTICORE_SUPPORT) */
+  92:../../os/hal/src/hal_st.c **** 
+  93:../../os/hal/src/hal_st.c **** #if (OSAL_ST_MODE == OSAL_ST_MODE_FREERUNNING) || defined(__DOXYGEN__)
+  94:../../os/hal/src/hal_st.c **** /**
+  95:../../os/hal/src/hal_st.c ****  * @brief   Returns the time counter value.
+  96:../../os/hal/src/hal_st.c ****  * @note    This functionality is only available in free running mode, the
+  97:../../os/hal/src/hal_st.c ****  *          behaviour in periodic mode is undefined.
+  98:../../os/hal/src/hal_st.c ****  *
+  99:../../os/hal/src/hal_st.c ****  * @return              The counter value.
+ 100:../../os/hal/src/hal_st.c ****  *
+ 101:../../os/hal/src/hal_st.c ****  * @api
+ 102:../../os/hal/src/hal_st.c ****  */
+ 103:../../os/hal/src/hal_st.c **** systime_t stGetCounter(void) {
+  33               		.loc 1 103 30 view -0
+  34               		.cfi_startproc
+  35               	/* prologue: function */
+  36               	/* frame size = 0 */
+  37               	/* stack size = 0 */
+  38               	.L__stack_usage = 0
+ 104:../../os/hal/src/hal_st.c **** 
+ 105:../../os/hal/src/hal_st.c ****   return st_lld_get_counter();
+  39               		.loc 1 105 3 view .LVU3
+  40               	.LBB14:
+  41               	.LBI14:
+  42               		.file 2 "../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h"
+   1:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*
+   2:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****     ChibiOS - Copyright (C) 2006..2018 Giovanni Di Sirio
+   3:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+   4:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****     Licensed under the Apache License, Version 2.0 (the "License");
+   5:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****     you may not use this file except in compliance with the License.
+   6:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****     You may obtain a copy of the License at
+   7:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+   8:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****         http://www.apache.org/licenses/LICENSE-2.0
+   9:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  10:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****     Unless required by applicable law or agreed to in writing, software
+  11:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****     distributed under the License is distributed on an "AS IS" BASIS,
+  12:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  13:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****     See the License for the specific language governing permissions and
+  14:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****     limitations under the License.
+  15:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** */
+  16:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  17:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /**
+  18:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @file    TIMv1/hal_st_lld.h
+  19:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @brief   AVR/MEGA ST subsystem low level driver header.
+  20:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @details This header is designed to be include-able without having to
+  21:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *          include other files from the HAL.
+  22:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+  23:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @addtogroup AVR
+  24:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @{
+  25:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  */
+  26:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  27:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #ifndef HAL_ST_LLD_H
+  28:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #define HAL_ST_LLD_H
+  29:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  30:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #include <avr/io.h>
+  31:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  32:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  33:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /* Driver constants.                                                        */
+  34:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  35:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  36:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  37:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /* Driver pre-compile time settings.                                        */
+  38:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  39:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  40:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /* TODO: for models that have many timers, could add AVR_ST_USE_TIMER.      */
+  41:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  42:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  43:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /* Derived constants and error checks.                                      */
+  44:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  45:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  46:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /* TODO: error checks for valid timer selected.                             */
+  47:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  48:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  49:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /* Driver data structures and types.                                        */
+  50:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  51:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  52:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  53:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /* Driver macros.                                                           */
+  54:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  55:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  56:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  57:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /* External declarations.                                                   */
+  58:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  59:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  60:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #ifdef __cplusplus
+  61:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** extern "C" {
+  62:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #endif
+  63:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   void st_lld_init(void);
+  64:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #ifdef __cplusplus
+  65:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** }
+  66:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #endif
+  67:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  68:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #if defined(__AVR_ATmega128__) || defined(__AVR_ATmega162__)
+  69:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #define TIFR_REG TIFR
+  70:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #define TIMSK_REG TIMSK
+  71:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #else
+  72:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #define TIFR_REG TIFR1
+  73:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #define TIMSK_REG TIMSK1
+  74:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** #endif
+  75:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  76:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  77:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /* Driver inline functions.                                                 */
+  78:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /*==========================================================================*/
+  79:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  80:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /**
+  81:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @brief   Returns the time counter value.
+  82:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+  83:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @return              The counter value.
+  84:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+  85:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @notapi
+  86:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  */
+  87:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** static inline systime_t st_lld_get_counter(void) {
+  43               		.loc 2 87 25 view .LVU4
+  44               	.LBB15:
+  88:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  89:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   return (systime_t) TCNT1;
+  45               		.loc 2 89 3 view .LVU5
+  46               		.loc 2 89 10 is_stmt 0 view .LVU6
+  47 0000 8091 8400 		lds r24,132
+  48 0004 9091 8500 		lds r25,132+1
+  49               	/* epilogue start */
+  50               	.LBE15:
+  51               	.LBE14:
+ 106:../../os/hal/src/hal_st.c **** }
+  52               		.loc 1 106 1 view .LVU7
+  53 0008 0895      		ret
+  54               		.cfi_endproc
+  55               	.LFE147:
+  57               		.section	.text.stStartAlarm,"ax",@progbits
+  58               	.global	stStartAlarm
+  60               	stStartAlarm:
+  61               	.LVL1:
+  62               	.LFB148:
+ 107:../../os/hal/src/hal_st.c **** 
+ 108:../../os/hal/src/hal_st.c **** /**
+ 109:../../os/hal/src/hal_st.c ****  * @brief   Starts the alarm zero.
+ 110:../../os/hal/src/hal_st.c ****  * @note    Makes sure that no spurious alarms are triggered after
+ 111:../../os/hal/src/hal_st.c ****  *          this call.
+ 112:../../os/hal/src/hal_st.c ****  * @note    This functionality is only available in free running mode, the
+ 113:../../os/hal/src/hal_st.c ****  *          behavior in periodic mode is undefined.
+ 114:../../os/hal/src/hal_st.c ****  *
+ 115:../../os/hal/src/hal_st.c ****  * @param[in] abstime   the time to be set for the first alarm
+ 116:../../os/hal/src/hal_st.c ****  *
+ 117:../../os/hal/src/hal_st.c ****  * @api
+ 118:../../os/hal/src/hal_st.c ****  */
+ 119:../../os/hal/src/hal_st.c **** void stStartAlarm(systime_t abstime) {
+  63               		.loc 1 119 38 is_stmt 1 view -0
+  64               		.cfi_startproc
+  65               	/* prologue: function */
+  66               	/* frame size = 0 */
+  67               	/* stack size = 0 */
+  68               	.L__stack_usage = 0
+ 120:../../os/hal/src/hal_st.c **** 
+ 121:../../os/hal/src/hal_st.c ****   osalDbgAssert(stIsAlarmActive() == false, "already active");
+  69               		.loc 1 121 3 view .LVU9
+  70               		.loc 1 121 3 view .LVU10
+  71               		.loc 1 121 3 discriminator 5 view .LVU11
+ 122:../../os/hal/src/hal_st.c **** 
+ 123:../../os/hal/src/hal_st.c ****   st_lld_start_alarm(abstime);
+  72               		.loc 1 123 3 view .LVU12
+  73               	.LBB16:
+  74               	.LBI16:
+  90:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** }
+  91:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+  92:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /**
+  93:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @brief   Starts the alarm.
+  94:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @note    Makes sure that no spurious alarms are triggered after
+  95:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *          this call.
+  96:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+  97:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @param[in] time      the time to be set for the first alarm
+  98:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+  99:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @notapi
+ 100:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  */
+ 101:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** static inline void st_lld_start_alarm(systime_t time) {
+  75               		.loc 2 101 20 view .LVU13
+  76               	.LBB17:
+ 102:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 103:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   OCR1A = (uint16_t) time;
+  77               		.loc 2 103 3 view .LVU14
+  78               		.loc 2 103 9 is_stmt 0 view .LVU15
+  79 0000 9093 8900 		sts 136+1,r25
+  80 0004 8093 8800 		sts 136,r24
+ 104:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 105:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   /* Reset pending. */
+ 106:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   TIFR_REG = _BV(OCF1A);
+  81               		.loc 2 106 3 is_stmt 1 view .LVU16
+  82               		.loc 2 106 12 is_stmt 0 view .LVU17
+  83 0008 82E0      		ldi r24,lo8(2)
+  84               	.LVL2:
+  85               		.loc 2 106 12 view .LVU18
+  86 000a 86BB      		out 0x16,r24
+  87               	.LVL3:
+ 107:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 108:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   /* Enable interrupt. */
+ 109:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   TIMSK_REG = _BV(OCIE1A);
+  88               		.loc 2 109 3 is_stmt 1 view .LVU19
+  89               		.loc 2 109 13 is_stmt 0 view .LVU20
+  90 000c 8093 6F00 		sts 111,r24
+  91               	.LVL4:
+  92               	/* epilogue start */
+  93               		.loc 2 109 13 view .LVU21
+  94               	.LBE17:
+  95               	.LBE16:
+ 124:../../os/hal/src/hal_st.c **** }
+  96               		.loc 1 124 1 view .LVU22
+  97 0010 0895      		ret
+  98               		.cfi_endproc
+  99               	.LFE148:
+ 101               		.section	.text.stStopAlarm,"ax",@progbits
+ 102               	.global	stStopAlarm
+ 104               	stStopAlarm:
+ 105               	.LFB149:
+ 125:../../os/hal/src/hal_st.c **** 
+ 126:../../os/hal/src/hal_st.c **** /**
+ 127:../../os/hal/src/hal_st.c ****  * @brief   Stops the alarm zero interrupt.
+ 128:../../os/hal/src/hal_st.c ****  * @note    This functionality is only available in free running mode, the
+ 129:../../os/hal/src/hal_st.c ****  *          behavior in periodic mode is undefined.
+ 130:../../os/hal/src/hal_st.c ****  *
+ 131:../../os/hal/src/hal_st.c ****  * @api
+ 132:../../os/hal/src/hal_st.c ****  */
+ 133:../../os/hal/src/hal_st.c **** void stStopAlarm(void) {
+ 106               		.loc 1 133 24 is_stmt 1 view -0
+ 107               		.cfi_startproc
+ 108               	/* prologue: function */
+ 109               	/* frame size = 0 */
+ 110               	/* stack size = 0 */
+ 111               	.L__stack_usage = 0
+ 134:../../os/hal/src/hal_st.c **** 
+ 135:../../os/hal/src/hal_st.c ****   st_lld_stop_alarm();
+ 112               		.loc 1 135 3 view .LVU24
+ 113               	.LBB18:
+ 114               	.LBI18:
+ 110:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** }
+ 111:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 112:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /**
+ 113:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @brief   Stops the alarm interrupt.
+ 114:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+ 115:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @notapi
+ 116:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  */
+ 117:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** static inline void st_lld_stop_alarm(void) {
+ 115               		.loc 2 117 20 view .LVU25
+ 116               	.LBB19:
+ 118:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 119:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   TIMSK_REG = 0;
+ 117               		.loc 2 119 3 view .LVU26
+ 118               		.loc 2 119 13 is_stmt 0 view .LVU27
+ 119 0000 1092 6F00 		sts 111,__zero_reg__
+ 120               	/* epilogue start */
+ 121               	.LBE19:
+ 122               	.LBE18:
+ 136:../../os/hal/src/hal_st.c **** }
+ 123               		.loc 1 136 1 view .LVU28
+ 124 0004 0895      		ret
+ 125               		.cfi_endproc
+ 126               	.LFE149:
+ 128               		.section	.text.stSetAlarm,"ax",@progbits
+ 129               	.global	stSetAlarm
+ 131               	stSetAlarm:
+ 132               	.LVL5:
+ 133               	.LFB150:
+ 137:../../os/hal/src/hal_st.c **** 
+ 138:../../os/hal/src/hal_st.c **** /**
+ 139:../../os/hal/src/hal_st.c ****  * @brief   Sets the alarm zero time.
+ 140:../../os/hal/src/hal_st.c ****  * @note    This functionality is only available in free running mode, the
+ 141:../../os/hal/src/hal_st.c ****  *          behavior in periodic mode is undefined.
+ 142:../../os/hal/src/hal_st.c ****  *
+ 143:../../os/hal/src/hal_st.c ****  * @param[in] abstime   the time to be set for the next alarm
+ 144:../../os/hal/src/hal_st.c ****  *
+ 145:../../os/hal/src/hal_st.c ****  * @api
+ 146:../../os/hal/src/hal_st.c ****  */
+ 147:../../os/hal/src/hal_st.c **** void stSetAlarm(systime_t abstime) {
+ 134               		.loc 1 147 36 is_stmt 1 view -0
+ 135               		.cfi_startproc
+ 136               	/* prologue: function */
+ 137               	/* frame size = 0 */
+ 138               	/* stack size = 0 */
+ 139               	.L__stack_usage = 0
+ 148:../../os/hal/src/hal_st.c **** 
+ 149:../../os/hal/src/hal_st.c ****   osalDbgAssert(stIsAlarmActive() != false, "not active");
+ 140               		.loc 1 149 3 view .LVU30
+ 141               		.loc 1 149 3 view .LVU31
+ 142               		.loc 1 149 3 discriminator 5 view .LVU32
+ 150:../../os/hal/src/hal_st.c **** 
+ 151:../../os/hal/src/hal_st.c ****   st_lld_set_alarm(abstime);
+ 143               		.loc 1 151 3 view .LVU33
+ 144               	.LBB20:
+ 145               	.LBI20:
+ 120:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** }
+ 121:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 122:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /**
+ 123:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @brief   Sets the alarm time.
+ 124:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+ 125:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @param[in] time      the time to be set for the next alarm
+ 126:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+ 127:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @notapi
+ 128:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  */
+ 129:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** static inline void st_lld_set_alarm(systime_t time) {
+ 146               		.loc 2 129 20 view .LVU34
+ 147               	.LBB21:
+ 130:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 131:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   OCR1A = (uint16_t) time;
+ 148               		.loc 2 131 3 view .LVU35
+ 149               		.loc 2 131 9 is_stmt 0 view .LVU36
+ 150 0000 9093 8900 		sts 136+1,r25
+ 151 0004 8093 8800 		sts 136,r24
+ 152               	.LVL6:
+ 153               	/* epilogue start */
+ 154               		.loc 2 131 9 view .LVU37
+ 155               	.LBE21:
+ 156               	.LBE20:
+ 152:../../os/hal/src/hal_st.c **** }
+ 157               		.loc 1 152 1 view .LVU38
+ 158 0008 0895      		ret
+ 159               		.cfi_endproc
+ 160               	.LFE150:
+ 162               		.section	.text.stGetAlarm,"ax",@progbits
+ 163               	.global	stGetAlarm
+ 165               	stGetAlarm:
+ 166               	.LFB151:
+ 153:../../os/hal/src/hal_st.c **** 
+ 154:../../os/hal/src/hal_st.c **** /**
+ 155:../../os/hal/src/hal_st.c ****  * @brief   Returns the alarm zero current time.
+ 156:../../os/hal/src/hal_st.c ****  * @note    This functionality is only available in free running mode, the
+ 157:../../os/hal/src/hal_st.c ****  *          behavior in periodic mode is undefined.
+ 158:../../os/hal/src/hal_st.c ****  *
+ 159:../../os/hal/src/hal_st.c ****  * @return              The currently set alarm time.
+ 160:../../os/hal/src/hal_st.c ****  *
+ 161:../../os/hal/src/hal_st.c ****  * @api
+ 162:../../os/hal/src/hal_st.c ****  */
+ 163:../../os/hal/src/hal_st.c **** systime_t stGetAlarm(void) {
+ 167               		.loc 1 163 28 is_stmt 1 view -0
+ 168               		.cfi_startproc
+ 169               	/* prologue: function */
+ 170               	/* frame size = 0 */
+ 171               	/* stack size = 0 */
+ 172               	.L__stack_usage = 0
+ 164:../../os/hal/src/hal_st.c **** 
+ 165:../../os/hal/src/hal_st.c ****   osalDbgAssert(stIsAlarmActive() != false, "not active");
+ 173               		.loc 1 165 3 view .LVU40
+ 174               		.loc 1 165 3 view .LVU41
+ 175               		.loc 1 165 3 discriminator 5 view .LVU42
+ 166:../../os/hal/src/hal_st.c **** 
+ 167:../../os/hal/src/hal_st.c ****   return st_lld_get_alarm();
+ 176               		.loc 1 167 3 view .LVU43
+ 177               	.LBB22:
+ 178               	.LBI22:
+ 132:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** }
+ 133:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 134:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /**
+ 135:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @brief   Returns the current alarm time.
+ 136:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+ 137:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @return              The currently set alarm time.
+ 138:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+ 139:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @notapi
+ 140:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  */
+ 141:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** static inline systime_t st_lld_get_alarm(void) {
+ 179               		.loc 2 141 25 view .LVU44
+ 180               	.LBB23:
+ 142:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 143:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   return (systime_t) OCR1A;
+ 181               		.loc 2 143 3 view .LVU45
+ 182               		.loc 2 143 10 is_stmt 0 view .LVU46
+ 183 0000 8091 8800 		lds r24,136
+ 184 0004 9091 8900 		lds r25,136+1
+ 185               	/* epilogue start */
+ 186               	.LBE23:
+ 187               	.LBE22:
+ 168:../../os/hal/src/hal_st.c **** }
+ 188               		.loc 1 168 1 view .LVU47
+ 189 0008 0895      		ret
+ 190               		.cfi_endproc
+ 191               	.LFE151:
+ 193               		.section	.text.stIsAlarmActive,"ax",@progbits
+ 194               	.global	stIsAlarmActive
+ 196               	stIsAlarmActive:
+ 197               	.LFB152:
+ 169:../../os/hal/src/hal_st.c **** 
+ 170:../../os/hal/src/hal_st.c **** /**
+ 171:../../os/hal/src/hal_st.c ****  * @brief   Determines if the alarm zero is active.
+ 172:../../os/hal/src/hal_st.c ****  *
+ 173:../../os/hal/src/hal_st.c ****  * @return              The alarm status.
+ 174:../../os/hal/src/hal_st.c ****  * @retval false        if the alarm is not active.
+ 175:../../os/hal/src/hal_st.c ****  * @retval true         is the alarm is active
+ 176:../../os/hal/src/hal_st.c ****  *
+ 177:../../os/hal/src/hal_st.c ****  * @api
+ 178:../../os/hal/src/hal_st.c ****  */
+ 179:../../os/hal/src/hal_st.c **** bool stIsAlarmActive(void) {
+ 198               		.loc 1 179 28 is_stmt 1 view -0
+ 199               		.cfi_startproc
+ 200               	/* prologue: function */
+ 201               	/* frame size = 0 */
+ 202               	/* stack size = 0 */
+ 203               	.L__stack_usage = 0
+ 180:../../os/hal/src/hal_st.c **** 
+ 181:../../os/hal/src/hal_st.c ****   return st_lld_is_alarm_active();
+ 204               		.loc 1 181 3 view .LVU49
+ 205               	.LBB24:
+ 206               	.LBI24:
+ 144:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** }
+ 145:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 146:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** /**
+ 147:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @brief   Determines if the alarm is active.
+ 148:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+ 149:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @return              The alarm status.
+ 150:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @retval false        if the alarm is not active.
+ 151:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @retval true         is the alarm is active.
+ 152:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  *
+ 153:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  * @notapi
+ 154:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****  */
+ 155:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** static inline bool st_lld_is_alarm_active(void) {
+ 207               		.loc 2 155 20 view .LVU50
+ 208               	.LBB25:
+ 156:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h **** 
+ 157:../../os/hal/ports/AVR/MEGA/LLD/SYSTICKv1/hal_st_lld.h ****   return (bool) ((TIMSK_REG & _BV(OCIE1A)) != 0);
+ 209               		.loc 2 157 3 view .LVU51
+ 210               		.loc 2 157 19 is_stmt 0 view .LVU52
+ 211 0000 8091 6F00 		lds r24,111
+ 212               	.LBE25:
+ 213               	.LBE24:
+ 182:../../os/hal/src/hal_st.c **** }
+ 214               		.loc 1 182 1 view .LVU53
+ 215 0004 8695      		lsr r24
+ 216 0006 8170      		andi r24,1
+ 217               	/* epilogue start */
+ 218 0008 0895      		ret
+ 219               		.cfi_endproc
+ 220               	.LFE152:
+ 222               		.text
+ 223               	.Letext0:
+ 224               		.file 3 "/usr/avr/include/stdint.h"
+ 225               		.file 4 "../../os/nil/include/ch.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 hal_st.c
+     /tmp/cc2D5VFA.s:2      *ABS*:0000003e __SP_H__
+     /tmp/cc2D5VFA.s:3      *ABS*:0000003d __SP_L__
+     /tmp/cc2D5VFA.s:4      *ABS*:0000003f __SREG__
+     /tmp/cc2D5VFA.s:5      *ABS*:00000000 __tmp_reg__
+     /tmp/cc2D5VFA.s:6      *ABS*:00000001 __zero_reg__
+     /tmp/cc2D5VFA.s:14     .text.stInit:00000000 stInit
+     /tmp/cc2D5VFA.s:16     .text.stInit:00000000 .Loc.0
+     /tmp/cc2D5VFA.s:17     .text.stInit:00000000 L0
+     /tmp/cc2D5VFA.s:22     .text.stInit:00000000 .Loc.1
+     /tmp/cc2D5VFA.s:25     .text.stInit:00000004 L0
+     /tmp/cc2D5VFA.s:31     .text.stGetCounter:00000000 stGetCounter
+     /tmp/cc2D5VFA.s:33     .text.stGetCounter:00000000 .Loc.2
+     /tmp/cc2D5VFA.s:34     .text.stGetCounter:00000000 L0
+     /tmp/cc2D5VFA.s:39     .text.stGetCounter:00000000 .Loc.3
+     /tmp/cc2D5VFA.s:43     .text.stGetCounter:00000000 .Loc.4
+     /tmp/cc2D5VFA.s:45     .text.stGetCounter:00000000 .Loc.5
+     /tmp/cc2D5VFA.s:46     .text.stGetCounter:00000000 .Loc.6
+     /tmp/cc2D5VFA.s:52     .text.stGetCounter:00000008 .Loc.7
+     /tmp/cc2D5VFA.s:54     .text.stGetCounter:0000000a L0
+     /tmp/cc2D5VFA.s:60     .text.stStartAlarm:00000000 stStartAlarm
+     /tmp/cc2D5VFA.s:63     .text.stStartAlarm:00000000 .Loc.8
+     /tmp/cc2D5VFA.s:64     .text.stStartAlarm:00000000 L0
+     /tmp/cc2D5VFA.s:69     .text.stStartAlarm:00000000 .Loc.9
+     /tmp/cc2D5VFA.s:70     .text.stStartAlarm:00000000 .Loc.10
+     /tmp/cc2D5VFA.s:71     .text.stStartAlarm:00000000 .Loc.11
+     /tmp/cc2D5VFA.s:72     .text.stStartAlarm:00000000 .Loc.12
+     /tmp/cc2D5VFA.s:75     .text.stStartAlarm:00000000 .Loc.13
+     /tmp/cc2D5VFA.s:77     .text.stStartAlarm:00000000 .Loc.14
+     /tmp/cc2D5VFA.s:78     .text.stStartAlarm:00000000 .Loc.15
+     /tmp/cc2D5VFA.s:81     .text.stStartAlarm:00000008 .Loc.16
+     /tmp/cc2D5VFA.s:82     .text.stStartAlarm:00000008 .Loc.17
+     /tmp/cc2D5VFA.s:85     .text.stStartAlarm:0000000a .Loc.18
+     /tmp/cc2D5VFA.s:88     .text.stStartAlarm:0000000c .Loc.19
+     /tmp/cc2D5VFA.s:89     .text.stStartAlarm:0000000c .Loc.20
+     /tmp/cc2D5VFA.s:93     .text.stStartAlarm:00000010 .Loc.21
+     /tmp/cc2D5VFA.s:96     .text.stStartAlarm:00000010 .Loc.22
+     /tmp/cc2D5VFA.s:98     .text.stStartAlarm:00000012 L0
+     /tmp/cc2D5VFA.s:104    .text.stStopAlarm:00000000 stStopAlarm
+     /tmp/cc2D5VFA.s:106    .text.stStopAlarm:00000000 .Loc.23
+     /tmp/cc2D5VFA.s:107    .text.stStopAlarm:00000000 L0
+     /tmp/cc2D5VFA.s:112    .text.stStopAlarm:00000000 .Loc.24
+     /tmp/cc2D5VFA.s:115    .text.stStopAlarm:00000000 .Loc.25
+     /tmp/cc2D5VFA.s:117    .text.stStopAlarm:00000000 .Loc.26
+     /tmp/cc2D5VFA.s:118    .text.stStopAlarm:00000000 .Loc.27
+     /tmp/cc2D5VFA.s:123    .text.stStopAlarm:00000004 .Loc.28
+     /tmp/cc2D5VFA.s:125    .text.stStopAlarm:00000006 L0
+     /tmp/cc2D5VFA.s:131    .text.stSetAlarm:00000000 stSetAlarm
+     /tmp/cc2D5VFA.s:134    .text.stSetAlarm:00000000 .Loc.29
+     /tmp/cc2D5VFA.s:135    .text.stSetAlarm:00000000 L0
+     /tmp/cc2D5VFA.s:140    .text.stSetAlarm:00000000 .Loc.30
+     /tmp/cc2D5VFA.s:141    .text.stSetAlarm:00000000 .Loc.31
+     /tmp/cc2D5VFA.s:142    .text.stSetAlarm:00000000 .Loc.32
+     /tmp/cc2D5VFA.s:143    .text.stSetAlarm:00000000 .Loc.33
+     /tmp/cc2D5VFA.s:146    .text.stSetAlarm:00000000 .Loc.34
+     /tmp/cc2D5VFA.s:148    .text.stSetAlarm:00000000 .Loc.35
+     /tmp/cc2D5VFA.s:149    .text.stSetAlarm:00000000 .Loc.36
+     /tmp/cc2D5VFA.s:154    .text.stSetAlarm:00000008 .Loc.37
+     /tmp/cc2D5VFA.s:157    .text.stSetAlarm:00000008 .Loc.38
+     /tmp/cc2D5VFA.s:159    .text.stSetAlarm:0000000a L0
+     /tmp/cc2D5VFA.s:165    .text.stGetAlarm:00000000 stGetAlarm
+     /tmp/cc2D5VFA.s:167    .text.stGetAlarm:00000000 .Loc.39
+     /tmp/cc2D5VFA.s:168    .text.stGetAlarm:00000000 L0
+     /tmp/cc2D5VFA.s:173    .text.stGetAlarm:00000000 .Loc.40
+     /tmp/cc2D5VFA.s:174    .text.stGetAlarm:00000000 .Loc.41
+     /tmp/cc2D5VFA.s:175    .text.stGetAlarm:00000000 .Loc.42
+     /tmp/cc2D5VFA.s:176    .text.stGetAlarm:00000000 .Loc.43
+     /tmp/cc2D5VFA.s:179    .text.stGetAlarm:00000000 .Loc.44
+     /tmp/cc2D5VFA.s:181    .text.stGetAlarm:00000000 .Loc.45
+     /tmp/cc2D5VFA.s:182    .text.stGetAlarm:00000000 .Loc.46
+     /tmp/cc2D5VFA.s:188    .text.stGetAlarm:00000008 .Loc.47
+     /tmp/cc2D5VFA.s:190    .text.stGetAlarm:0000000a L0
+     /tmp/cc2D5VFA.s:196    .text.stIsAlarmActive:00000000 stIsAlarmActive
+     /tmp/cc2D5VFA.s:198    .text.stIsAlarmActive:00000000 .Loc.48
+     /tmp/cc2D5VFA.s:199    .text.stIsAlarmActive:00000000 L0
+     /tmp/cc2D5VFA.s:204    .text.stIsAlarmActive:00000000 .Loc.49
+     /tmp/cc2D5VFA.s:207    .text.stIsAlarmActive:00000000 .Loc.50
+     /tmp/cc2D5VFA.s:209    .text.stIsAlarmActive:00000000 .Loc.51
+     /tmp/cc2D5VFA.s:210    .text.stIsAlarmActive:00000000 .Loc.52
+     /tmp/cc2D5VFA.s:214    .text.stIsAlarmActive:00000004 .Loc.53
+     /tmp/cc2D5VFA.s:219    .text.stIsAlarmActive:0000000a L0
+     /tmp/cc2D5VFA.s:28     .text.stInit:00000004 L0
+     /tmp/cc2D5VFA.s:57     .text.stGetCounter:0000000a L0
+     /tmp/cc2D5VFA.s:101    .text.stStartAlarm:00000012 L0
+     /tmp/cc2D5VFA.s:128    .text.stStopAlarm:00000006 L0
+     /tmp/cc2D5VFA.s:162    .text.stSetAlarm:0000000a L0
+     /tmp/cc2D5VFA.s:193    .text.stGetAlarm:0000000a L0
+     /tmp/cc2D5VFA.s:222    .text.stIsAlarmActive:0000000a L0
+                     .debug_frame:00000000 L0
+     /tmp/cc2D5VFA.s:610    .debug_abbrev:00000000 .Ldebug_abbrev0
+     /tmp/cc2D5VFA.s:1082   .debug_ranges:00000000 .Ldebug_ranges0
+     /tmp/cc2D5VFA.s:1100   .debug_line:00000000 .Ldebug_line0
+     /tmp/cc2D5VFA.s:197    .text.stIsAlarmActive:00000000 .LFB152
+     /tmp/cc2D5VFA.s:220    .text.stIsAlarmActive:0000000a .LFE152
+     /tmp/cc2D5VFA.s:206    .text.stIsAlarmActive:00000000 .LBI24
+     /tmp/cc2D5VFA.s:205    .text.stIsAlarmActive:00000000 .LBB24
+     /tmp/cc2D5VFA.s:213    .text.stIsAlarmActive:00000004 .LBE24
+     /tmp/cc2D5VFA.s:166    .text.stGetAlarm:00000000 .LFB151
+     /tmp/cc2D5VFA.s:191    .text.stGetAlarm:0000000a .LFE151
+     /tmp/cc2D5VFA.s:178    .text.stGetAlarm:00000000 .LBI22
+     /tmp/cc2D5VFA.s:177    .text.stGetAlarm:00000000 .LBB22
+     /tmp/cc2D5VFA.s:187    .text.stGetAlarm:00000008 .LBE22
+     /tmp/cc2D5VFA.s:133    .text.stSetAlarm:00000000 .LFB150
+     /tmp/cc2D5VFA.s:160    .text.stSetAlarm:0000000a .LFE150
+     /tmp/cc2D5VFA.s:145    .text.stSetAlarm:00000000 .LBI20
+     /tmp/cc2D5VFA.s:144    .text.stSetAlarm:00000000 .LBB20
+     /tmp/cc2D5VFA.s:156    .text.stSetAlarm:00000008 .LBE20
+     /tmp/cc2D5VFA.s:971    .debug_loc:00000002 .LLST2
+     /tmp/cc2D5VFA.s:968    .debug_loc:00000000 .LVUS2
+     /tmp/cc2D5VFA.s:105    .text.stStopAlarm:00000000 .LFB149
+     /tmp/cc2D5VFA.s:126    .text.stStopAlarm:00000006 .LFE149
+     /tmp/cc2D5VFA.s:114    .text.stStopAlarm:00000000 .LBI18
+     /tmp/cc2D5VFA.s:113    .text.stStopAlarm:00000000 .LBB18
+     /tmp/cc2D5VFA.s:122    .text.stStopAlarm:00000004 .LBE18
+     /tmp/cc2D5VFA.s:62     .text.stStartAlarm:00000000 .LFB148
+     /tmp/cc2D5VFA.s:99     .text.stStartAlarm:00000012 .LFE148
+     /tmp/cc2D5VFA.s:990    .debug_loc:00000020 .LLST0
+     /tmp/cc2D5VFA.s:983    .debug_loc:0000001a .LVUS0
+     /tmp/cc2D5VFA.s:74     .text.stStartAlarm:00000000 .LBI16
+     /tmp/cc2D5VFA.s:73     .text.stStartAlarm:00000000 .LBB16
+     /tmp/cc2D5VFA.s:95     .text.stStartAlarm:00000010 .LBE16
+     /tmp/cc2D5VFA.s:1027   .debug_loc:0000005e .LLST1
+     /tmp/cc2D5VFA.s:1020   .debug_loc:00000058 .LVUS1
+     /tmp/cc2D5VFA.s:32     .text.stGetCounter:00000000 .LFB147
+     /tmp/cc2D5VFA.s:55     .text.stGetCounter:0000000a .LFE147
+     /tmp/cc2D5VFA.s:41     .text.stGetCounter:00000000 .LBI14
+     /tmp/cc2D5VFA.s:40     .text.stGetCounter:00000000 .LBB14
+     /tmp/cc2D5VFA.s:51     .text.stGetCounter:00000008 .LBE14
+     /tmp/cc2D5VFA.s:15     .text.stInit:00000000 .LFB146
+     /tmp/cc2D5VFA.s:26     .text.stInit:00000004 .LFE146
+     /tmp/cc2D5VFA.s:24     .text.stInit:00000004 .LVL0
+     /tmp/cc2D5VFA.s:132    .text.stSetAlarm:00000000 .LVL5
+     /tmp/cc2D5VFA.s:152    .text.stSetAlarm:00000008 .LVL6
+     /tmp/cc2D5VFA.s:61     .text.stStartAlarm:00000000 .LVL1
+     /tmp/cc2D5VFA.s:84     .text.stStartAlarm:0000000a .LVL2
+     /tmp/cc2D5VFA.s:87     .text.stStartAlarm:0000000c .LVL3
+     /tmp/cc2D5VFA.s:91     .text.stStartAlarm:00000010 .LVL4
+     /tmp/cc2D5VFA.s:227    .debug_info:00000000 .Ldebug_info0
+
+UNDEFINED SYMBOLS
+st_lld_init
