@@ -51,6 +51,9 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+#General Files
+*_ex.c
+
 # Folders
 build/
 *_exe/
