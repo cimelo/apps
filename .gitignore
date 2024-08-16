@@ -53,3 +53,6 @@ dkms.conf
 
 # Folders
 build/
+*_exe/
+*_demo/
+test/
