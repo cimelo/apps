@@ -39,6 +39,12 @@ static THD_FUNCTION(thd_ldr, args) {
 
 		adcConvA0 /= (ADC_CHANNEL_NUMBER * ADC_BUFFER_DEPTH);
 		voltageA0 = ( ((float)adcConvA0 * 5) / 1024 ) ;
+		if (voltageA0 < 2) {
+			palClearPad(IOPORT4, 2);
+		}
+		else {
+			palSetPad(IOPORT4, 2);
+		}
 		chThdSleepMilliseconds(100);
 	}
 }
@@ -50,6 +56,8 @@ int main(void) {
 	sdStart(&SD1, NULL);
 
 	chThdCreateStatic(wa_ldr, sizeof(wa_ldr), NORMALPRIO+1, thd_ldr, NULL);
+	palSetPadMode(IOPORT4, 2, PAL_MODE_OUTPUT_PUSHPULL);
+	palClearPad(IOPORT4, 2);
 
 	while (true) {
 		chprintf(chp, "Voltage on pin A0: ");
