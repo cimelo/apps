@@ -55,7 +55,7 @@ dkms.conf
 *_ex.c
 
 # Folders
-build/
+**/build/
 *_exe/
 *_demo/
-test/
+**/test/
