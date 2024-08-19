@@ -1,6 +1,13 @@
 # Prerequisites
 *.d
 
+
+# C files
+*test.c
+*.o
+*.hex
+*.s
+
 # Object files
 *.o
 *.ko

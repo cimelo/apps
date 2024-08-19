@@ -14,7 +14,7 @@
     limitations under the License.
 */
 
-#include "ch.h"
+
 #include "hal.h"
 
 /*
