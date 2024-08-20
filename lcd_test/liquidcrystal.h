@@ -14,6 +14,7 @@
 
 // Helper function for digital pin definition
 #define PORT(P) ( (P < 8) ? IOPORTD : IOPORTB )
+#define PIN(P) ( (P < 8) P : P-8  )
 
 // LCD Instructions
 #define CLEAR 0x01

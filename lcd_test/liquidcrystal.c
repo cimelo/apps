@@ -42,14 +42,26 @@ void send_byte(uint8_t byte, uint8_t op) {
 }
 
 void write_4bits(unit8_t half_byte) {
+	for (uint8_t i = 0; i < 4; ++i) {
+		digital_write(lcd.data[i], (half_byte & (1 << i)));
+	}
 
+	enable_pulse();
 }
 
 void digital_write(uint8_t pin, uint8_t value) {
 	switch (value) {
 		case 0:
-			palClearPad(PORT(P), );
+			palClearPad(PORT(pin), PIN(pin));
 		break;
+		default:
+			palSetPad(PORT(pin), PIN(pin));
+	}
+}
+
+void print(uint8_t* msg) {
+	for (uint8_t *s = msg; *s; ++s) {
+		send(*s, 1);
 	}
 }
 
