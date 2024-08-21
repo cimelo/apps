@@ -21,8 +21,8 @@
 #define ENTRY_DEC 0x00
 #define ENTRY_SHIFT 0x01
 
-#define DISPLAY_ON 0x08
-#define DISPLAY_OFF 0x0C
+#define DISPLAY_ON 0x04
+#define DISPLAY_OFF 0x00
 #define DISPLAY_SHIFT 0x08
 #define DISPLAY_CLEAR 0x01
 #define CURSOR_MOVE 0x00

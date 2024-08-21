@@ -29,7 +29,7 @@ int main(void) {
 	sdStart(&SD1, NULL);
 
 	lcd_begin();
-	lcd_print("Teste!");
+	lcd_print((uint8_t*)"Teste!");
 
 	// chThdCreateStatic(wa_lcd, sizeof(wa_lcd), NORMALPRIO+1, thd_lcd, NULL);
 

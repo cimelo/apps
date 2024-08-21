@@ -27,11 +27,17 @@ void init_4bits(uint8_t rows, uint8_t cols, uint8_t rs,\
 void lcd_begin(void) {
 	chThdSleepMilliseconds(50);
 
-	command(0x30);
+	palSetPadMode(PORT(lcd.rs), PIN(lcd.rs), PAL_MODE_OUTPUT_PUSHPULL);
+	palSetPadMode(PORT(lcd.en), PIN(lcd.en), PAL_MODE_OUTPUT_PUSHPULL);
+	for (uint8_t i = 0; i < 4; ++i) {
+		palSetPadMode(PORT(lcd.data[i]), PIN(lcd.data[i]), PAL_MODE_OUTPUT_PUSHPULL);
+	}
+
+	command(0x03);
 	chThdSleepMilliseconds(5);
-	command(0x30);
+	command(0x03);
 	chThdSleepMilliseconds(5);
-	command(0x30);
+	command(0x03);
 	chThdSleepMilliseconds(5);
 
 	command(0x20);
@@ -54,7 +60,7 @@ void lcd_print(uint8_t* msg) {
 }
 
 static void send(uint8_t byte, uint8_t op) {
-	lcd.rs = op;
+	digital_write(lcd.rs, op);
 
 	write_4bits(byte >> 4);
 	write_4bits(byte);
