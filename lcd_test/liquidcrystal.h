@@ -16,15 +16,16 @@
 #define PORT(P) ( (P < 8) ? IOPORTD : IOPORTB )
 #define PIN(P) ( (P < 8) P : P-8  )
 
-// LCD Instructions
-#define CLEAR 0x01
+// LCD 8 bit Instructions
 #define ENTRYMODESET 0x04
 #define ENTRY_INC 0x02
 #define ENTRY_DEC 0x00
+#define ENTRY_SHIFT 0x01
 
 #define DISPLAY_ON 0x08
 #define DISPLAY_OFF 0x0C
 #define DISPLAY_SHIFT 0x08
+#define CLEAR 0x01
 #define CURSOR_MOVE 0x00
 #define SHIFT_RIGHT 0x04
 #define SHIFT_LEFT 0x00
@@ -33,7 +34,8 @@
 #define DL_4BITS 0x00
 #define ROWS_2 0x08
 #define ROWS_1 0x00
-#define N_DOTS 0x00 // Dots per cell
+#define DOTS_10 0x08 // Dots per cell
+#define DOTS_8 0x00 // Dots per cell
 
 
 // We declare data using Little Endian format and

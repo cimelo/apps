@@ -27,9 +27,21 @@ void init_4bits(uint8_t rows, uint8_t cols, uint8_t rs,\
 void begin(void) {
 	chThreadSleepMilliseconds(50);
 
-	command(0x03);
-}
+	command(0x30);
+	chThdSleepMilliseconds(5);
+	command(0x30);
+	chThdSleepMilliseconds(5);
+	command(0x30);
+	chThdSleepMilliseconds(5);
 
+	command(0x20);
+
+	command(0x20 | ROWS_2 | DOTS_8);
+
+	command(DISPLAY_OFF);
+
+	command(DISPLAY_CLEAR | ENTRY_INC | ENTRY_SHIFT);
+}
 void command(uint8_t cmd) {
 	send(cmd, 0);
 }
