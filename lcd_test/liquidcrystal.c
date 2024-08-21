@@ -10,22 +10,22 @@ struct Lcd lcd = {
 };
 
 void init_4bits(uint8_t rows, uint8_t cols, uint8_t rs,\
-		uint8_t e, uint8_t d4, uint8_t d5,\
+		uint8_t en, uint8_t d4, uint8_t d5,\
 		uint8_t d6, uint8_t d7) {
 
-	lcd = {
+	lcd = (struct Lcd){
 		.rows = rows,
 		.cols = cols,
 		.rs = rs,
 		.en = en,
-		.data = {d4, d5, d6, d7},
-	}
+		.data = {d4, d5, d6, d7}
+	};
 
-	begin();
+	lcd_begin();
 }
 
-void begin(void) {
-	chThreadSleepMilliseconds(50);
+void lcd_begin(void) {
+	chThdSleepMilliseconds(50);
 
 	command(0x30);
 	chThdSleepMilliseconds(5);
@@ -42,18 +42,25 @@ void begin(void) {
 
 	command(DISPLAY_CLEAR | ENTRY_INC | ENTRY_SHIFT);
 }
-void command(uint8_t cmd) {
+
+static void command(uint8_t cmd) {
 	send(cmd, 0);
 }
 
-void send_byte(uint8_t byte, uint8_t op) {
+void lcd_print(uint8_t* msg) {
+	for (uint8_t *s = msg; *s; ++s) {
+		send(*s, 1);
+	}
+}
+
+static void send(uint8_t byte, uint8_t op) {
 	lcd.rs = op;
 
 	write_4bits(byte >> 4);
 	write_4bits(byte);
 }
 
-void write_4bits(unit8_t half_byte) {
+static void write_4bits(uint8_t half_byte) {
 	for (uint8_t i = 0; i < 4; ++i) {
 		digital_write(lcd.data[i], (half_byte & (1 << i)));
 	}
@@ -61,28 +68,22 @@ void write_4bits(unit8_t half_byte) {
 	enable_pulse();
 }
 
-void digital_write(uint8_t pin, uint8_t value) {
+static void digital_write(uint8_t pin, uint8_t value) {
 	switch (value) {
 		case 0:
-			palClearPad(PORT(pin), PIN(pin));
+			palClearPad( PORT(pin), PIN(pin) );
 		break;
 		default:
-			palSetPad(PORT(pin), PIN(pin));
+			palSetPad( PORT(pin), PIN(pin) );
 	}
 }
 
-void print(uint8_t* msg) {
-	for (uint8_t *s = msg; *s; ++s) {
-		send(*s, 1);
-	}
-}
-
-void enable_pulse(void) {
-	palClearPad(IOPORTB, ldc.en);
-	chThreadSleepMicroseconds(1);
-	palSetPad(IOPORTB, ldc.en);
-	chThreadSleepMicroseconds(1);
-	palClearPad(IOPORTB, ldc.en);
+static void enable_pulse(void) {
+	palClearPad(IOPORT2, lcd.en);
+	chThdSleepMicroseconds(1);
+	palSetPad(IOPORT2, lcd.en);
+	chThdSleepMicroseconds(1);
+	palClearPad(IOPORT2, lcd.en);
 	// Maximum execution time for a instruction is 37us
-	chThreadSleepMicroseconds(100);
+	chThdSleepMicroseconds(100);
 }

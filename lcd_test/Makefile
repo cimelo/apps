@@ -88,7 +88,7 @@ endif
 PROJECT = ch
 
 # Imported source files and paths.
-CHIBIOS  := ../../..
+CHIBIOS  := ../..
 CONFDIR  := ./cfg
 BUILDDIR := ./build
 DEPDIR   := ./.dep
@@ -108,7 +108,7 @@ include $(CHIBIOS)/os/common/ports/AVR/compilers/GCC/mk/port.mk
 
 # List C source files here. (C dependencies are automatically generated.)
 CSRC =  $(ALLCSRC) \
-        main.c
+         main.c liquidcrystal.c
 
 # List C++ sources file here.
 CPPSRC = $(ALLCPPSRC)
@@ -195,7 +195,7 @@ ULIBS =
 
 # List of available AVR programmer.
 AVRDUDE_PROGRAMMER    = avrdude
-AVRDUDE_PROGRAMMER_ID = wiring
+AVRDUDE_PROGRAMMER_ID = arduino
 DFU_PROGRAMMER        = dfu-programmer
 MICRONUCLEUS          = micronucleus
 
@@ -211,7 +211,7 @@ else
 endif
 
 # AVR serial port.
-AVRDUDE_PORT = /dev/ttyUSB0
+AVRDUDE_PORT = /dev/ttyACM0
 
 AVRDUDE_WRITE_FLASH = -D -U flash:w:$(BUILDDIR)/$(PROJECT).hex
 
