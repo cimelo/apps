@@ -1,5 +1,7 @@
 #include "liquidcrystal.h"
 
+BaseSequentialStream* chp = (BaseSequentialStream*) &SD1;
+
 // Default configurations
 struct Lcd lcd = {
 	.rows = 2,
@@ -27,54 +29,62 @@ void init_4bits(uint8_t rows, uint8_t cols, uint8_t rs,\
 void lcd_begin(void) {
 	chThdSleepMilliseconds(50);
 
+	// chprintf(chp, "---Begin---\r\n");
+
 	palSetPadMode(PORT(lcd.rs), PIN(lcd.rs), PAL_MODE_OUTPUT_PUSHPULL);
+	palClearPad(PORT(lcd.rs), PIN(lcd.rs));
 	palSetPadMode(PORT(lcd.en), PIN(lcd.en), PAL_MODE_OUTPUT_PUSHPULL);
 	for (uint8_t i = 0; i < 4; ++i) {
 		palSetPadMode(PORT(lcd.data[i]), PIN(lcd.data[i]), PAL_MODE_OUTPUT_PUSHPULL);
 	}
 
-	command(0x03);
+	write_4bits(0x03);
 	chThdSleepMilliseconds(5);
-	command(0x03);
+	write_4bits(0x03);
 	chThdSleepMilliseconds(5);
-	command(0x03);
+	write_4bits(0x03);
 	chThdSleepMilliseconds(5);
-
-	command(0x20);
+	write_4bits(0x02);
 
 	command(0x20 | ROWS_2 | DOTS_8);
 
-	command(DISPLAY_OFF);
+	command(0x08 | DISPLAY_ON);
 
-	command(DISPLAY_CLEAR | ENTRY_INC | ENTRY_SHIFT);
+	command(0x04 | ENTRY_INC);
+
+	command(DISPLAY_CLEAR);
 }
 
-static void command(uint8_t cmd) {
+void command(uint8_t cmd) {
+	// chprintf(chp, "---cmd: %d---\r\n", cmd);
 	send(cmd, 0);
 }
 
 void lcd_print(uint8_t* msg) {
+	// chprintf(chp, "---lcd_print---\r\n");
 	for (uint8_t *s = msg; *s; ++s) {
 		send(*s, 1);
 	}
 }
 
-static void send(uint8_t byte, uint8_t op) {
+void send(uint8_t byte, uint8_t op) {
 	digital_write(lcd.rs, op);
 
 	write_4bits(byte >> 4);
 	write_4bits(byte);
 }
 
-static void write_4bits(uint8_t half_byte) {
+void write_4bits(uint8_t half_byte) {
 	for (uint8_t i = 0; i < 4; ++i) {
 		digital_write(lcd.data[i], (half_byte & (1 << i)));
 	}
 
+	// chprintf(chp, "%d\r\n", half_byte);
+
 	enable_pulse();
 }
 
-static void digital_write(uint8_t pin, uint8_t value) {
+void digital_write(uint8_t pin, uint8_t value) {
 	switch (value) {
 		case 0:
 			palClearPad( PORT(pin), PIN(pin) );
@@ -84,12 +94,12 @@ static void digital_write(uint8_t pin, uint8_t value) {
 	}
 }
 
-static void enable_pulse(void) {
-	palClearPad(IOPORT2, lcd.en);
+void enable_pulse(void) {
+	palClearPad(PORT(lcd.en), PIN(lcd.en));
 	chThdSleepMicroseconds(1);
-	palSetPad(IOPORT2, lcd.en);
+	palSetPad(PORT(lcd.en), PIN(lcd.en));
 	chThdSleepMicroseconds(1);
-	palClearPad(IOPORT2, lcd.en);
+	palClearPad(PORT(lcd.en), PIN(lcd.en));
 	// Maximum execution time for a instruction is 37us
 	chThdSleepMicroseconds(100);
 }

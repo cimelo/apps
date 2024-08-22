@@ -10,6 +10,7 @@
 #define LIQUIDCRYSTAL_H_
 
 #include "hal.h"
+// #include "chprintf.h"
 
 // Helper function for digital pin definition
 #define PORT(P) ( (P < 8) ? IOPORT4 : IOPORT2 )
@@ -29,13 +30,16 @@
 #define SHIFT_RIGHT 0x04
 #define SHIFT_LEFT 0x00
 
-#define DL_8BITS 0x10
 #define DL_4BITS 0x00
-#define ROWS_2 0x08
+#define DL_8BITS 0x10
 #define ROWS_1 0x00
-#define DOTS_10 0x08 // Dots per cell
+#define ROWS_2 0x08
+#define FONT_8 0x00
+#define FONT_10 0x04
 #define DOTS_8 0x00 // Dots per cell
+#define DOTS_10 0x08 // Dots per cell
 
+extern BaseSequentialStream* chp;
 
 // We declare data using Little Endian format and
 // we use the digital pins signature as they are
@@ -74,19 +78,23 @@ void cursor_off(void);
 void lcd_print(uint8_t* msg);
 
 // Prepares the bits to be written onto the pins
-static void send(uint8_t byte, uint8_t op);
+void send(uint8_t byte, uint8_t op);
 
 // Write the bits onto the pins
-static void write_4bits(uint8_t half_byte);
+void write_4bits(uint8_t half_byte);
 
 // Helper to write the bit into the pin
-static void digital_write(uint8_t pin, uint8_t value);
+void digital_write(uint8_t pin, uint8_t value);
 
 // Enable pin pulse for writing data or commands datasheet
 // HD44780U fig 25 and table on page 52
-static void enable_pulse(void);
+void enable_pulse(void);
 
 // Sends the command to be written to the pins
-static void command(uint8_t cmd);
+void command(uint8_t cmd);
+
+// Moves the cursor to the desired position on the 
+// LCD matrix
+void set_cursor(uint8_t row, uint8_t cols);
 
 #endif
