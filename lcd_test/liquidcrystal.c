@@ -47,12 +47,17 @@ void lcd_begin(void) {
 	write_4bits(0x02);
 
 	command(0x20 | ROWS_2 | DOTS_8);
+	chThdSleepMicroseconds(50);
 
 	command(0x08 | DISPLAY_ON);
+	chThdSleepMicroseconds(50);
 
 	command(0x04 | ENTRY_INC);
+	chThdSleepMicroseconds(50);
 
-	command(DISPLAY_CLEAR);
+	lcd_clear();
+
+	lcd_home();
 }
 
 void command(uint8_t cmd) {
@@ -60,9 +65,19 @@ void command(uint8_t cmd) {
 	send(cmd, 0);
 }
 
-void lcd_print(uint8_t* msg) {
+void lcd_print(char* msg) {
 	// chprintf(chp, "---lcd_print---\r\n");
-	for (uint8_t *s = msg; *s; ++s) {
+	uint8_t* tmp = (uint8_t*) msg;
+	uint8_t curr_row = 1;
+
+	for (uint8_t* s = tmp; *s; ++s) {
+		if ( (s-tmp)%lcd.cols == 0 ) {
+			lcd_set_cursor(curr_row, 0);
+			++curr_row;
+		}
+		if (curr_row == lcd.rows) {
+			curr_row = 0;
+		}
 		send(*s, 1);
 	}
 }
@@ -102,4 +117,19 @@ void enable_pulse(void) {
 	palClearPad(PORT(lcd.en), PIN(lcd.en));
 	// Maximum execution time for a instruction is 37us
 	chThdSleepMicroseconds(100);
+}
+
+void lcd_set_cursor(uint8_t row, uint8_t cols) {
+	command( CURSOR_SET_CMD | (cols + 0x40*row) );
+	chThdSleepMicroseconds(50);
+}
+
+void lcd_clear(void) {
+	command(DISPLAY_CLEAR);
+	chThdSleepMicroseconds(50);
+}
+
+void lcd_home(void) {
+	command(DISPLAY_HOME);
+	chThdSleepMilliseconds(2);
 }

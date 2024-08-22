@@ -29,7 +29,7 @@ int main(void) {
 	sdStart(&SD1, NULL);
 
 	lcd_begin();
-	lcd_print((uint8_t*)"Caio e Demais");
+	lcd_print("Vamor ver se agora da bom! I walk Alone, i'm not a saint! Stricken ablablabla");
 
 	// chprintf(chp, "%d", 0x03);
 

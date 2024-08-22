@@ -22,13 +22,15 @@
 #define ENTRY_DEC 0x00
 #define ENTRY_SHIFT 0x01
 
+#define DISPLAY_HOME 0x02
 #define DISPLAY_ON 0x04
 #define DISPLAY_OFF 0x00
 #define DISPLAY_SHIFT 0x08
 #define DISPLAY_CLEAR 0x01
-#define CURSOR_MOVE 0x00
 #define SHIFT_RIGHT 0x04
 #define SHIFT_LEFT 0x00
+
+#define CURSOR_SET_CMD 0x80
 
 #define DL_4BITS 0x00
 #define DL_8BITS 0x10
@@ -74,8 +76,10 @@ void cursor_on(void);
 void cursor_off(void);
 */
 
-// Receives a string from the user
-void lcd_print(uint8_t* msg);
+// Receives a string from the user and prints it on the LCD.
+// If the string has more characters than the LCD's maximum 
+// capacity, it will print cyclically, starting from the first position.
+void lcd_print(char* msg);
 
 // Prepares the bits to be written onto the pins
 void send(uint8_t byte, uint8_t op);
@@ -94,7 +98,18 @@ void enable_pulse(void);
 void command(uint8_t cmd);
 
 // Moves the cursor to the desired position on the 
-// LCD matrix
-void set_cursor(uint8_t row, uint8_t cols);
+// LCD matrix it uses the mathematical notation
+// of rows in front of the cols. Note that rows and cols start
+// from 0.
+void lcd_set_cursor(uint8_t row, uint8_t cols);
+
+// Helper function that clears the display
+void lcd_clear(void);
+
+// Helper function that sends the cursor to the first position
+// and returns the shifted display to the original position.
+// Because of it's complexity, it takes ate least 1.52ms to 
+// complete
+void lcd_home(void);
 
 #endif
