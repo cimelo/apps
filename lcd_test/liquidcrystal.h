@@ -1,9 +1,10 @@
 /*
- *
  * This library sends data to the LCD module and sets
- * the cursor. It only uses the 4 bit mode because of
- * pin economy and for no other gain than some cpu 
- * cycles
+ * the cursor position. It uses 4-bit mode to save pins,
+ * as the Arduino Uno has limited pins. While 8-bit mode
+ * would save some CPU cycles, the pin economy is more
+ * important on this platform, making 4-bit mode the
+ * better choice.
  *
  */
 #ifndef LIQUIDCRYSTAL_H_
