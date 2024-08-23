@@ -29,8 +29,6 @@ void init_4bits(uint8_t rows, uint8_t cols, uint8_t rs,\
 void lcd_begin(void) {
 	chThdSleepMilliseconds(50);
 
-	// chprintf(chp, "---Begin---\r\n");
-
 	palSetPadMode(PORT(lcd.rs), PIN(lcd.rs), PAL_MODE_OUTPUT_PUSHPULL);
 	palClearPad(PORT(lcd.rs), PIN(lcd.rs));
 	palSetPadMode(PORT(lcd.en), PIN(lcd.en), PAL_MODE_OUTPUT_PUSHPULL);
@@ -61,14 +59,12 @@ void lcd_begin(void) {
 }
 
 void command(uint8_t cmd) {
-	// chprintf(chp, "---cmd: %d---\r\n", cmd);
 	send(cmd, 0);
 }
 
 void lcd_print(char* msg) {
-	// chprintf(chp, "---lcd_print---\r\n");
 	uint8_t* tmp = (uint8_t*) msg;
-	uint8_t curr_row = 1;
+	uint8_t curr_row = 0;
 
 	for (uint8_t* s = tmp; *s; ++s) {
 		if ( (s-tmp)%lcd.cols == 0 ) {
@@ -93,8 +89,6 @@ void write_4bits(uint8_t half_byte) {
 	for (uint8_t i = 0; i < 4; ++i) {
 		digital_write(lcd.data[i], (half_byte & (1 << i)));
 	}
-
-	// chprintf(chp, "%d\r\n", half_byte);
 
 	enable_pulse();
 }

@@ -11,7 +11,6 @@
 #define LIQUIDCRYSTAL_H_
 
 #include "hal.h"
-// #include "chprintf.h"
 
 // Helper function for digital pin definition
 #define PORT(P) ( (P < 8) ? IOPORT4 : IOPORT2 )
