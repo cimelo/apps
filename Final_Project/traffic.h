@@ -12,18 +12,21 @@ struct Car {
 struct Via {
 	struct Car* first;
 	struct Car* last;
-	uint8_t num_ambulances;
+	uint8_t n_ambulances;
 };
 
 extern struct Via* principal;
 extern struct Via* secondary;
 extern struct Via* pedestrian;
 
+// Instanciates a via
+struct Via* init_via();
+
 // Adds car to the traffic to the beginning of the
 // queue
-struct Car* push();
+struct Car* push(struct Via* via);
 
 // Removes the first element to enter the queue.
-struct Car* pop();
+struct Car* pop(struct* Via via);
 
 #endif

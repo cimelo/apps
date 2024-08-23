@@ -1,6 +1,9 @@
 #include "hal.h"
 #include "ch.h"
 #include "liquidcrystal.h"
+#include "chprintf.h"
+
+BaseSequentialStream* chp = (BaseSequentialStream*) &SD1;
 
 int main(void) {
 	halInit();
@@ -9,7 +12,8 @@ int main(void) {
 	sdStart(&SD1, NULL);
 
 	lcd_init_4bits(2, 16, 6, 7, 2, 3, 4, 5);
-	lcd_print("Hello, world!");
 
-	while (1) ;
+	while (1) {
+		chprintf(chp, "");
+	}
 }
