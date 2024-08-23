@@ -114,7 +114,7 @@ include ./lib/lcd.mk
 
 # List C source files here. (C dependencies are automatically generated.)
 CSRC =  $(ALLCSRC) \
-        main.c
+        main.c traffic.c
 
 # List C++ sources file here.
 CPPSRC = $(ALLCPPSRC)

@@ -2,6 +2,7 @@
 #include "ch.h"
 #include "liquidcrystal.h"
 #include "chprintf.h"
+#include "traffic.h"
 
 BaseSequentialStream* chp = (BaseSequentialStream*) &SD1;
 

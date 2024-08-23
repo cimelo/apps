@@ -1,6 +1,7 @@
 #ifndef TRAFFIC_H_
 #define TRAFFIC_H_
 
+#include <stdlib.h>
 #include <stdint.h>
 
 struct Car {
@@ -20,13 +21,13 @@ extern struct Via* secondary;
 extern struct Via* pedestrian;
 
 // Instanciates a via
-struct Via* init_via();
+struct Via* init_via(void);
 
 // Adds car to the traffic to the beginning of the
 // queue
-struct Car* push(struct Via* via);
+void push(struct Via* via);
 
 // Removes the first element to enter the queue.
-struct Car* pop(struct* Via via);
+void pop(struct Via* via);
 
 #endif

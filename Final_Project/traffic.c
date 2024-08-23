@@ -1,28 +1,30 @@
 #include "traffic.h"
 
-struct Via* principal = (struct Via*) malloc(sizeof(Via));
-struct Via* secondary = (struct Via*) malloc(sizeof(Via));
-struct Via* pedestrian = (struct Via*) malloc(sizeof(Via));
+struct Via* principal = NULL;
+struct Via* secondary = NULL;
+struct Via* pedestrian = NULL;
 
 struct Via* init_via() {
-	struct Via* via = (struct Via*) malloc(sizeof(Via));
+	struct Via* via = (struct Via*) malloc(sizeof(struct Via));
 
-	via.first = NULL;
-	via.last = NULL;
-	via.n_ambulances = 0;
+	via->first = NULL;
+	via->last = NULL;
+	via->n_ambulances = 0;
 
 	return via;
 }
 
-struct Car* push(struct Via* via) {
-	if (!via) {
-		via = (struct Via*) malloc(sizeof(Via));
+void push(struct Via* via) {
+	struct Car* new = (struct Car*) malloc(sizeof(struct Car));
+
+	if (!via->first) {
+
 	}
 	else {
 
 	}
 }
 
-struct Car* pop(struct* Via via) {
+void pop(struct Via* via) {
 
 }
