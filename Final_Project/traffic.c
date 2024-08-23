@@ -35,10 +35,9 @@ void push(struct Via* via, uint8_t type) {
 }
 
 void pop(struct Via* via) {
-	/*
 	// Verifies if the queue is not empty
 	if (via->first) {
-		if (via->first->value == 'A') {
+		if (via->first->type == 'A') {
 			--via->n_ambulances;
 		}
 
@@ -53,5 +52,4 @@ void pop(struct Via* via) {
 			free(via->last);
 		}
 	}
-	*/
 }
