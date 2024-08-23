@@ -1,7 +1,5 @@
 #include "liquidcrystal.h"
 
-BaseSequentialStream* chp = (BaseSequentialStream*) &SD1;
-
 // Default configurations
 struct Lcd lcd = {
 	.rows = 2,
@@ -32,7 +30,6 @@ void lcd_begin(void) {
 	palSetPadMode(PORT(lcd.rs), PIN(lcd.rs), PAL_MODE_OUTPUT_PUSHPULL);
 	palClearPad(PORT(lcd.rs), PIN(lcd.rs));
 	palSetPadMode(PORT(lcd.en), PIN(lcd.en), PAL_MODE_OUTPUT_PUSHPULL);
-	palClearPad(PORT(lcd.en), PIN(lcd.en));
 	for (uint8_t i = 0; i < 4; ++i) {
 		palSetPadMode(PORT(lcd.data[i]), PIN(lcd.data[i]), PAL_MODE_OUTPUT_PUSHPULL);
 	}

@@ -41,8 +41,6 @@
 #define DOTS_8 0x00 // Dots per cell
 #define DOTS_10 0x08 // Dots per cell
 
-extern BaseSequentialStream* chp;
-
 // We declare data using Little Endian format and
 // we use the digital pins signature as they are
 // written on the Arduino Board

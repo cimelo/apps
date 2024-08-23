@@ -6,8 +6,8 @@
 
 struct Car {
 	uint8_t type;
-	struct Traffic* next;
-	struct Traffic* prev;
+	struct Car* next;
+	struct Car* prev;
 };
 
 struct Via {
@@ -25,9 +25,9 @@ struct Via* init_via(void);
 
 // Adds car to the traffic to the beginning of the
 // queue
-void push(struct Via* via);
+void push(struct Via* via, uint8_t type);
 
-// Removes the first element to enter the queue.
+// Removes the first element that entered the queue.
 void pop(struct Via* via);
 
 #endif
