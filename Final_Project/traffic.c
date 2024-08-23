@@ -14,23 +14,26 @@ struct Via* init_via() {
 	return via;
 }
 
-void push(struct Via* via, uint8_t type) {
-	struct Car* new = (struct Car*) malloc(sizeof(struct Car));
-	new->prev = NULL;
-	new->type = type;
+void push(struct Via* via, char type) {
+	if (via->n_carros < 17) {
+		struct Car* new = (struct Car*) malloc(sizeof(struct Car));
+		new->prev = NULL;
+		new->type = type;
+		++via->n_carros;
 
-	if (!via->first) {
-		via->first = new;
-		via->last = new;
-		if (type == 'A') {
-			++via->n_ambulances;
+		if (!via->first) {
+			via->first = new;
+			via->last = new;
+			if (type == 'A') {
+				++via->n_ambulances;
+			}
+			new->next = NULL;
 		}
-		new->next = NULL;
-	}
-	else {
-		new->next = via->first;
-		via->first->prev = new;
-		via->first = new;
+		else {
+			new->next = via->first;
+			via->first->prev = new;
+			via->first = new;
+		}
 	}
 }
 
@@ -52,4 +55,19 @@ void pop(struct Via* via) {
 			free(via->last);
 		}
 	}
+
+	--via->n_carros;
+}
+
+char* prepare_print(struct Via* via) {
+	char* queue_str = (char*) malloc(sizeof(char) * 17);
+	struct Car* now = NULL;
+	uint8_t i = 0;
+
+	for (now = via->first; now != NULL; now = now->next, ++i) {
+		queue_str[i] = now->type;
+	}
+	queue_str[i] = '\0';
+
+	return queue_str;
 }

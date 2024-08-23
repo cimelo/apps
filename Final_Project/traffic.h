@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 struct Car {
-	uint8_t type;
+	char type;
 	struct Car* next;
 	struct Car* prev;
 };
@@ -14,6 +14,7 @@ struct Via {
 	struct Car* first;
 	struct Car* last;
 	uint8_t n_ambulances;
+	uint8_t n_carros;
 };
 
 extern struct Via* principal;
@@ -25,9 +26,12 @@ struct Via* init_via(void);
 
 // Adds car to the traffic to the beginning of the
 // queue
-void push(struct Via* via, uint8_t type);
+void push(struct Via* via, char type);
 
 // Removes the first element that entered the queue.
 void pop(struct Via* via);
+
+// Helper function prepares the queue to print
+char* prepare_print(struct Via* via);
 
 #endif
