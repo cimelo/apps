@@ -3,6 +3,10 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
+#include "liquidcrystal.h"
+
+#define N_VIAS 3
 
 struct Car {
 	char type;
@@ -14,15 +18,13 @@ struct Via {
 	struct Car* first;
 	struct Car* last;
 	uint8_t n_ambulances;
-	uint8_t n_carros;
+	uint8_t n;
 };
 
-extern struct Via* principal;
-extern struct Via* secondary;
-extern struct Via* pedestrian;
+extern struct Via vias[];
 
 // Instanciates a via
-struct Via* init_via(void);
+void init_via(struct Via* via);
 
 // Adds car to the traffic to the beginning of the
 // queue
@@ -32,6 +34,8 @@ void push(struct Via* via, char type);
 void pop(struct Via* via);
 
 // Helper function prepares the queue to print
-char* prepare_print(struct Via* via);
+// Remember to always free the return from this
+// function!
+void send_print(struct Via* via);
 
 #endif

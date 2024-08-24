@@ -6,7 +6,9 @@ struct Lcd lcd = {
 	.cols = 16,
 	.rs = 8,
 	.en = 9,
-	.data = {4, 5, 6, 7}
+	.data = {4, 5, 6, 7},
+	.cursor_row = 0,
+	.cursor_col = 0
 };
 
 void lcd_init_4bits(uint8_t rows, uint8_t cols, uint8_t rs,\
@@ -52,8 +54,55 @@ void lcd_begin(void) {
 	chThdSleepMicroseconds(50);
 
 	lcd_clear();
+}
 
-	lcd_home();
+void lcd_home(void) {
+	command(DISPLAY_HOME);
+	chThdSleepMilliseconds(2);
+}
+
+void lcd_clear(void) {
+	command(DISPLAY_CLEAR);
+	chThdSleepMilliseconds(2);
+}
+
+void lcd_cursor_visibility(uint8_t is_visible) {
+	switch (is_visible) {
+		case 1:
+			command(DISPLAY_CTRL | DISPLAY_ON | CURSOR_ON);
+		break;
+		default:
+			command(DISPLAY_CTRL | DISPLAY_ON | CURSOR_OFF);
+	}
+
+	chThdSleepMilliseconds(2);
+}
+
+void lcd_cursor_blink(uint8_t is_blinking) {
+	switch (is_blinking) {
+		case 1:
+			command(DISPLAY_CTRL | DISPLAY_ON | CURSOR_ON | CURSOR_BLINK_ON);
+		break;
+		default:
+			command(DISPLAY_CTRL | DISPLAY_ON | CURSOR_ON | CURSOR_BLINK_OFF);
+	}
+
+	chThdSleepMilliseconds(2);
+}
+
+void lcd_cursor_position(uint8_t row, uint8_t col) {
+	lcd.cursor_row = row;
+	lcd.cursor_col = col;
+
+	command( CURSOR_CMD | (col + 0x40*row) );
+	chThdSleepMicroseconds(50);
+}
+
+void lcd_shift(uint8_t n, uint8_t direction) {
+	for (uint8_t i = 0; i < n; ++i) {
+		command(SHIFT_CMD | DISPLAY_SHIFT | direction);
+		chThdSleepMicroseconds(50);
+	}
 }
 
 void command(uint8_t cmd) {
@@ -62,16 +111,8 @@ void command(uint8_t cmd) {
 
 void lcd_print(char* msg) {
 	uint8_t* tmp = (uint8_t*) msg;
-	uint8_t curr_row = 0;
 
-	for (uint8_t* s = tmp; *s; ++s) {
-		if ( (s-tmp)%lcd.cols == 0 ) {
-			lcd_set_cursor(curr_row, 0);
-			++curr_row;
-		}
-		if (curr_row == lcd.rows) {
-			curr_row = 0;
-		}
+	for (uint8_t* s = tmp; *s; ++s, ++lcd.cursor_col) {
 		send(*s, 1);
 	}
 }
@@ -109,19 +150,4 @@ void enable_pulse(void) {
 	palClearPad(PORT(lcd.en), PIN(lcd.en));
 	// Maximum execution time for a instruction is 37us
 	chThdSleepMicroseconds(100);
-}
-
-void lcd_set_cursor(uint8_t row, uint8_t cols) {
-	command( CURSOR_SET_CMD | (cols + 0x40*row) );
-	chThdSleepMicroseconds(50);
-}
-
-void lcd_clear(void) {
-	command(DISPLAY_CLEAR);
-	chThdSleepMicroseconds(50);
-}
-
-void lcd_home(void) {
-	command(DISPLAY_HOME);
-	chThdSleepMilliseconds(2);
 }

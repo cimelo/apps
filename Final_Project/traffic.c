@@ -1,25 +1,20 @@
 #include "traffic.h"
 
-struct Via* principal = NULL;
-struct Via* secondary = NULL;
-struct Via* pedestrian = NULL;
+struct Via vias[N_VIAS];
 
-struct Via* init_via() {
-	struct Via* via = (struct Via*) malloc(sizeof(struct Via));
-
+void init_via(struct Via* via) {
 	via->first = NULL;
 	via->last = NULL;
 	via->n_ambulances = 0;
-
-	return via;
+	via->n = 0;
 }
 
 void push(struct Via* via, char type) {
-	if (via->n_carros < 17) {
+	if (via->n < 17) {
 		struct Car* new = (struct Car*) malloc(sizeof(struct Car));
 		new->prev = NULL;
 		new->type = type;
-		++via->n_carros;
+		++via->n;
 
 		if (!via->first) {
 			via->first = new;
@@ -54,12 +49,12 @@ void pop(struct Via* via) {
 			via->last->prev->next = NULL;
 			free(via->last);
 		}
-	}
 
-	--via->n_carros;
+		--via->n;
+	}
 }
 
-char* prepare_print(struct Via* via) {
+void send_print(struct Via* via) {
 	char* queue_str = (char*) malloc(sizeof(char) * 17);
 	struct Car* now = NULL;
 	uint8_t i = 0;
@@ -69,5 +64,14 @@ char* prepare_print(struct Via* via) {
 	}
 	queue_str[i] = '\0';
 
-	return queue_str;
+	char str_num[5];
+	sprintf(str_num, "%d", vias->n);
+
+	lcd_print(queue_str);
+	lcd_cursor_position(0, 14);
+	lcd_print(str_num);
+
+	// chprintf(chp, queue_str);
+
+	free(queue_str);
 }
