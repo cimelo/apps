@@ -28,15 +28,8 @@
 #define YLW 1
 #define RED 2
 
-struct Car {
-	char type;
-	struct Car* next;
-	struct Car* prev;
-};
-
 struct Via {
-	struct Car* first;
-	struct Car* last;
+	char cars[MAX_CARS];
 	uint8_t n_ambulances;
 	uint8_t n;
 	uint8_t sem_state;
@@ -47,13 +40,19 @@ extern struct Via vias[];
 extern uint8_t buffer_cmd[16];
 // Mutex used to read command sent into to the
 // serial input and processing it's data
-extern mutex_t mtx_io;
+extern mutex_t mtx_print;
+extern condition_variable_t cond_msg;
+extern uint8_t has_msg;
+extern char queues_str[3][MAX_CARS+1];
 
 // Instanciates a via
 void init_via(struct Via* via);
 
 // Sets the programs default initial configurations
 void init_program(void);
+
+// Init the matrix with NULL chars
+void init_queues_str(void);
 
 // Adds car to the traffic to the beginning of the
 // queue
@@ -70,8 +69,9 @@ char* prepare_str(struct Via* via);
 void print_vias(void);
 
 // Writes the buffer with '\0'
-void flush_buffer(void);
+void flush_buffer_cmd(void);
 
+// Receives the command buffer and prepares the vias
 void process_cmd(void);
 
 #endif

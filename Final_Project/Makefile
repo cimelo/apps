@@ -107,7 +107,7 @@ include $(CHIBIOS)/os/rt/rt.mk
 include $(CHIBIOS)/os/common/ports/AVR/compilers/GCC/mk/port.mk
 
 # Other inclusions
-# include $(CHIBIOS)/os/hal/lib/streams/streams.mk
+#include $(CHIBIOS)/os/hal/lib/streams/streams.mk
 
 # Lcd inclusion
 include ./lib/lcd.mk
