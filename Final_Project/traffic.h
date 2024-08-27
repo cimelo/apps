@@ -30,7 +30,6 @@
 
 struct Via {
 	char cars[MAX_CARS];
-	uint8_t n_ambulances;
 	uint8_t n;
 	uint8_t sem_state;
 	uint8_t sem_times[3];
@@ -73,5 +72,9 @@ void flush_buffer_cmd(void);
 
 // Receives the command buffer and prepares the vias
 void process_cmd(void);
+
+void update_via(uint8_t id_via);
+
+void moviment(uint8_t id_via);
 
 #endif

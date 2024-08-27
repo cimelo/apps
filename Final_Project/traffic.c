@@ -8,7 +8,6 @@ uint8_t buffer_cmd[BUFF_LEN];
 char queues_str[3][MAX_CARS+1];
 
 void init_via(struct Via* via) {
-	via->n_ambulances = 0;
 	via->n = 0;
 }
 
@@ -52,29 +51,23 @@ void push(struct Via* via, char type) {
 	if (via->n < MAX_CARS) {
 		via->cars[via->n] = type;
 		++via->n;
-
-		if (type == 'A') {
-			++via->n_ambulances;
-		}
 	}
 }
 
 void pop(struct Via* via) {
 	if (via->n) {
-		if (via->cars[via->n] == 'A') {
-			--via->n_ambulances;
-		}
-
-		--via->n;
-
 		for (uint8_t i = 0; i < via->n; ++i) {
 			via->cars[i] = via->cars[i+1];
 		}
+
+		--via->n;
 	}
 }
 
 void print_vias(void) {
 	uint8_t i, j;
+
+	lcd_clear();
 
 	for (i = 0; i < N_VIAS; ++i) {
 		for (j = 0; j < vias[i].n; ++j) {
@@ -113,6 +106,28 @@ void process_cmd(void) {
 		}
 		else {
 			push(&vias[via], tmp[i]);
+		}
+	}
+}
+
+void update_via(uint8_t id_via) {
+	//uint8_t tmp = 0;
+
+	for (int i = 0; i < vias[id_via].n; ++i) {
+		if (vias[id_via].cars[i] == 'A') {
+			if (i && vias[id_via].cars[i-1] == 'C') {
+				vias[id_via].cars[i] = 'C';
+				vias[id_via].cars[i-1] = 'A';
+			}
+		}
+	}
+}
+
+void moviment(uint8_t id_via) {
+	if (vias[id_via].n) {
+		update_via(id_via);
+		if (vias[id_via].sem_state != RED || vias[id_via].cars[0] == 'A') {
+			pop(&vias[id_via]);
 		}
 	}
 }

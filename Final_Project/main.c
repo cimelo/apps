@@ -56,11 +56,16 @@ static THD_FUNCTION(thd_clk, arg) {
 		chMtxLock(&mtx_print);
 
 		has_msg = 1;
+
+		for (uint8_t i = 0; i < N_VIAS; ++i) {
+			moviment(i);
+		}
+
 		chCondSignal(&cond_msg);
 
 		chMtxUnlock(&mtx_print);
-		chThdSleepMilliseconds(50);
 
+		chThdSleepMilliseconds(4000);
 	}
 };
 
