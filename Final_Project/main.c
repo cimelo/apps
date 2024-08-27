@@ -37,7 +37,7 @@ static THD_FUNCTION(thd_lcd, arg) {
 			chCondWait(&cond_msg);
 		}
 
-		print_vias();
+		print_lanes();
 
 		has_msg = 0;
 
@@ -57,7 +57,7 @@ static THD_FUNCTION(thd_clk, arg) {
 
 		has_msg = 1;
 
-		for (uint8_t i = 0; i < N_VIAS; ++i) {
+		for (uint8_t i = 0; i < N_LANES; ++i) {
 			moviment(i);
 		}
 

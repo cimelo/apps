@@ -9,7 +9,7 @@
 #include <string.h>
 #include "liquidcrystal.h"
 
-#define N_VIAS 3
+#define N_LANES 3
 #define MAX_CARS 7
 #define BUFF_LEN 16
 
@@ -28,14 +28,14 @@
 #define YLW 1
 #define RED 2
 
-struct Via {
+struct Lane {
 	char cars[MAX_CARS];
 	uint8_t n;
 	uint8_t sem_state;
 	uint8_t sem_times[3];
 };
 
-extern struct Via vias[];
+extern struct Lane lanes[];
 extern uint8_t buffer_cmd[16];
 // Mutex used to read command sent into to the
 // serial input and processing it's data
@@ -44,8 +44,8 @@ extern condition_variable_t cond_msg;
 extern uint8_t has_msg;
 extern char queues_str[3][MAX_CARS+1];
 
-// Instanciates a via
-void init_via(struct Via* via);
+// Instanciates a lane
+void init_lane(struct Lane* lane);
 
 // Sets the programs default initial configurations
 void init_program(void);
@@ -55,26 +55,26 @@ void init_queues_str(void);
 
 // Adds car to the traffic to the beginning of the
 // queue
-void push(struct Via* via, char type);
+void push(struct Lane* lane, char type);
 
 // Removes the first element that entered the queue
-void pop(struct Via* via);
+void pop(struct Lane* lane);
 
 // Helper function prepares the queue to print
 // Remember to free the str after the use
-char* prepare_str(struct Via* via);
+char* prepare_str(struct Lane* lane);
 
-// Send the vias to print into the LCD
-void print_vias(void);
+// Send the lanes to print into the LCD
+void print_lanes(void);
 
 // Writes the buffer with '\0'
 void flush_buffer_cmd(void);
 
-// Receives the command buffer and prepares the vias
+// Receives the command buffer and prepares the lanes
 void process_cmd(void);
 
-void update_via(uint8_t id_via);
+void update_lane(uint8_t id_lane);
 
-void moviment(uint8_t id_via);
+void moviment(uint8_t id_lane);
 
 #endif
