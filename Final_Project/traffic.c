@@ -1,8 +1,13 @@
 #include "traffic.h"
 
 struct Lane lanes[N_LANES];
-mutex_t mtx_print;
+struct Sem_handler sem_handler = {
+	.id_green = 0,
+	.sem_state = GRN
+};
+
 uint8_t has_msg = 0;
+mutex_t mtx_print;
 condition_variable_t cond_msg;
 uint8_t buffer_cmd[BUFF_LEN];
 char queues_str[3][MAX_CARS+1];
@@ -23,22 +28,25 @@ void init_queues_str(void) {
 
 void init_program(void) {
 	lcd_init_4bits(2, 16, 6, 7, 2, 3, 4, 5);
+	uint8_t i;
 
-	for (uint8_t i = 0; i < N_LANES; ++i) {
+	for (i = 0; i < N_LANES; ++i) {
 		init_lane(&lanes[i]);
+	}
+
+	for (i = 0; i < 6; ++i) {
+		palSetPadMode(IOPORT2, i, PAL_MODE_OUTPUT_PUSHPULL);
+		palClearPad(IOPORT2, i);
 	}
 
 	init_queues_str();
 
-	lanes[0].sem_times[0] = V1_G;
-	lanes[0].sem_times[1] = V1_Y;
-	lanes[0].sem_times[2] = V1_R;
-	lanes[1].sem_times[0] = V2_G;
-	lanes[1].sem_times[1] = V2_Y;
-	lanes[1].sem_times[2] = V2_R;
-	lanes[2].sem_times[0] = VP_G;
+	lanes[0].sem_times[0] = L1_G;
+	lanes[0].sem_times[1] = L1_Y;
+	lanes[1].sem_times[0] = L2_G;
+	lanes[1].sem_times[1] = L2_Y;
+	lanes[2].sem_times[0] = LP_G;
 	lanes[2].sem_times[1] = 0;
-	lanes[2].sem_times[2] = VP_R;
 
 	lanes[0].sem_state = GRN;
 	lanes[1].sem_state = RED;
@@ -111,8 +119,6 @@ void process_cmd(void) {
 }
 
 void update_lane(uint8_t id_lane) {
-	//uint8_t tmp = 0;
-
 	for (int i = 0; i < lanes[id_lane].n; ++i) {
 		if (lanes[id_lane].cars[i] == 'A') {
 			if (i && lanes[id_lane].cars[i-1] == 'C') {
@@ -126,7 +132,7 @@ void update_lane(uint8_t id_lane) {
 void moviment(uint8_t id_lane) {
 	if (lanes[id_lane].n) {
 		update_lane(id_lane);
-		if (lanes[id_lane].sem_state != RED || lanes[id_lane].cars[0] == 'A') {
+		if (sem_handler.id_green == id_lane || lanes[id_lane].cars[0] == 'A') {
 			pop(&lanes[id_lane]);
 		}
 	}

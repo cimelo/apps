@@ -13,20 +13,26 @@
 #define MAX_CARS 7
 #define BUFF_LEN 16
 
-#define V1_G 10
-#define V1_Y 2
-#define V1_R 5
+// Times of the Semaphores in seconds
+#define L1_G 4
+#define L1_Y 2
 
-#define V2_G 8
-#define V2_Y 2
-#define V2_R 5
+#define L2_G 4
+#define L2_Y 2
 
-#define VP_G 8
-#define VP_R 5
+#define LP_G 4
 
 #define GRN 0
 #define YLW 1
 #define RED 2
+
+// Port and pins for the semaphores
+#define PIN_G1	8
+#define PIN_R1	9
+#define PIN_G2	10
+#define PIN_R2	11
+#define PIN_GP	12
+#define PIN_RP	13
 
 struct Lane {
 	char cars[MAX_CARS];
@@ -35,7 +41,13 @@ struct Lane {
 	uint8_t sem_times[3];
 };
 
+struct Sem_handler {
+	uint8_t id_green;
+	uint8_t sem_state;
+};
+
 extern struct Lane lanes[];
+extern struct Sem_handler sem_handler;
 extern uint8_t buffer_cmd[16];
 // Mutex used to read command sent into to the
 // serial input and processing it's data
