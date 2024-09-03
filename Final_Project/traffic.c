@@ -12,6 +12,11 @@ condition_variable_t cond_msg;
 uint8_t buffer_cmd[BUFF_LEN];
 char queues_str[3][MAX_CARS+1];
 
+mutex_t mtx_sem;
+condition_variable_t cond_sem;
+uint8_t is_timeout = 0;
+
+
 void init_lane(struct Lane* lane) {
 	lane->n = 0;
 }
@@ -132,7 +137,7 @@ void update_lane(uint8_t id_lane) {
 void moviment(uint8_t id_lane) {
 	if (lanes[id_lane].n) {
 		update_lane(id_lane);
-		if (sem_handler.id_green == id_lane || lanes[id_lane].cars[0] == 'A') {
+		if (sem_handler.id_green == id_lane) {
 			pop(&lanes[id_lane]);
 		}
 	}
