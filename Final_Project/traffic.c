@@ -64,11 +64,19 @@ void push(struct Lane* lane, char type) {
 	if (lane->n < MAX_CARS) {
 		lane->cars[lane->n] = type;
 		++lane->n;
+
+		if (type == 'A') {
+			++lane->n_ambs;
+		}
 	}
 }
 
 void pop(struct Lane* lane) {
 	if (lane->n) {
+		if (lane->cars[0] == 'A') {
+			--lane->n_ambs;
+		}
+
 		for (uint8_t i = 0; i < lane->n; ++i) {
 			lane->cars[i] = lane->cars[i+1];
 		}

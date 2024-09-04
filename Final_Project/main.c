@@ -1,24 +1,42 @@
 #include "traffic.h"
-#include "chprintf.h"
 
-BaseSequentialStream* chp = (BaseSequentialStream*) &SD1;
-
+// Thread responsible for receiving commands
+// via serial communication
 static THD_WORKING_AREA(wa_thd_serial, 32);
 static THD_FUNCTION(thd_serial, arg);
 
+// Thread responsible for displaying traffic
+// information on the LCD
 static THD_WORKING_AREA(wa_thd_lcd, 32);
 static THD_FUNCTION(thd_lcd, arg);
 
-// Simulation global clock
+// Thread responsible for managing the simulation's
+// global clock
 static THD_WORKING_AREA(wa_thd_clk, 32);
 static THD_FUNCTION(thd_clk, arg);
 
+// Thread responsible for signaling semaphore timers
+// upon timeout
 static THD_WORKING_AREA(wa_thd_sem_timer, 32);
 static THD_FUNCTION(thd_sem_timer, arg);
 
 // Semaphore logic hendling thread
 static THD_WORKING_AREA(wa_thd_semaphore, 32);
 static THD_FUNCTION(thd_semaphore, arg);
+
+// Timer set up when an ambulance is detected
+// on the primary lane
+static THD_WORKING_AREA(wa_thd_wait_amb1, 32);
+static THD_FUNCTION(thd_wait_amb1, arg);
+
+// Timer set up when an ambulance is detected on
+// the secondary lane, provided there is no
+// ambulance on the primary lane
+static THD_WORKING_AREA(wa_thd_wait_amb2, 32);
+static THD_FUNCTION(thd_wait_amb2, arg);
+
+
+// ================ Main ======================
 
 int main(void) {
 	halInit();
@@ -47,10 +65,14 @@ int main(void) {
 	}
 }
 
+// ================ Thread Implementations ======================
+
 static THD_FUNCTION(thd_serial, arg) {
 	(void) arg;
 
 	chRegSetThreadName("Serial");
+	thread_t *tp_amb1 = NULL;
+	thread_t *tp_amb2 = NULL;
 
 	while(1) {
 		if ( sdReadI(&SD1, buffer_cmd, BUFF_LEN) ) {
@@ -66,6 +88,25 @@ static THD_FUNCTION(thd_serial, arg) {
 		}
 
 		chMtxUnlock(&mtx_print);
+
+		if ( lanes[0].n_ambs &&\
+			(!tp_amb1 || chThdTerminatedX(tp_amb1)) ) {
+			tp_amb1 = chThdCreateStatic(wa_thd_wait_amb1,\
+						  sizeof(wa_thd_wait_amb1),\
+						  NORMALPRIO,\
+						  thd_wait_amb1,\
+						  NULL);
+		}
+		if ( lanes[1].n_ambs &&\
+			(!tp_amb2 || chThdTerminatedX(tp_amb2)) ) {
+			tp_amb2 = chThdCreateStatic(wa_thd_wait_amb2,\
+						  sizeof(wa_thd_wait_amb2),\
+						  NORMALPRIO,\
+						  thd_wait_amb2,\
+						  NULL);
+		}
+
+
 
 		chThdSleepMilliseconds(100);
 	}
@@ -221,4 +262,38 @@ static THD_FUNCTION(thd_semaphore, arg) {
 	}
 };
 
-OOOOOOOOOOO
+static THD_FUNCTION(thd_wait_amb1, arg) {
+	(void) arg;
+
+	chRegSetThreadName("Clk");
+
+	chThdSleepSeconds(AMB_WAIT);
+
+	chMtxLock(&mtx_sem);
+	is_timeout = 1;
+	sem_handler.id_green = 0;
+	chCondSignal(&cond_sem);
+	chMtxUnlock(&mtx_sem);
+
+	chThdExit(MSG_OK);
+};
+
+static THD_FUNCTION(thd_wait_amb2, arg) {
+	(void) arg;
+
+	chRegSetThreadName("Clk");
+
+	chThdSleepSeconds(AMB_WAIT);
+
+	while (lanes[0].n_ambs) {
+		chThdSleepMilliseconds(1);
+	}
+
+	chMtxLock(&mtx_sem);
+	is_timeout = 1;
+	sem_handler.id_green = 0;
+	chCondSignal(&cond_sem);
+	chMtxUnlock(&mtx_sem);
+
+	chThdExit(MSG_OK);
+};
