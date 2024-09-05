@@ -35,19 +35,18 @@
 #define PIN_GP	12
 #define PIN_RP	13
 
-#define AMB_WAIT 5
+#define AMB_WAIT 2
 
 struct Lane {
 	char cars[MAX_CARS];
 	uint8_t n;
 	uint8_t n_ambs;
-	uint8_t sem_state;
 	uint8_t sem_times[3];
 };
 
 struct Sem_handler {
 	uint8_t id_green;
-	uint8_t sem_state;
+	uint8_t interr;
 };
 
 struct Timer_cfg {

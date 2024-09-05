@@ -1,4 +1,12 @@
 #include "traffic.h"
+#include "chprintf.h"
+
+BaseSequentialStream* chp = (BaseSequentialStream*) &SD1;
+
+thread_t *tp_sem = NULL;
+binary_semaphore_t amb_sem;
+thread_t *tp_amb1 = NULL;
+thread_t *tp_amb2 = NULL;
 
 // Thread responsible for receiving commands
 // via serial communication
@@ -71,8 +79,6 @@ static THD_FUNCTION(thd_serial, arg) {
 	(void) arg;
 
 	chRegSetThreadName("Serial");
-	thread_t *tp_amb1 = NULL;
-	thread_t *tp_amb2 = NULL;
 
 	while(1) {
 		if ( sdReadI(&SD1, buffer_cmd, BUFF_LEN) ) {
@@ -89,27 +95,73 @@ static THD_FUNCTION(thd_serial, arg) {
 
 		chMtxUnlock(&mtx_print);
 
-		if ( lanes[0].n_ambs &&\
+		if (sem_handler.id_green != 0 && lanes[0].n_ambs &&\
 			(!tp_amb1 || chThdTerminatedX(tp_amb1)) ) {
 			tp_amb1 = chThdCreateStatic(wa_thd_wait_amb1,\
 						  sizeof(wa_thd_wait_amb1),\
-						  NORMALPRIO,\
+						  NORMALPRIO+1,\
 						  thd_wait_amb1,\
 						  NULL);
 		}
-		if ( lanes[1].n_ambs &&\
+		if (sem_handler.id_green != 1 && lanes[1].n_ambs &&\
 			(!tp_amb2 || chThdTerminatedX(tp_amb2)) ) {
 			tp_amb2 = chThdCreateStatic(wa_thd_wait_amb2,\
 						  sizeof(wa_thd_wait_amb2),\
-						  NORMALPRIO,\
+						  NORMALPRIO+1,\
 						  thd_wait_amb2,\
 						  NULL);
 		}
 
-
-
 		chThdSleepMilliseconds(100);
 	}
+};
+
+static THD_FUNCTION(thd_wait_amb1, arg) {
+	(void) arg;
+
+	chRegSetThreadName("Clk");
+
+	chprintf(chp, "TA1!\r\n");
+
+	chThdSleepSeconds(AMB_WAIT);
+
+	chMtxLock(&mtx_sem);
+	if (sem_handler.id_green != 0 && lanes[0].n_ambs) {
+		chBSemSignal(&amb_sem);
+		is_timeout = 1;
+		sem_handler.interr = 1;
+		sem_handler.id_green = 0;
+		chCondSignal(&cond_sem);
+	}
+	chMtxUnlock(&mtx_sem);
+
+	chThdExit(MSG_OK);
+};
+
+static THD_FUNCTION(thd_wait_amb2, arg) {
+	(void) arg;
+
+	chprintf(chp, "TA2!\r\n");
+
+	chRegSetThreadName("Clk");
+
+	chThdSleepSeconds(AMB_WAIT);
+	
+	while (lanes[0].n_ambs) {
+		chThdSleepMilliseconds(100);
+	}
+
+	chMtxLock(&mtx_sem);
+	if (sem_handler.id_green != 1 && lanes[1].n_ambs) {
+		chBSemSignal(&amb_sem);
+		is_timeout = 1;
+		sem_handler.interr = 1;
+		sem_handler.id_green = 1;
+		chCondSignal(&cond_sem);
+	}
+	chMtxUnlock(&mtx_sem);
+
+	chThdExit(MSG_OK);
 };
 
 static THD_FUNCTION(thd_lcd, arg) {
@@ -163,11 +215,24 @@ static THD_FUNCTION(thd_sem_timer, arg) {
 
     chRegSetThreadName("Sem_Timer");
 
-	chThdSleepSeconds(cfg->periods[0]);
-	digital_write(cfg->pins[0], 0);
-	for (uint8_t i = 0; i < cfg->periods[1]; ++i) {
-		palTogglePad(IOPORT2, PIN(cfg->pins[1]));
-		chThdSleepSeconds(1);
+	uint16_t i = 0, end = 0;
+
+	for (i = 0; i < cfg->periods[0]*10; ++i) {
+		if (chBSemWaitTimeout(&amb_sem, TIME_IMMEDIATE) == MSG_OK) {
+			end = 1;
+			break;
+		}
+		chThdSleepMilliseconds(100);
+	}
+	palClearPad(IOPORT2, PIN(cfg->pins[0]));
+	for (i = 0; !end && i < cfg->periods[1]*10; ++i) {
+		if (chBSemWaitTimeout(&amb_sem, TIME_IMMEDIATE) == MSG_OK) {
+			break;
+		}
+		if (i%10 == 0) {
+			palTogglePad(IOPORT2, PIN(cfg->pins[1]));
+		}
+		chThdSleepMilliseconds(100);
 	}
 
     chMtxLock(&mtx_sem);
@@ -179,8 +244,6 @@ static THD_FUNCTION(thd_sem_timer, arg) {
 }
 
 void start_sem_timer(thread_t *tp, struct Timer_cfg *cfg) {
-        chMtxLock(&mtx_sem);
-
 		if (!tp || chThdTerminatedX(tp)) {
 			tp = chThdCreateStatic(wa_thd_sem_timer,\
 						  sizeof(wa_thd_sem_timer),\
@@ -188,6 +251,8 @@ void start_sem_timer(thread_t *tp, struct Timer_cfg *cfg) {
 						  thd_sem_timer,\
 						  (void*)cfg);
 		}
+					
+					        chMtxLock(&mtx_sem);
 
 		while (!is_timeout) {
             chCondWait(&cond_sem);
@@ -206,7 +271,6 @@ static THD_FUNCTION(thd_semaphore, arg) {
 
 	uint8_t c = 0;
 	struct Timer_cfg cfg;
-	thread_t *tp = NULL;
 
 	while (1) {
 		switch (sem_handler.id_green) {
@@ -221,15 +285,30 @@ static THD_FUNCTION(thd_semaphore, arg) {
 				digital_write(PIN_G2, 0);
 				digital_write(PIN_RP, 1);
 				digital_write(PIN_GP, 0);
-				start_sem_timer(tp, &cfg);
-				if(lanes[2].n && !c) {
-					sem_handler.id_green = 2;
+				start_sem_timer(tp_sem, &cfg);
+				if( lanes[2].n && !c ) {
+					chMtxLock(&mtx_sem);
+					if (!sem_handler.interr) {
+						sem_handler.id_green = 2;
+					}
+					else {
+						sem_handler.interr = 0;
+					}
 					c = 1;
+					chMtxUnlock(&mtx_sem);
 				}
 				else if (lanes[1].n) {
-					sem_handler.id_green = 1;
+					chMtxLock(&mtx_sem);
+					if (!sem_handler.interr) {
+						sem_handler.id_green = 1;
+					}
+					else {
+						sem_handler.interr = 0;
+					}
+					chMtxUnlock(&mtx_sem);
 				}
-				else {
+
+				if (!lanes[1].n){
 					c = 0;
 				}
 			break;
@@ -242,9 +321,18 @@ static THD_FUNCTION(thd_semaphore, arg) {
 				digital_write(PIN_R1, 1);
 				digital_write(PIN_R2, 0);
 				digital_write(PIN_G2, 1);
-				start_sem_timer(tp, &cfg);
-				sem_handler.id_green = 0;
+				digital_write(PIN_GP, 0);
+				digital_write(PIN_RP, 1);
+				start_sem_timer(tp_sem, &cfg);
+				chMtxLock(&mtx_sem);
+				if (!sem_handler.interr) {
+					sem_handler.id_green = 0;
+				}
+				else {
+					sem_handler.interr = 0;
+				}
 				c = 0;
+				chMtxUnlock(&mtx_sem);
 			break;
 			case 2:
 				cfg = (struct Timer_cfg){
@@ -253,47 +341,20 @@ static THD_FUNCTION(thd_semaphore, arg) {
 				};
 				digital_write(PIN_G1, 0);
 				digital_write(PIN_R1, 1);
+				digital_write(PIN_G2, 0);
+				digital_write(PIN_R2, 1);
 				digital_write(PIN_GP, 1);
 				digital_write(PIN_RP, 0);
-				start_sem_timer(tp, &cfg);
-				sem_handler.id_green = 0;
+				start_sem_timer(tp_sem, &cfg);
+				chMtxLock(&mtx_sem);
+				if (!sem_handler.interr) {
+					sem_handler.id_green = 0;
+				}
+				else {
+					sem_handler.interr = 0;
+				}
+				chMtxUnlock(&mtx_sem);
 			break;
 		}
 	}
-};
-
-static THD_FUNCTION(thd_wait_amb1, arg) {
-	(void) arg;
-
-	chRegSetThreadName("Clk");
-
-	chThdSleepSeconds(AMB_WAIT);
-
-	chMtxLock(&mtx_sem);
-	is_timeout = 1;
-	sem_handler.id_green = 0;
-	chCondSignal(&cond_sem);
-	chMtxUnlock(&mtx_sem);
-
-	chThdExit(MSG_OK);
-};
-
-static THD_FUNCTION(thd_wait_amb2, arg) {
-	(void) arg;
-
-	chRegSetThreadName("Clk");
-
-	chThdSleepSeconds(AMB_WAIT);
-
-	while (lanes[0].n_ambs) {
-		chThdSleepMilliseconds(1);
-	}
-
-	chMtxLock(&mtx_sem);
-	is_timeout = 1;
-	sem_handler.id_green = 0;
-	chCondSignal(&cond_sem);
-	chMtxUnlock(&mtx_sem);
-
-	chThdExit(MSG_OK);
 };

@@ -3,7 +3,7 @@
 struct Lane lanes[N_LANES];
 struct Sem_handler sem_handler = {
 	.id_green = 0,
-	.sem_state = GRN
+	.interr = 0
 };
 
 uint8_t has_msg = 0;
@@ -52,10 +52,6 @@ void init_program(void) {
 	lanes[1].sem_times[1] = L2_Y;
 	lanes[2].sem_times[0] = LP_G;
 	lanes[2].sem_times[1] = 0;
-
-	lanes[0].sem_state = GRN;
-	lanes[1].sem_state = RED;
-	lanes[2].sem_state = RED;
 
 	flush_buffer_cmd();
 }
