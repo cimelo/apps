@@ -32,7 +32,7 @@ void init_queues_str(void) {
 }
 
 void init_program(void) {
-	lcd_init_4bits(2, 16, 6, 7, 2, 3, 4, 5);
+	lcd_init_4bits(2, 16, RS, EN, D4, D5, D6, D7);
 	uint8_t i;
 
 	for (i = 0; i < N_LANES; ++i) {

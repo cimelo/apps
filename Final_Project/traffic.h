@@ -27,6 +27,14 @@
 #define YLW 1
 #define RED 2
 
+// Pins for the LCD
+#define RS 6
+#define EN 7
+#define D4 2
+#define D5 3
+#define D6 4
+#define D7 5
+
 // Port and pins for the semaphores
 #define PIN_G1	8
 #define PIN_R1	9
