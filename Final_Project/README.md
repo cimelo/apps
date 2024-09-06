@@ -3,28 +3,35 @@
 This project is a traffic simulator that runs on an Arduino Uno using the ChibiOS/RT operating system.
 
 ## Setup Instructions
-1. Download ChibiOS v21.11.3 or later;
+
+1. Download ChibiOS v21.11.3 or later.
 
 2. **Makefile Adjustments**  
-   You may need to modify the `Makefile` according to your specific setup. Common adjustments include:
+   Modify the `Makefile` according to your specific setup. Common adjustments include:
    - Setting the correct `tty` for your Arduino board.
    - Adjusting the relative path to the ChibiOS main directory.
 
-3. Apps Folder
-	Create a folder inside the main folder of ChibiOS and paste this project inside it.
+3. **Apps Folder**  
+   Create a folder inside the main ChibiOS directory and paste this project inside it.
 
-4. Connect the pins and LEDs as referenced in the schematic bellow, or change the pins on the traffic.h as you choose.
+4. Connect the pins and LEDs as referenced in the schematic below, or modify the pins in `traffic.h` as needed.
 
-5. Connect the Arduino using a serial monitor (Arduino IDE is recommended here because of the ability to send string);
+5. Connect the Arduino using a serial monitor. The Arduino IDE is recommended due to its ability to send strings.
 	
 ## Recommended Circuit Schematic
 ![Schematic](./imgs/schematic.png)
 
 ## How to Use
-1. The commands send by serial must be written in this way:
-	- First char must be the number of the lane, 0 or nothing for the primary lane, 1 for the secondary lane or 2 for the pedestrian lane;
-	- On the primary and secondary lanes, you may put up to 7 cars into the lanes, these cars may be 'C' for normal cars or 'A' for ambulances;
-	- Onto the pedestrian lane you may only put 'P' for pedestrians;
+
+1. Commands sent via serial must be formatted as follows:
+   - The first character must indicate the lane number:
+     - `0` for the primary lane (or use `'C'` or `'A'` for vehicles)
+     - `1` for the secondary lane
+     - `2` for the pedestrian lane
+   - For the primary and secondary lanes, you can specify up to 7 vehicles:
+     - Use `'C'` for normal cars
+     - Use `'A'` for ambulances
+   - For the pedestrian lane, you can only use `'P'` for pedestrians.
 
 ## Traffic Rules
 
