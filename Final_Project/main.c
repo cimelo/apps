@@ -225,14 +225,16 @@ static THD_FUNCTION(thd_sem_timer, arg) {
 		chThdSleepMilliseconds(100);
 	}
 	palClearPad(IOPORT2, PIN(cfg->pins[0]));
-	for (i = 0; !end && i < cfg->periods[1]*10; ++i) {
-		if (chBSemWaitTimeout(&amb_sem, TIME_IMMEDIATE) == MSG_OK) {
-			break;
+	if (lanes[1].n || lanes[2].n) {
+		for (i = 0; !end && i < cfg->periods[1]*10; ++i) {
+			if (chBSemWaitTimeout(&amb_sem, TIME_IMMEDIATE) == MSG_OK) {
+				break;
+			}
+			if (i%10 == 0) {
+				palTogglePad(IOPORT2, PIN(cfg->pins[1]));
+			}
+			chThdSleepMilliseconds(100);
 		}
-		if (i%10 == 0) {
-			palTogglePad(IOPORT2, PIN(cfg->pins[1]));
-		}
-		chThdSleepMilliseconds(100);
 	}
 
     chMtxLock(&mtx_sem);
@@ -286,27 +288,30 @@ static THD_FUNCTION(thd_semaphore, arg) {
 				digital_write(PIN_RP, 1);
 				digital_write(PIN_GP, 0);
 				start_sem_timer(tp_sem, &cfg);
-				if( lanes[2].n && !c ) {
-					chMtxLock(&mtx_sem);
-					if (!sem_handler.interr) {
-						sem_handler.id_green = 2;
+				if (!lanes[0].n_ambs) {
+					if( lanes[2].n && !c ) {
+						chMtxLock(&mtx_sem);
+						if (!sem_handler.interr) {
+							sem_handler.id_green = 2;
+						}
+						else {
+							sem_handler.interr = 0;
+						}
+						c = 1;
+						chMtxUnlock(&mtx_sem);
 					}
-					else {
-						sem_handler.interr = 0;
+					else if (lanes[1].n) {
+						chMtxLock(&mtx_sem);
+						if (!sem_handler.interr) {
+							sem_handler.id_green = 1;
+						}
+						else {
+							sem_handler.interr = 0;
+						}
+						chMtxUnlock(&mtx_sem);
 					}
-					c = 1;
-					chMtxUnlock(&mtx_sem);
 				}
-				else if (lanes[1].n) {
-					chMtxLock(&mtx_sem);
-					if (!sem_handler.interr) {
-						sem_handler.id_green = 1;
-					}
-					else {
-						sem_handler.interr = 0;
-					}
-					chMtxUnlock(&mtx_sem);
-				}
+				
 
 				if (!lanes[1].n){
 					c = 0;
@@ -348,7 +353,12 @@ static THD_FUNCTION(thd_semaphore, arg) {
 				start_sem_timer(tp_sem, &cfg);
 				chMtxLock(&mtx_sem);
 				if (!sem_handler.interr) {
-					sem_handler.id_green = 0;
+					if (lanes[1].n){
+						sem_handler.id_green = 1;
+					}
+					else {
+						sem_handler.id_green = 0;
+					}
 				}
 				else {
 					sem_handler.interr = 0;

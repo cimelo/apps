@@ -15,13 +15,13 @@
 
 // Times of the Semaphores in seconds
 #define L1_G 10
-#define L1_Y 5
+#define L1_Y 4
 
-#define L2_G 8
-#define L2_Y 4
+#define L2_G 5
+#define L2_Y 3
 
 #define LP_G 5
-#define LP_Y 0
+#define LP_Y 2
 
 #define GRN 0
 #define YLW 1
@@ -61,7 +61,7 @@ extern uint8_t is_timeout;
 
 extern struct Lane lanes[];
 extern struct Sem_handler sem_handler;
-extern uint8_t buffer_cmd[16];
+extern uint8_t buffer_cmd[BUFF_LEN];
 // Mutex used to read command sent into to the
 // serial input and processing it's data
 extern mutex_t mtx_print;
@@ -80,7 +80,7 @@ void init_queues_str(void);
 
 // Adds car to the traffic to the beginning of the
 // queue
-void push(struct Lane* lane, char type);
+void push(uint8_t lane, char type);
 
 // Removes the first element that entered the queue
 void pop(struct Lane* lane);

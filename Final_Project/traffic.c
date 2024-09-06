@@ -56,14 +56,25 @@ void init_program(void) {
 	flush_buffer_cmd();
 }
 
-void push(struct Lane* lane, char type) {
-	if (lane->n < MAX_CARS) {
-		lane->cars[lane->n] = type;
-		++lane->n;
+void push(uint8_t lane, char type) {
+	if (lanes[lane].n < MAX_CARS) {
+		if (lane < 2) {
+			if (type == 'A' || type == 'C') {
+				lanes[lane].cars[lanes[lane].n] = type;
+				++lanes[lane].n;
 
-		if (type == 'A') {
-			++lane->n_ambs;
+				if (type == 'A') {
+					++lanes[lane].n_ambs;
+				}
+			}
 		}
+		else {
+			if (type == 'P') {
+				lanes[lane].cars[lanes[lane].n] = type;
+				++lanes[lane].n;
+			}
+		}
+		
 	}
 }
 
@@ -117,14 +128,16 @@ void process_cmd(void) {
 	uint8_t lane = 0, i = 0;
 	char *tmp = (char*)buffer_cmd;
 
-	for (; i < BUFF_LEN && tmp[i] != ';'; ++i) {
+	for (; i < MAX_CARS && tmp[i] != ';'; ++i) {
 		if (tmp[i] >= '0' && tmp[i] <= '2') {
 			lane = tmp[i]-'0';
 		}
 		else {
-			push(&lanes[lane], tmp[i]);
+			push(lane, tmp[i]);
 		}
 	}
+	
+	flush_buffer_cmd();
 }
 
 void update_lane(uint8_t id_lane) {
