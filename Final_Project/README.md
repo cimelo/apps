@@ -18,7 +18,7 @@ This project is a traffic simulator that runs on an Arduino Uno using the ChibiO
 5. Connect the Arduino using a serial monitor (Arduino IDE is recommended here because of the ability to send string);
 	
 ## Recommended Circuit Schematic
-[!Schematic](./imgs/schematic.pdf)
+![Schematic](./imgs/schematic.pdf)
 
 
 ## Requirements
